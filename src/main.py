@@ -51,7 +51,7 @@ class HyperplaneApplication(Adw.Application):
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(transient_for=self.props.active_window,
-                                application_name='hyperplane',
+                                application_name='Hyperplane',
                                 application_icon='hu.kramo.Hyperplane',
                                 developer_name='kramo',
                                 version='0.1.0',
