@@ -1,7 +1,7 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $HyperplaneWindow : Adw.ApplicationWindow {
+template $HypWindow : Adw.ApplicationWindow {
   default-width: 600;
   default-height: 300;
   content: 
@@ -17,13 +17,7 @@ template $HyperplaneWindow : Adw.ApplicationWindow {
       }
     }
     content: 
-    Label label {
-      label: "Hello, World!";
-
-      styles [
-        "title-1",
-      ]
-    }
+    $HypItemsView items_view {}
 
     ;
   }

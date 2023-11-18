@@ -6,6 +6,7 @@ blueprints = custom_target('blueprints',
   input: files(
     'gtk/help-overlay.blp',
     'gtk/window.blp',
+    'gtk/items-view.blp',
   ),
   output: '.',
   command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTPUT@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],
@@ -40,6 +41,7 @@ hyperplane_sources = [
   '__init__.py',
   'main.py',
   'window.py',
+  'items_view.py',
 ]
 
 install_data(hyperplane_sources, install_dir: moduledir)

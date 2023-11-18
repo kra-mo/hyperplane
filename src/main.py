@@ -28,10 +28,10 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gio
 
-from .window import HyperplaneWindow
+from .window import HypWindow
 
 
-class HyperplaneApplication(Adw.Application):
+class HypApplication(Adw.Application):
     """The main application singleton class."""
 
     def __init__(self):
@@ -51,7 +51,7 @@ class HyperplaneApplication(Adw.Application):
         """
         win = self.props.active_window
         if not win:
-            win = HyperplaneWindow(application=self)
+            win = HypWindow(application=self)
         win.present()
 
     def on_about_action(self, _widget, _):
@@ -89,5 +89,5 @@ class HyperplaneApplication(Adw.Application):
 
 def main(_version):
     """The application's entry point."""
-    app = HyperplaneApplication()
+    app = HypApplication()
     return app.run(sys.argv)
