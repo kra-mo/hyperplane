@@ -22,18 +22,20 @@ from typing import Any
 from gi.repository import Adw, Gtk
 
 from hyperplane import shared
-
-from .items_view import HypItemsView  # pylint: disable=unused-import
+from hyperplane.items_view import HypItemsView
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
 class HypWindow(Adw.ApplicationWindow):
     __gtype_name__ = "HypWindow"
 
-    items_view = Gtk.Template.Child()
+    scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
+    items_view: HypItemsView = HypItemsView(shared.home)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         if shared.PROFILE == "development":
             self.add_css_class("devel")
+
+        self.scrolled_window.set_child(self.items_view)

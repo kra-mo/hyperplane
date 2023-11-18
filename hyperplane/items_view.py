@@ -17,11 +17,24 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
+from typing import Any
+
 from gi.repository import Gtk
 
 from hyperplane import shared
+from hyperplane.item import HypItem
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-view.ui")
 class HypItemsView(Gtk.FlowBox):
     __gtype_name__ = "HypItemsView"
+
+    def __init__(self, path: Path, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+        if not path.is_dir():
+            return
+
+        for item in path.iterdir():
+            self.append(HypItem(item))

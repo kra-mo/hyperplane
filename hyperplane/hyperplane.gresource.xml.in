@@ -4,5 +4,8 @@
     <file preprocess="xml-stripblanks">gtk/window.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">gtk/items-view.ui</file>
+    <file preprocess="xml-stripblanks">gtk/item.ui</file>
+    <file alias="style.css">gtk/style.css</file>
+    <file alias="style-dark.css">gtk/style-dark.css</file>
   </gresource>
 </gresources>

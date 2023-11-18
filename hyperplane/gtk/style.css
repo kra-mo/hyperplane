@@ -1,0 +1,31 @@
+.blue-background { background: alpha(@blue_3, 0.3); }
+.blue-icon { color: @blue_5; }
+.blue-extension { background: @blue_5; color: @light_1; }
+
+.yellow-background { background: alpha(@yellow_3, 0.3); }
+.yellow-icon { color: @yellow_5; }
+.yellow-extension { background: @yellow_5; color: @light_1; }
+
+.red-background { background: alpha(@red_3, 0.3); }
+.red-icon { color: @red_5; }
+.red-extension { background: @red_5; color: @light_1; }
+
+.purple-background { background: alpha(@purple_3, 0.3); }
+.purple-icon { color: @purple_4; }
+.purple-extension { background: @purple_4; color: @light_1; }
+
+
+.gray-background { background: alpha(@light_5, 0.3); }
+.gray-icon { color: @dark_2; }
+.gray-extension { background: @dark_2; color: @light_1; }
+
+.item-thumbnail {
+    border-radius: 6px;
+}
+
+.file-extension {
+    padding: 2px 5px;
+    font-weight: 700;
+    border-radius: 3px;
+    font-size: small;
+}

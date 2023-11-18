@@ -1,0 +1,45 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HypItem : Box {
+    margin-start: 12;
+    margin-end: 12;
+    margin-top: 12;
+    margin-bottom: 12;
+    orientation: vertical;
+
+    Overlay thumbnail_overlay {
+        width-request: 120;
+        height-request: 100;
+        halign: center;
+
+        [overlay]
+        Label extension_label {
+            valign: end;
+            halign: end;
+            margin-bottom: 6;
+            margin-end: 6;
+
+
+            styles [
+                "file-extension",
+            ]
+        }
+
+        Image icon {
+            icon-size: large;
+        }
+
+        styles [
+            "item-thumbnail",
+        ]
+    }
+    Label label {
+        margin-top: 12;
+        justify: center;
+        wrap: true;
+        wrap-mode: word_char;
+        ellipsize: middle;
+        lines: 3;
+    }
+}

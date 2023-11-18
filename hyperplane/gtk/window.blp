@@ -4,6 +4,7 @@ using Adw 1;
 template $HypWindow : Adw.ApplicationWindow {
   default-width: 600;
   default-height: 300;
+  title: _("Hyperplane");
   content: 
   Adw.ToolbarView {
     [top]
@@ -16,12 +17,8 @@ template $HypWindow : Adw.ApplicationWindow {
         menu-model: primary_menu;
       }
     }
-    content: 
-    $HypItemsView items_view {}
-
-    ;
+    content: ScrolledWindow scrolled_window {};
   }
-
   ;
 }
 

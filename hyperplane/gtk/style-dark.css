@@ -1,0 +1,14 @@
+.blue-icon { color: @blue_1; }
+.blue-extension { background: @blue_1; color: @dark_5; }
+
+.yellow-icon { color: @yellow_1; }
+.yellow-extension { background: @yellow_1; color: @dark_5; }
+
+.red-icon { color: @red_1; }
+.red-extension { background: @red_1; color: @dark_5; }
+
+.purple-icon { color: @purple_1; }
+.purple-extension { background: @purple_1; color: @dark_5; }
+
+.gray-icon { color: @light_4; }
+.gray-extension { background: @light_4; color: @dark_5; }
