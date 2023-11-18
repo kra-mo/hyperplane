@@ -1,0 +1,6 @@
+data/hu.kramo.Hyperplane.desktop.in
+data/hu.kramo.Hyperplane.metainfo.xml.in
+data/hu.kramo.Hyperplane.gschema.xml
+src/main.py
+src/window.py
+src/window.ui
