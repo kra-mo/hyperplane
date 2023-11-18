@@ -1,0 +1,51 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HyperplaneWindow : Adw.ApplicationWindow {
+  default-width: 600;
+  default-height: 300;
+  content: 
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar header_bar {
+      [end]
+      MenuButton {
+        primary: true;
+        icon-name: "open-menu-symbolic";
+        tooltip-text: _("Menu");
+        menu-model: primary_menu;
+      }
+    }
+    content: 
+    Label label {
+      label: "Hello, World!";
+
+      styles [
+        "title-1",
+      ]
+    }
+
+    ;
+  }
+
+  ;
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("_Preferences");
+      action: "app.preferences";
+    }
+
+    item {
+      label: _("_Keyboard Shortcuts");
+      action: "win.show-help-overlay";
+    }
+
+    item {
+      label: _("_About Hyperplane");
+      action: "app.about";
+    }
+  }
+}
