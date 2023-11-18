@@ -12,3 +12,7 @@
 
 .gray-icon { color: @light_4; }
 .gray-extension { background: @light_4; color: @dark_5; }
+
+.thumbnail-picture {
+    filter: initial;
+}

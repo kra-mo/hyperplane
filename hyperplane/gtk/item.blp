@@ -15,7 +15,12 @@ template $HypItem : Box {
         halign: center;
 
         [overlay]
-        Picture thumbnail {}
+        Picture thumbnail {
+            content-fit: cover;
+            styles [
+                "thumbnail-picture",
+            ]
+        }
 
         [overlay]
         Label extension_label {
@@ -23,7 +28,8 @@ template $HypItem : Box {
             halign: end;
             margin-bottom: 6;
             margin-end: 6;
-
+            margin-start: 6;
+            ellipsize: end;
 
             styles [
                 "file-extension",

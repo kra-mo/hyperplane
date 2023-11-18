@@ -64,7 +64,9 @@ class HypItem(Gtk.Box):
         """Update the visible name of the file"""
         self.label.set_label(self.path.stem)
 
-    def _thumbnail_query_callback(self, _source: Any, result: Gio.Task) -> None:
+    def _thumbnail_query_callback(
+        self, _source: Any, result: Gio.Task, color: str
+    ) -> None:
         try:
             file_info = self.gfile.query_info_finish(result)
         except GLib.GError:
@@ -80,6 +82,8 @@ class HypItem(Gtk.Box):
         self.thumbnail.set_paintable(texture)
         self.thumbnail.set_visible(True)
         self.icon.set_visible(False)
+        self.extension_label.remove_css_class(color + "-extension")
+        self.extension_label.add_css_class(color + "-extension-thumb")
 
     def _icon_query_callback(self, _source: Any, result: Gio.Task) -> None:
         try:
@@ -115,6 +119,7 @@ class HypItem(Gtk.Box):
                     color = "gray"
             self.thumbnail_overlay.add_css_class(color + "-background")
             self.icon.add_css_class(color + "-icon")
+            self.extension_label.remove_css_class(color + "-extension-thumb")
             self.extension_label.add_css_class(color + "-extension")
 
             self.gfile.query_info_async(
@@ -123,6 +128,7 @@ class HypItem(Gtk.Box):
                 GLib.PRIORITY_DEFAULT,
                 None,
                 self._thumbnail_query_callback,
+                color,
             )
 
     def update_thumbnail(self) -> None:
