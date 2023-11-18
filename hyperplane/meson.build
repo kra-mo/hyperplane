@@ -1,6 +1,4 @@
-pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 moduledir = pkgdatadir / 'hyperplane'
-gnome = import('gnome')
 
 blueprints = custom_target('blueprints',
   input: files(
@@ -13,20 +11,16 @@ blueprints = custom_target('blueprints',
 )
 
 gnome.compile_resources('hyperplane',
-  'hyperplane.gresource.xml',
+  configure_file(
+    input: 'hyperplane.gresource.xml.in',
+    output: 'hyperplane.gresource.xml',
+    configuration: conf
+  ),
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
   dependencies: blueprints,
 )
-
-python = import('python')
-
-conf = configuration_data()
-conf.set('PYTHON', python.find_installation('python3').path())
-conf.set('VERSION', meson.project_version())
-conf.set('localedir', get_option('prefix') / get_option('localedir'))
-conf.set('pkgdatadir', pkgdatadir)
 
 configure_file(
   input: 'hyperplane.in',
@@ -42,6 +36,11 @@ hyperplane_sources = [
   'main.py',
   'window.py',
   'items_view.py',
+  configure_file(
+    input: 'shared.py.in',
+    output: 'shared.py',
+    configuration: conf
+  )
 ]
 
 install_data(hyperplane_sources, install_dir: moduledir)

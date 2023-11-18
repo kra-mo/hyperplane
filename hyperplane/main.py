@@ -21,6 +21,8 @@ import sys
 
 import gi
 
+from hyperplane import shared
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
@@ -36,7 +38,7 @@ class HypApplication(Adw.Application):
 
     def __init__(self):
         super().__init__(
-            application_id="hu.kramo.Hyperplane",
+            application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
         self.create_action("quit", lambda *_: self.quit(), ["<primary>q"])
@@ -59,7 +61,7 @@ class HypApplication(Adw.Application):
         about = Adw.AboutWindow(
             transient_for=self.props.active_window,
             application_name="Hyperplane",
-            application_icon="hu.kramo.Hyperplane",
+            application_icon=shared.APP_ID,
             developer_name="kramo",
             version="0.1.0",
             developers=["kramo"],
