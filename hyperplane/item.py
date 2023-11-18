@@ -47,7 +47,6 @@ class HypItem(Gtk.Box):
         self.path = path
 
         if not self.path.exists():
-            self.label.set_label("-")
             return
 
         self.gfile = Gio.File.new_for_path(str(path))
