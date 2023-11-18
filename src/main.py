@@ -18,12 +18,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
+
 import gi
 
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
 
-from gi.repository import Gtk, Gio, Adw
+# pylint: disable=wrong-import-position
+
+from gi.repository import Adw, Gio
+
 from .window import HyperplaneWindow
 
 
@@ -31,11 +35,13 @@ class HyperplaneApplication(Adw.Application):
     """The main application singleton class."""
 
     def __init__(self):
-        super().__init__(application_id='hu.kramo.Hyperplane',
-                         flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
-        self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
-        self.create_action('about', self.on_about_action)
-        self.create_action('preferences', self.on_preferences_action)
+        super().__init__(
+            application_id="hu.kramo.Hyperplane",
+            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+        )
+        self.create_action("quit", lambda *_: self.quit(), ["<primary>q"])
+        self.create_action("about", self.on_about_action)
+        self.create_action("preferences", self.on_preferences_action)
 
     def do_activate(self):
         """Called when the application is activated.
@@ -48,20 +54,22 @@ class HyperplaneApplication(Adw.Application):
             win = HyperplaneWindow(application=self)
         win.present()
 
-    def on_about_action(self, widget, _):
+    def on_about_action(self, _widget, _):
         """Callback for the app.about action."""
-        about = Adw.AboutWindow(transient_for=self.props.active_window,
-                                application_name='Hyperplane',
-                                application_icon='hu.kramo.Hyperplane',
-                                developer_name='kramo',
-                                version='0.1.0',
-                                developers=['kramo'],
-                                copyright='© 2023 kramo')
+        about = Adw.AboutWindow(
+            transient_for=self.props.active_window,
+            application_name="Hyperplane",
+            application_icon="hu.kramo.Hyperplane",
+            developer_name="kramo",
+            version="0.1.0",
+            developers=["kramo"],
+            copyright="© 2023 kramo",
+        )
         about.present()
 
-    def on_preferences_action(self, widget, _):
+    def on_preferences_action(self, _widget, _):
         """Callback for the app.preferences action."""
-        print('app.preferences action activated')
+        print("app.preferences action activated")
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -79,7 +87,7 @@ class HyperplaneApplication(Adw.Application):
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
 
-def main(version):
+def main(_version):
     """The application's entry point."""
     app = HyperplaneApplication()
     return app.run(sys.argv)

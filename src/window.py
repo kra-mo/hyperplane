@@ -17,14 +17,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from gi.repository import Adw
-from gi.repository import Gtk
+from gi.repository import Adw, Gtk
 
-@Gtk.Template(resource_path='/hu/kramo/Hyperplane/window.ui')
+
+@Gtk.Template(resource_path="/hu/kramo/Hyperplane/gtk/window.ui")
 class HyperplaneWindow(Adw.ApplicationWindow):
-    __gtype_name__ = 'HyperplaneWindow'
+    __gtype_name__ = "HyperplaneWindow"
 
     label = Gtk.Template.Child()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
