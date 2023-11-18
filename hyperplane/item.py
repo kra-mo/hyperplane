@@ -21,9 +21,10 @@ from os.path import getsize
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
+from hyperplane.utils.get_thumbnail import get_thumbnail
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
@@ -34,10 +35,12 @@ class HypItem(Gtk.Box):
     thumbnail_overlay: Gtk.Overlay = Gtk.Template.Child()
     icon: Gtk.Image = Gtk.Template.Child()
     extension_label: Gtk.Label = Gtk.Template.Child()
+    thumbnail: Gtk.Picture = Gtk.Template.Child()
 
     gfile = Gio.File
     file_info: Gio.FileInfo
     path: Path
+    content_type: str
 
     def __init__(self, path: Path, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -53,13 +56,32 @@ class HypItem(Gtk.Box):
         self.update()
 
     def update(self) -> None:
+        """Update the file name and thumbnail"""
         self.update_label()
         self.update_thumbnail()
 
     def update_label(self) -> None:
+        """Update the visible name of the file"""
         self.label.set_label(self.path.stem)
 
     def _thumbnail_query_callback(self, _source: Any, result: Gio.Task) -> None:
+        try:
+            file_info = self.gfile.query_info_finish(result)
+        except GLib.GError:
+            return
+
+        if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
+            texture = Gdk.Texture.new_from_filename(path)
+        elif thumbnail := get_thumbnail(self.path, self.content_type):
+            texture = Gdk.Texture.new_for_pixbuf(thumbnail)
+        else:
+            return
+
+        self.thumbnail.set_paintable(texture)
+        self.thumbnail.set_visible(True)
+        self.icon.set_visible(False)
+
+    def _icon_query_callback(self, _source: Any, result: Gio.Task) -> None:
         try:
             file_info = self.gfile.query_info_finish(result)
         except GLib.GError:
@@ -72,8 +94,9 @@ class HypItem(Gtk.Box):
             file_info = self.gfile.query_info_finish(result)
         except GLib.GError:
             return
-        if content_type := file_info.get_content_type():
-            match content_type.split("/")[0]:
+        self.content_type = file_info.get_content_type()
+        if self.content_type:
+            match self.content_type.split("/")[0]:
                 case "inode":
                     color = "blue"
                 case "audio":
@@ -94,9 +117,22 @@ class HypItem(Gtk.Box):
             self.icon.add_css_class(color + "-icon")
             self.extension_label.add_css_class(color + "-extension")
 
+            self.gfile.query_info_async(
+                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                Gio.FileQueryInfoFlags.NONE,
+                GLib.PRIORITY_DEFAULT,
+                None,
+                self._thumbnail_query_callback,
+            )
+
     def update_thumbnail(self) -> None:
+        """Update the visible thumbnail of the file"""
+        self.icon.set_visible(True)
+        self.thumbnail.set_visible(False)
+
         if suffix := self.path.suffix:
             self.extension_label.set_label(suffix[1:].upper())
+            self.extension_label.set_visible(True)
         else:
             self.extension_label.set_visible(False)
 
@@ -113,7 +149,7 @@ class HypItem(Gtk.Box):
             Gio.FileQueryInfoFlags.NONE,
             GLib.PRIORITY_DEFAULT,
             None,
-            self._thumbnail_query_callback,
+            self._icon_query_callback,
         )
 
         self.gfile.query_info_async(

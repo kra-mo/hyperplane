@@ -1,4 +1,4 @@
-moduledir = pkgdatadir / 'hyperplane'
+moduledir = python_dir / 'hyperplane'
 
 blueprints = custom_target('blueprints',
   input: files(
@@ -31,6 +31,8 @@ configure_file(
   install_dir: get_option('bindir'),
   install_mode: 'r-xr--r--'
 )
+
+install_subdir('utils', install_dir: moduledir)
 
 hyperplane_sources = [
   '__init__.py',

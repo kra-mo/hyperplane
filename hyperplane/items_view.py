@@ -45,5 +45,5 @@ class HypItemsView(Gtk.FlowBox):
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
         Gio.AppInfo.launch_default_for_uri(
-            "file://" + str(flow_box_child.get_child().get_child().path)
+            flow_box_child.get_child().get_child().gfile.get_uri()
         )

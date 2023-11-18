@@ -21,14 +21,15 @@ import sys
 
 import gi
 
-from hyperplane import shared
-
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("GnomeDesktop", "4.0")
 
 # pylint: disable=wrong-import-position
 
 from gi.repository import Adw, Gio
+
+from hyperplane import shared
 
 from .window import HypWindow
 

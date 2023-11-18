@@ -5,7 +5,6 @@
     "sdk" : "org.gnome.Sdk",
     "command" : "hyperplane",
     "finish-args" : [
-        "--share=network",
         "--share=ipc",
         "--socket=fallback-x11",
         "--device=dri",
@@ -23,6 +22,54 @@
         "*.a"
     ],
     "modules" : [
+        {
+            "name": "gnome-desktop",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Ddebug_tools=true",
+                "-Dudev=disabled"
+            ],
+            "cleanup": [
+                "/libexec/gnome-desktop-debug"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/gnome-desktop/44/gnome-desktop-44.0.tar.xz",
+                    "sha256": "42c773745d84ba14bc1cf1c4c6f4606148803a5cd337941c63964795f3c59d42",
+                    "x-checker-data": {
+                        "type": "gnome",
+                        "name": "gnome-desktop"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "totem-pl-parser",
+            "buildsystem": "meson",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/totem-pl-parser/3.26/totem-pl-parser-3.26.6.tar.xz",
+                    "sha256": "c0df0f68d5cf9d7da43c81c7f13f11158358368f98c22d47722f3bd04bd3ac1c",
+                    "x-checker-data": {
+                        "type": "gnome",
+                        "name": "totem-pl-parser"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "totem-video-thumbnailer",
+            "buildsystem": "meson",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitlab.gnome.org/GNOME/totem-video-thumbnailer.git",
+                    "commit": "78ddf6c113d439d8ad9ff1453cf433592fabe9fd"
+                }
+            ]
+        },
         {
             "name" : "hyperplane",
             "builddir" : true,

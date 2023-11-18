@@ -9,9 +9,13 @@ template $HypItem : Box {
     orientation: vertical;
 
     Overlay thumbnail_overlay {
+        overflow: hidden;
         width-request: 120;
         height-request: 100;
         halign: center;
+
+        [overlay]
+        Picture thumbnail {}
 
         [overlay]
         Label extension_label {
