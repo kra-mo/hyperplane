@@ -20,7 +20,7 @@
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Gtk
+from gi.repository import Adw, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -37,4 +37,4 @@ class HypItemsView(Gtk.FlowBox):
             return
 
         for item in path.iterdir():
-            self.append(HypItem(item))
+            self.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
