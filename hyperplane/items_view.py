@@ -20,7 +20,7 @@
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -38,3 +38,12 @@ class HypItemsView(Gtk.FlowBox):
 
         for item in path.iterdir():
             self.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
+
+        self.connect("child-activated", self._child_activated)
+
+    def _child_activated(
+        self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
+    ) -> None:
+        Gio.AppInfo.launch_default_for_uri(
+            "file://" + str(flow_box_child.get_child().get_child().path)
+        )

@@ -94,7 +94,7 @@ class HypItem(Gtk.Box):
             self.icon.add_css_class(color + "-icon")
             self.extension_label.add_css_class(color + "-extension")
 
-    def update_thumbnail(self):
+    def update_thumbnail(self) -> None:
         if suffix := self.path.suffix:
             self.extension_label.set_label(suffix[1:].upper())
         else:
