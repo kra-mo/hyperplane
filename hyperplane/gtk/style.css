@@ -1,26 +1,37 @@
+.solid-blue-background { background: @blue_5; }
+.light-blue-background { background: @blue_3; }
+
+.solid-white-background { background: @light_1; }
+.solid-white-icon { color: @light_1; }
+
 .blue-background { background: alpha(@blue_3, 0.3); }
 .blue-icon { color: @blue_5; }
+.blue-icon-light-only { color: @blue_5; }
 .blue-extension { background: @blue_5; color: @light_1; }
 .blue-extension-thumb { background: @blue_5; color: @light_1; }
 
 .yellow-background { background: alpha(@yellow_3, 0.3); }
 .yellow-icon { color: @yellow_5; }
+.yellow-icon-light-only { color: @yellow_5; }
 .yellow-extension { background: @yellow_5; color: @light_1; }
 .yellow-extension-thumb { background: @yellow_5; color: @light_1; }
 
 .red-background { background: alpha(@red_3, 0.3); }
 .red-icon { color: @red_5; }
+.red-icon-light-only { color: @red_5; }
 .red-extension { background: @red_5; color: @light_1; }
 .red-extension-thumb { background: @red_5; color: @light_1; }
 
 .purple-background { background: alpha(@purple_3, 0.3); }
 .purple-icon { color: @purple_4; }
+.purple-icon-light-only { color: @purple_4; }
 .purple-extension { background: @purple_4; color: @light_1; }
 .purple-extension-thumb { background: @purple_4; color: @light_1; }
 
 
 .gray-background { background: alpha(@light_5, 0.3); }
 .gray-icon { color: @dark_2; }
+.gray-icon-light-only { color: @dark_2; }
 .gray-extension { background: @dark_2; color: @light_1; }
 .gray-extension-thumb { background: @dark_2; color: @light_1; }
 
@@ -28,9 +39,13 @@
     border-radius: 6px;
 }
 
+.small-thumbnail {
+    border-radius: 3px;
+}
+
 .thumbnail-picture {
     /* Darken thumbnails so pure white images don't look weird */
-    filter: brightness(.93);
+    filter: brightness(.97);
 }
 
 .file-extension {

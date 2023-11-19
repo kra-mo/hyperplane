@@ -44,6 +44,5 @@ class HypItemsView(Gtk.FlowBox):
     def _child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
-        Gio.AppInfo.launch_default_for_uri(
-            flow_box_child.get_child().get_child().gfile.get_uri()
-        )
+        if (item := flow_box_child.get_child().get_child()).path.is_file():
+            Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())

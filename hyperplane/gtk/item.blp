@@ -15,6 +15,16 @@ template $HypItem : Box {
         halign: center;
 
         [overlay]
+        Box dir_thumbnails {
+            spacing: 6;
+            halign: start;
+            valign: start;
+            margin-start: 6;
+            margin-end: 6;
+            margin-top: 6;
+        }
+
+        [overlay]
         Picture thumbnail {
             content-fit: cover;
             styles [
