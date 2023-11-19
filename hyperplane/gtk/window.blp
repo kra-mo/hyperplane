@@ -17,7 +17,12 @@ template $HypWindow : Adw.ApplicationWindow {
         menu-model: primary_menu;
       }
     }
-    content: ScrolledWindow scrolled_window {};
+    content: Adw.NavigationView navigation_view {
+      Adw.NavigationPage {
+        title: _("Home");
+        ScrolledWindow scrolled_window {}
+      }
+    };
   }
   ;
 

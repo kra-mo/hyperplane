@@ -55,6 +55,7 @@ class HypApplication(Adw.Application):
         win = self.props.active_window
         if not win:
             win = HypWindow(application=self)
+        shared.win = win
         win.present()
 
     def on_about_action(self, _widget, _):

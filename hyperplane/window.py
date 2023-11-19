@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
 from typing import Any
 
 from gi.repository import Adw, Gtk
@@ -30,6 +31,8 @@ class HypWindow(Adw.ApplicationWindow):
     __gtype_name__ = "HypWindow"
 
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
+    navigation_view: Adw.NavigationView = Gtk.Template.Child()
+
     items_view: HypItemsView = HypItemsView(shared.home)
 
     def __init__(self, **kwargs: Any) -> None:
@@ -39,3 +42,21 @@ class HypWindow(Adw.ApplicationWindow):
             self.add_css_class("devel")
 
         self.scrolled_window.set_child(self.items_view)
+
+        self.navigation_view.connect("popped", self._update_items_view)
+        self.navigation_view.connect("pushed", self._update_items_view)
+
+    def _update_items_view(
+        self, navigation_view: Adw.NavigationView, *_args: Any
+    ) -> None:
+        self.items_view = (
+            navigation_view.get_visible_page().get_child().get_child().get_child()
+        )
+
+    def new_page(self, path: Path) -> None:
+        if path == self.items_view.path:
+            return
+
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_child(HypItemsView(path))
+        self.navigation_view.push(Adw.NavigationPage.new(scrolled_window, path.name))

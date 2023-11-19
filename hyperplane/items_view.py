@@ -32,17 +32,24 @@ class HypItemsView(Gtk.FlowBox):
 
     def __init__(self, path: Path, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.path = path
 
-        if not path.is_dir():
+        if not self.path.is_dir():
             return
 
-        for item in path.iterdir():
-            self.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
+        self._refresh()
 
         self.connect("child-activated", self._child_activated)
+
+    def _refresh(self) -> None:
+        self.remove_all()
+        for item in self.path.iterdir():
+            self.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
 
     def _child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
         if (item := flow_box_child.get_child().get_child()).path.is_file():
             Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
+        elif item.path.is_dir():
+            shared.win.new_page(item.path)
