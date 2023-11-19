@@ -23,17 +23,16 @@ from typing import Any
 from gi.repository import Adw, Gtk
 
 from hyperplane import shared
-from hyperplane.items_view import HypItemsView
+from hyperplane.items_page import HypItemsPage
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
 class HypWindow(Adw.ApplicationWindow):
     __gtype_name__ = "HypWindow"
 
-    scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     navigation_view: Adw.NavigationView = Gtk.Template.Child()
 
-    items_view: HypItemsView = HypItemsView(shared.home)
+    items_page: HypItemsPage
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -41,22 +40,19 @@ class HypWindow(Adw.ApplicationWindow):
         if shared.PROFILE == "development":
             self.add_css_class("devel")
 
-        self.scrolled_window.set_child(self.items_view)
+        self.items_page = HypItemsPage(shared.home)
+        self.navigation_view.push(self.items_page)
 
-        self.navigation_view.connect("popped", self._update_items_view)
-        self.navigation_view.connect("pushed", self._update_items_view)
+        self.navigation_view.connect("popped", self._update_items_page)
+        self.navigation_view.connect("pushed", self._update_items_page)
 
-    def _update_items_view(
+    def _update_items_page(
         self, navigation_view: Adw.NavigationView, *_args: Any
     ) -> None:
-        self.items_view = (
-            navigation_view.get_visible_page().get_child().get_child().get_child()
-        )
+        self.items_page = navigation_view.get_visible_page()
 
     def new_page(self, path: Path) -> None:
-        if path == self.items_view.path:
+        if path == self.items_page.path:
             return
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_child(HypItemsView(path))
-        self.navigation_view.push(Adw.NavigationPage.new(scrolled_window, path.name))
+        self.navigation_view.push(HypItemsPage(path))

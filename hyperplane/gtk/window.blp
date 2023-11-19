@@ -4,46 +4,10 @@ using Adw 1;
 template $HypWindow : Adw.ApplicationWindow {
   title: _("Hyperplane");
   content: 
-  Adw.ToolbarView {
-    [top]
-    Adw.HeaderBar header_bar {
-      [end]
-      MenuButton {
-        primary: true;
-        icon-name: "open-menu-symbolic";
-        tooltip-text: _("Menu");
-        menu-model: primary_menu;
-      }
-    }
-    content: Adw.NavigationView navigation_view {
-      Adw.NavigationPage {
-        title: _("Home");
-        ScrolledWindow scrolled_window {}
-      }
-    };
-  }
-  ;
+  Adw.NavigationView navigation_view {
+  };
 
   styles [
     "view"
   ]
-}
-
-menu primary_menu {
-  section {
-    item {
-      label: _("_Preferences");
-      action: "app.preferences";
-    }
-
-    item {
-      label: _("_Keyboard Shortcuts");
-      action: "win.show-help-overlay";
-    }
-
-    item {
-      label: _("_About Hyperplane");
-      action: "app.about";
-    }
-  }
 }

@@ -1,0 +1,52 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HypItemsPage : Adw.NavigationPage {
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar header_bar {
+      [end]
+      MenuButton {
+        primary: true;
+        icon-name: 'open-menu-symbolic';
+        tooltip-text: _('Menu');
+        menu-model: primary_menu;
+      }
+    }
+    content: 
+    ScrolledWindow {
+      FlowBox flow_box {
+        valign: start;
+        margin-start: 12;
+        margin-end: 12;
+        margin-top: 12;
+        margin-bottom: 12;
+        selection-mode: multiple;
+        row-spacing: 12;
+        column-spacing: 12;
+        activate-on-single-click: false;
+      }
+    }
+
+    ;
+  }
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _('_Preferences');
+      action: 'app.preferences';
+    }
+
+    item {
+      label: _('_Keyboard Shortcuts');
+      action: 'win.show-help-overlay';
+    }
+
+    item {
+      label: _('_About Hyperplane');
+      action: 'app.about';
+    }
+  }
+}

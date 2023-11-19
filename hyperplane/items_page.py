@@ -1,4 +1,4 @@
-# items_view.py
+# items_page.py
 #
 # Copyright 2023 kramo
 #
@@ -26,25 +26,28 @@ from hyperplane import shared
 from hyperplane.item import HypItem
 
 
-@Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-view.ui")
-class HypItemsView(Gtk.FlowBox):
-    __gtype_name__ = "HypItemsView"
+@Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
+class HypItemsPage(Adw.NavigationPage):
+    __gtype_name__ = "HypItemsPage"
+
+    flow_box: Gtk.FlowBox = Gtk.Template.Child()
 
     def __init__(self, path: Path, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.path = path
+        self.set_title(self.path.name)
 
         if not self.path.is_dir():
             return
 
         self._refresh()
 
-        self.connect("child-activated", self._child_activated)
+        self.flow_box.connect("child-activated", self._child_activated)
 
     def _refresh(self) -> None:
-        self.remove_all()
+        self.flow_box.remove_all()
         for item in self.path.iterdir():
-            self.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
+            self.flow_box.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
 
     def _child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild

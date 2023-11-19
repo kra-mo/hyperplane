@@ -4,7 +4,7 @@ blueprints = custom_target('blueprints',
   input: files(
     'gtk/help-overlay.blp',
     'gtk/window.blp',
-    'gtk/items-view.blp',
+    'gtk/items-page.blp',
     'gtk/item.blp',
   ),
   output: '.',
@@ -38,7 +38,7 @@ hyperplane_sources = [
   '__init__.py',
   'main.py',
   'window.py',
-  'items_view.py',
+  'items_page.py',
   'item.py',
   configure_file(
     input: 'shared.py.in',
