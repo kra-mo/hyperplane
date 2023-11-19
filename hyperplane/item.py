@@ -67,11 +67,11 @@ class HypItem(Adw.Bin):
 
     def zoom(self, zoom_level: int) -> None:
         """Set the zoom level for the item."""
+        self.clamp.set_maximum_size(50 * zoom_level)
         self.box.set_margin_start(4 * zoom_level)
         self.box.set_margin_end(4 * zoom_level)
         self.box.set_margin_top(4 * zoom_level)
         self.box.set_margin_bottom(4 * zoom_level)
-        self.clamp.set_maximum_size(50 * zoom_level)
 
         match zoom_level:
             case 1:
@@ -91,8 +91,10 @@ class HypItem(Adw.Bin):
             self.thumbnail.dir_thumbnails.set_margin_top(6)
 
         if zoom_level < 2:
-            self.thumbnail.icon.set_icon_size(Gtk.IconSize.NORMAL)
+            self.thumbnail.icon.set_pixel_size(20)
+            self.thumbnail.icon.set_icon_size(Gtk.IconSize.INHERIT)
         else:
+            self.thumbnail.icon.set_pixel_size(-1)
             self.thumbnail.icon.set_icon_size(Gtk.IconSize.LARGE)
 
     def _content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:

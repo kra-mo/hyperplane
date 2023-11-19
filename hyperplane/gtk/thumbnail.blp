@@ -3,18 +3,13 @@ using Adw 1;
 
 template $HypThumb : Overlay {
     overflow: hidden;
-    width-request: 120;
-    height-request: 102;
     halign: center;
 
     [overlay]
     Box dir_thumbnails {
-        spacing: 6;
         halign: start;
         valign: start;
-        margin-start: 6;
         margin-end: 6;
-        margin-top: 6;
     }
 
     [overlay]
@@ -57,7 +52,6 @@ template $HypThumb : Overlay {
     }
 
     Image icon {
-        icon-size: large;
         icon-name: "content-loading";
     }
 
