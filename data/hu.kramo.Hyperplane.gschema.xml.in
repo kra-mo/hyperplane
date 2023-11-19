@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="hyperplane">
-	<schema id="hu.kramo.Hyperplane" path="@PREFIX@/">
+	<schema id="@APP_ID@" path="@PREFIX@/">
+	</schema>
+	<schema id="@APP_ID@.State" path="@PREFIX@/State/">
+		<key name="width" type="i">
+			<default>880</default>
+		</key>
+		<key name="height" type="i">
+			<default>550</default>
+		</key>
+		<key name="is-maximized" type="b">
+			<default>false</default>
+		</key>
 	</schema>
 </schemalist>

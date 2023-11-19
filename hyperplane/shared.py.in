@@ -19,12 +19,15 @@
 
 from pathlib import Path
 
-from gi.repository import GLib
+from gi.repository import Gio, GLib
 
 APP_ID = "@APP_ID@"
 VERSION = "@VERSION@"
 PREFIX = "@PREFIX@"
 PROFILE = "@PROFILE@"
+
+schema = Gio.Settings.new(APP_ID)
+state_schema = Gio.Settings.new(APP_ID + ".State")
 
 data_dir = Path(GLib.get_user_data_dir())
 config_dir = Path(GLib.get_user_config_dir())

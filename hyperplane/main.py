@@ -52,11 +52,22 @@ class HypApplication(Adw.Application):
         We raise the application's main window, creating it if
         necessary.
         """
-        win = self.props.active_window
-        if not win:
-            win = HypWindow(application=self)
-        shared.win = win
-        win.present()
+        shared.win = self.props.active_window
+        if not shared.win:
+            shared.win = HypWindow(application=self)
+
+        # Save window geometry
+        shared.state_schema.bind(
+            "width", shared.win, "default-width", Gio.SettingsBindFlags.DEFAULT
+        )
+        shared.state_schema.bind(
+            "height", shared.win, "default-height", Gio.SettingsBindFlags.DEFAULT
+        )
+        shared.state_schema.bind(
+            "is-maximized", shared.win, "maximized", Gio.SettingsBindFlags.DEFAULT
+        )
+
+        shared.win.present()
 
     def on_about_action(self, _widget, _):
         """Callback for the app.about action."""
