@@ -1,4 +1,4 @@
-# get_thumbnail.py
+# get_content_type.py
 #
 # Copyright 2023 kramo
 #
@@ -17,59 +17,33 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
 from typing import Any
 
-from gi.repository import Gdk, Gio, GLib, GnomeDesktop
+from gi.repository import Gio, GLib
 
 
-def get_thumbnail_async(
-    gfile: Gio.File, content_type: str, callback: callable, *args: Any
-) -> None:
+def get_content_type_async(gfile: Gio.File, callback: callable, *args: Any) -> None:
     """A wrapper around gfile.query_info_async"""
     gfile.query_info_async(
-        Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+        Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
         Gio.FileQueryInfoFlags.NONE,
         GLib.PRIORITY_DEFAULT,
         None,
         _query_callback,
-        content_type,
         callback,
         *args,
     )
 
 
 def _query_callback(
-    gfile: Gio.File, result: Gio.Task, content_type: str, callback: callable, *args: Any
+    gfile: Gio.File, result: Gio.Task, callback: callable, *args: Any
 ) -> None:
     try:
         file_info = gfile.query_info_finish(result)
     except GLib.GError:
         return
-    if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
-        texture = Gdk.Texture.new_from_filename(path)
-    elif pixbuf := _generate_thumbnail(Path(gfile.get_path()), content_type):
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-    else:
+    if not (content_type := file_info.get_content_type()):
         return
 
     # Only call the callback if successful. Content type cannot be NULL.
-    callback(gfile, texture, *args)
-
-
-def _generate_thumbnail(path, mime_type):
-    factory = GnomeDesktop.DesktopThumbnailFactory()
-    uri = Gio.file_new_for_path(str(path)).get_uri()
-    mtime = path.stat().st_mtime
-
-    if factory.lookup(uri, mtime):
-        return None
-
-    if not factory.can_thumbnail(uri, mime_type, mtime):
-        return None
-
-    if not (thumbnail := factory.generate_thumbnail(uri, mime_type)):
-        return None
-
-    factory.save_thumbnail(thumbnail, uri, mtime)
-    return thumbnail
+    callback(gfile, content_type, *args)

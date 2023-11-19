@@ -35,7 +35,10 @@ class HypItemsPage(Adw.NavigationPage):
     def __init__(self, path: Path, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.path = path
-        self.set_title(self.path.name)
+        if self.path == shared.home:
+            self.set_title(_("Home"))
+        else:
+            self.set_title(self.path.name)
 
         if not self.path.is_dir():
             return

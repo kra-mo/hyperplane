@@ -17,15 +17,16 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from os.path import getsize
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
-from hyperplane.utils.get_thumbnail import get_thumbnail
+from hyperplane.utils.get_content_type import get_content_type_async
+from hyperplane.utils.get_symbolic_icon import get_symbolic_icon_async
+from hyperplane.utils.get_thumbnail import get_thumbnail_async
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
@@ -65,175 +66,96 @@ class HypItem(Gtk.Box):
         """Update the visible name of the file"""
         self.label.set_label(self.path.stem)
 
-    def _dir_icon_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, thumbnail: Adw.Bin
+    def _dir_icon_callback(
+        self, _gfile: Gio.File, icon: Gio.Icon, thumbnail: Gtk.Overlay
     ) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-        if icon := file_info.get_symbolic_icon():
-            thumbnail.get_child().set_from_gicon(icon)
+        thumbnail.get_child().set_from_gicon(icon)
 
-    def _dir_content_type_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, thumbnail: Adw.Bin
+    def _dir_content_type_callback(
+        self, gfile: Gio.File, content_type: str, thumbnail: Gtk.Overlay
     ) -> None:
         path = Path(gfile.get_path())
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-        content_type = file_info.get_content_type()
-        if content_type:
-            if path.is_file():
-                thumbnail.add_css_class("solid-white-background")
-                color = get_color_for_content_type(content_type)
-                thumbnail.get_child().add_css_class(color + "-icon-light-only")
-                gfile.query_info_async(
-                    Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                    Gio.FileQueryInfoFlags.NONE,
-                    GLib.PRIORITY_DEFAULT,
-                    None,
-                    self._dir_thumbnail_query_callback,
-                    thumbnail,
-                    content_type,
-                )
-            elif path.is_dir():
-                thumbnail.add_css_class("light-blue-background")
-                thumbnail.get_child().add_css_class("solid-white-icon")
+        if path.is_file():
+            thumbnail.add_css_class("solid-white-background")
+            color = get_color_for_content_type(content_type)
+            thumbnail.get_child().add_css_class(color + "-icon-light-only")
+            get_thumbnail_async(
+                gfile, content_type, self._dir_thumbnail_callback, thumbnail
+            )
 
-    def _dir_thumbnail_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, thumbnail: Adw.Bin, content_type: str
+        elif path.is_dir():
+            thumbnail.add_css_class("light-blue-background")
+            thumbnail.get_child().add_css_class("solid-white-icon")
+
+    def _dir_thumbnail_callback(
+        self, _gfile: Gio.File, texture: Gdk.Texture, thumbnail: Gtk.Overlay
     ) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-
-        if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
-            texture = Gdk.Texture.new_from_filename(path)
-        elif pixbuf := get_thumbnail(Path(gfile.get_path()), content_type):
-            texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        else:
-            return
-
         thumbnail.remove_css_class("solid-white-background")
         thumbnail.add_css_class("light-blue-background")
 
-        overlay = Gtk.Overlay()
         picture = Gtk.Picture.new_for_paintable(texture)
         picture.set_content_fit(Gtk.ContentFit.COVER)
-        overlay.add_overlay(picture)
-        thumbnail.set_child(overlay)
+        thumbnail.add_overlay(picture)
 
-    def _icon_query_callback(self, gfile: Gio.File, result: Gio.Task) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-        if icon := file_info.get_symbolic_icon():
-            self.icon.set_from_gicon(icon)
+    def _icon_callback(self, _gfile: Gio.File, icon: Gio.Icon) -> None:
+        self.icon.set_from_gicon(icon)
 
-    def _content_type_query_callback(self, gfile: Gio.File, result: Gio.Task) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-        self.content_type = file_info.get_content_type()
-        if self.content_type:
-            color = get_color_for_content_type(self.content_type)
-            self.thumbnail_overlay.add_css_class(color + "-background")
+    def _content_type_callback(self, gfile: Gio.File, content_type: str) -> None:
+        self.content_type = content_type
+        color = get_color_for_content_type(self.content_type)
+        self.thumbnail_overlay.add_css_class(color + "-background")
 
-            if self.path.is_file():
-                self.icon.add_css_class(color + "-icon")
-                self.extension_label.remove_css_class(color + "-extension-thumb")
-                self.extension_label.add_css_class(color + "-extension")
-                self.gfile.query_info_async(
-                    Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                    Gio.FileQueryInfoFlags.NONE,
-                    GLib.PRIORITY_DEFAULT,
-                    None,
-                    self._thumbnail_query_callback,
-                    color,
+        if self.path.is_file():
+            self.icon.add_css_class(color + "-icon")
+            self.extension_label.remove_css_class(color + "-extension-thumb")
+            self.extension_label.add_css_class(color + "-extension")
+            get_thumbnail_async(
+                self.gfile, self.content_type, self._thumbnail_callback, color
+            )
+        elif self.path.is_dir():
+            if not any(self.path.iterdir()):
+                texture = Gdk.Texture.new_from_resource(
+                    shared.PREFIX + "/assets/folder-closed.svg"
                 )
-            elif self.path.is_dir():
-                if not any(self.path.iterdir()):
-                    texture = Gdk.Texture.new_from_resource(
-                        shared.PREFIX + "/assets/folder-closed.svg"
+            else:
+                texture = Gdk.Texture.new_from_resource(
+                    shared.PREFIX + "/assets/folder-open.svg"
+                )
+
+                index = 0
+                for path in self.path.iterdir():
+                    if index == 3:
+                        break
+
+                    if not path.exists():
+                        continue
+
+                    index += 1
+
+                    thumbnail = Gtk.Overlay(
+                        width_request=32,
+                        height_request=32,
+                        overflow=Gtk.Overflow.HIDDEN,
                     )
-                else:
-                    texture = Gdk.Texture.new_from_resource(
-                        shared.PREFIX + "/assets/folder-open.svg"
+                    thumbnail.add_css_class("small-thumbnail")
+                    thumbnail.set_child(Gtk.Image())
+
+                    self.dir_thumbnails.append(thumbnail)
+
+                    gfile = Gio.File.new_for_path(str(path))
+
+                    get_symbolic_icon_async(gfile, self._dir_icon_callback, thumbnail)
+                    get_content_type_async(
+                        gfile, self._dir_content_type_callback, thumbnail
                     )
 
-                    index = 0
-                    for path in self.path.iterdir():
-                        if index == 3:
-                            break
+            self.thumbnail.set_paintable(texture)
+            self.thumbnail.set_visible(True)
+            self.icon.set_visible(False)
 
-                        if not path.exists():
-                            continue
-
-                        index += 1
-
-                        thumbnail = Adw.Bin(
-                            width_request=32,
-                            height_request=32,
-                            overflow=Gtk.Overflow.HIDDEN,
-                        )
-                        thumbnail.add_css_class("small-thumbnail")
-                        thumbnail.set_child(Gtk.Image())
-
-                        self.dir_thumbnails.append(thumbnail)
-
-                        # TODO: Same here
-                        if path.is_file() and getsize(str(path)) == 0:
-                            thumbnail.get_child().set_from_icon_name(
-                                "text-x-generic-symbolic"
-                            )
-                            thumbnail.add_css_class("solid-white-background")
-                            thumbnail.get_child().add_css_class("gray-icon-light-only")
-                            continue
-
-                        gfile = Gio.File.new_for_path(str(path))
-
-                        gfile.query_info_async(
-                            Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                            Gio.FileQueryInfoFlags.NONE,
-                            GLib.PRIORITY_DEFAULT,
-                            None,
-                            self._dir_icon_query_callback,
-                            thumbnail,
-                        )
-
-                        gfile.query_info_async(
-                            Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                            Gio.FileQueryInfoFlags.NONE,
-                            GLib.PRIORITY_DEFAULT,
-                            None,
-                            self._dir_content_type_query_callback,
-                            thumbnail,
-                        )
-
-                self.thumbnail.set_paintable(texture)
-                self.thumbnail.set_visible(True)
-                self.icon.set_visible(False)
-
-    def _thumbnail_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, color: str
+    def _thumbnail_callback(
+        self, _gfile: Gio.File, texture: Gdk.Texture, color: str
     ) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-
-        if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
-            texture = Gdk.Texture.new_from_filename(path)
-        elif pixbuf := get_thumbnail(self.path, self.content_type):
-            texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        else:
-            return
-
         self.thumbnail.set_paintable(texture)
 
         for css_class in self.thumbnail_overlay.get_css_classes():
@@ -257,26 +179,5 @@ class HypItem(Gtk.Box):
         else:
             self.extension_label.set_visible(False)
 
-        # TODO: There doesn't seem to be a symbolic for empty files. Open an issue.
-        if self.path.is_file() and getsize(str(self.path)) == 0:
-            self.icon.set_from_icon_name("text-x-generic-symbolic")
-            self.thumbnail_overlay.add_css_class("gray-background")
-            self.icon.add_css_class("gray-icon")
-            self.extension_label.add_css_class("gray-extension")
-            return
-
-        self.gfile.query_info_async(
-            Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_DEFAULT,
-            None,
-            self._icon_query_callback,
-        )
-
-        self.gfile.query_info_async(
-            Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_DEFAULT,
-            None,
-            self._content_type_query_callback,
-        )
+        get_symbolic_icon_async(self.gfile, self._icon_callback)
+        get_content_type_async(self.gfile, self._content_type_callback)
