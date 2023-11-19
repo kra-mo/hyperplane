@@ -25,6 +25,9 @@ from gi.repository import Adw, Gtk
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 
+# This is to avoid a circular import in item.py
+from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
+
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
 class HypWindow(Adw.ApplicationWindow):
