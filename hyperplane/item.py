@@ -65,27 +65,6 @@ class HypItem(Gtk.Box):
         """Update the visible name of the file"""
         self.label.set_label(self.path.stem)
 
-    def _thumbnail_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, color: str
-    ) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.GError:
-            return
-
-        if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
-            texture = Gdk.Texture.new_from_filename(path)
-        elif pixbuf := get_thumbnail(self.path, self.content_type):
-            texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        else:
-            return
-
-        self.thumbnail.set_paintable(texture)
-        self.thumbnail.set_visible(True)
-        self.icon.set_visible(False)
-        self.extension_label.remove_css_class(color + "-extension")
-        self.extension_label.add_css_class(color + "-extension-thumb")
-
     def _dir_icon_query_callback(
         self, gfile: Gio.File, result: Gio.Task, thumbnail: Adw.Bin
     ) -> None:
@@ -137,6 +116,9 @@ class HypItem(Gtk.Box):
             texture = Gdk.Texture.new_for_pixbuf(pixbuf)
         else:
             return
+
+        thumbnail.remove_css_class("solid-white-background")
+        thumbnail.add_css_class("light-blue-background")
 
         overlay = Gtk.Overlay()
         picture = Gtk.Picture.new_for_paintable(texture)
@@ -236,6 +218,33 @@ class HypItem(Gtk.Box):
                 self.thumbnail.set_paintable(texture)
                 self.thumbnail.set_visible(True)
                 self.icon.set_visible(False)
+
+    def _thumbnail_query_callback(
+        self, gfile: Gio.File, result: Gio.Task, color: str
+    ) -> None:
+        try:
+            file_info = gfile.query_info_finish(result)
+        except GLib.GError:
+            return
+
+        if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
+            texture = Gdk.Texture.new_from_filename(path)
+        elif pixbuf := get_thumbnail(self.path, self.content_type):
+            texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+        else:
+            return
+
+        self.thumbnail.set_paintable(texture)
+
+        for css_class in self.thumbnail_overlay.get_css_classes():
+            if "-background" in css_class:
+                self.thumbnail_overlay.remove_css_class(css_class)
+        self.thumbnail_overlay.add_css_class("gray-background")
+
+        self.thumbnail.set_visible(True)
+        self.icon.set_visible(False)
+        self.extension_label.remove_css_class(color + "-extension")
+        self.extension_label.add_css_class(color + "-extension-thumb")
 
     def update_thumbnail(self) -> None:
         """Update the visible thumbnail of the file"""
