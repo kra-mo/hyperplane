@@ -26,7 +26,7 @@ from gi.repository import Gdk, Gio, GLib, GnomeDesktop
 def get_thumbnail_async(
     gfile: Gio.File, content_type: str, callback: callable, *args: Any
 ) -> None:
-    """A wrapper around gfile.query_info_async"""
+    """A wrapper around gfile.query_info_async."""
     gfile.query_info_async(
         Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
         Gio.FileQueryInfoFlags.NONE,

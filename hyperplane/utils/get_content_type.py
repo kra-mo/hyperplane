@@ -23,7 +23,7 @@ from gi.repository import Gio, GLib
 
 
 def get_content_type_async(gfile: Gio.File, callback: callable, *args: Any) -> None:
-    """A wrapper around gfile.query_info_async"""
+    """A wrapper around gfile.query_info_async."""
     gfile.query_info_async(
         Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
         Gio.FileQueryInfoFlags.NONE,

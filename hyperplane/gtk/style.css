@@ -37,11 +37,11 @@
 .gray-extension-thumb { background: @dark_2; color: @light_1; }
 
 .item-thumbnail {
-    border-radius: 6px;
+    border-radius: 9px;
 }
 
 .small-thumbnail {
-    border-radius: 3px;
+    border-radius: 6px;
 }
 
 .thumbnail-picture {
@@ -54,4 +54,8 @@
     font-weight: 700;
     border-radius: 3px;
     font-size: small;
+}
+
+.circular-box {
+    border-radius: 50%;
 }

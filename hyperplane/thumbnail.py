@@ -39,16 +39,18 @@ class HypThumb(Gtk.Overlay):
     extension_label: Gtk.Label = Gtk.Template.Child()
     thumbnail: Gtk.Picture = Gtk.Template.Child()
     dir_thumbnails: Gtk.Box = Gtk.Template.Child()
+    play_button: Gtk.Box = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.connect("map", self._set_item)
+        self._map_connection = self.connect("map", self._set_item)
 
     def _set_item(self, *_args: Any) -> None:
-        self.item = self.get_parent()
+        self.disconnect(self._map_connection)
+        self.item = self.get_parent().get_parent().get_parent()
 
     def update_icon(self, *_args: Any) -> None:
-        """Update the symbolic icon and badge representing the file"""
+        """Update the symbolic icon and badge representing the file."""
         self.icon.set_visible(True)
         self.thumbnail.set_visible(False)
 
@@ -57,7 +59,10 @@ class HypThumb(Gtk.Overlay):
         get_symbolic_icon_async(self.item.gfile, self._icon_callback)
 
     def update_thumbnail(self) -> None:
-        """Update the visible thumbnail of the file"""
+        """Update the visible thumbnail of the file."""
+        self.play_button.set_visible(False)
+        self.thumbnail.set_content_fit(Gtk.ContentFit.COVER)
+
         color = get_color_for_content_type(self.item.content_type)
         self.add_css_class(color + "-background")
 
@@ -69,6 +74,8 @@ class HypThumb(Gtk.Overlay):
                 self.item.gfile, self.item.content_type, self._thumbnail_callback, color
             )
         elif self.item.path.is_dir():
+            self.thumbnail.set_content_fit(Gtk.ContentFit.FILL)
+
             if not any(self.item.path.iterdir()):
                 texture = Gdk.Texture.new_from_resource(
                     shared.PREFIX + "/assets/folder-closed.svg"
@@ -129,6 +136,7 @@ class HypThumb(Gtk.Overlay):
 
         picture = Gtk.Picture.new_for_paintable(texture)
         picture.set_content_fit(Gtk.ContentFit.COVER)
+        thumbnail.get_child().set_visible(False)
         thumbnail.add_overlay(picture)
 
     def _dir_content_type_callback(
@@ -164,3 +172,6 @@ class HypThumb(Gtk.Overlay):
         self.icon.set_visible(False)
         self.extension_label.remove_css_class(color + "-extension")
         self.extension_label.add_css_class(color + "-extension-thumb")
+
+        if self.item.content_type.split("/")[0] in ("video", "audio"):
+            self.play_button.set_visible(True)

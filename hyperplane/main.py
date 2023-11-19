@@ -42,9 +42,9 @@ class HypApplication(Adw.Application):
             application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
-        self.create_action("quit", lambda *_: self.quit(), ["<primary>q"])
-        self.create_action("about", self.on_about_action)
-        self.create_action("preferences", self.on_preferences_action)
+        self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
+        self.create_action("about", self._on_about_action)
+        self.create_action("preferences", self._on_preferences_action)
 
     def do_activate(self):
         """Called when the application is activated.
@@ -69,7 +69,7 @@ class HypApplication(Adw.Application):
 
         shared.win.present()
 
-    def on_about_action(self, _widget, _):
+    def _on_about_action(self, _widget, _):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(
             transient_for=self.props.active_window,
@@ -82,7 +82,7 @@ class HypApplication(Adw.Application):
         )
         about.present()
 
-    def on_preferences_action(self, _widget, _):
+    def _on_preferences_action(self, _widget, _):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
 

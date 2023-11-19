@@ -48,15 +48,15 @@ class HypItemsPage(Adw.NavigationPage):
         self.flow_box.connect("child-activated", self._child_activated)
 
     def update(self) -> None:
-        """Updates the visible items in the view"""
+        """Updates the visible items in the view."""
         self.flow_box.remove_all()
         for item in self.path.iterdir():
-            self.flow_box.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))
+            self.flow_box.append(HypItem(item))
 
     def _child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
-        if (item := flow_box_child.get_child().get_child()).path.is_file():
+        if (item := flow_box_child.get_child()).path.is_file():
             Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
         elif item.path.is_dir():
             shared.win.new_page(item.path)

@@ -4,7 +4,7 @@ using Adw 1;
 template $HypThumb : Overlay {
     overflow: hidden;
     width-request: 120;
-    height-request: 100;
+    height-request: 102;
     halign: center;
 
     [overlay]
@@ -19,9 +19,26 @@ template $HypThumb : Overlay {
 
     [overlay]
     Picture thumbnail {
-        content-fit: cover;
         styles [
             "thumbnail-picture",
+        ]
+    }
+
+    [overlay]
+    Box play_button {
+        halign: center;
+        valign: center;
+        visible: false;
+        Image {
+            icon-name: "media-playback-start-symbolic";
+            margin-start: 9;
+            margin-end: 9;
+            margin-top: 9;
+            margin-bottom: 9;
+        }
+        styles [
+            "osd",
+            "circular-box"
         ]
     }
 

@@ -20,18 +20,20 @@
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Gio, Gtk
+from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.utils.get_content_type import get_content_type_async
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
-class HypItem(Gtk.Box):
+class HypItem(Adw.Bin):
     __gtype_name__ = "HypItem"
 
-    label: Gtk.Label = Gtk.Template.Child()
+    clamp: Adw.Clamp = Gtk.Template.Child()
+    box: Gtk.Box = Gtk.Template.Child()
     thumbnail: Gtk.Overlay = Gtk.Template.Child()
+    label: Gtk.Label = Gtk.Template.Child()
 
     gfile = Gio.File
     path: Path
@@ -45,21 +47,53 @@ class HypItem(Gtk.Box):
             return
 
         self.gfile = Gio.File.new_for_path(str(path))
+        self.zoom(shared.state_schema.get_uint("zoom-level"))
         self.update()
 
     def update(self) -> None:
-        """Update the file name and thumbnail"""
+        """Update the file name and thumbnail."""
         self.update_label()
-        self.connect("map", self.update_thumbnail)
+        self._map_connection = self.connect("map", self.update_thumbnail)
 
     def update_label(self) -> None:
-        """Update the visible name of the file"""
+        """Update the visible name of the file."""
         self.label.set_label(self.path.stem)
 
-    def update_thumbnail(self, *_args: Any) -> None:
-        """Update the visible thumbnail of the file"""
+    def update_thumbnail(self, _object: Any) -> None:
+        """Update the visible thumbnail of the file."""
+        self.disconnect(self._map_connection)
         self.thumbnail.update_icon()
         get_content_type_async(self.gfile, self._content_type_callback)
+
+    def zoom(self, zoom_level: int) -> None:
+        """Set the zoom level for the item."""
+        self.box.set_margin_start(4 * zoom_level)
+        self.box.set_margin_end(4 * zoom_level)
+        self.box.set_margin_top(4 * zoom_level)
+        self.box.set_margin_bottom(4 * zoom_level)
+        self.clamp.set_maximum_size(50 * zoom_level)
+
+        match zoom_level:
+            case 1:
+                self.thumbnail.set_size_request(96, 80)
+            case 2:
+                self.thumbnail.set_size_request(96, 96)
+            case _:
+                self.thumbnail.set_size_request(40 * zoom_level, 32 * zoom_level)
+
+        if zoom_level < 3:
+            self.thumbnail.dir_thumbnails.set_spacing(12)
+            self.thumbnail.dir_thumbnails.set_margin_start(10)
+            self.thumbnail.dir_thumbnails.set_margin_top(6)
+        else:
+            self.thumbnail.dir_thumbnails.set_spacing(6)
+            self.thumbnail.dir_thumbnails.set_margin_start(6)
+            self.thumbnail.dir_thumbnails.set_margin_top(6)
+
+        if zoom_level < 2:
+            self.thumbnail.icon.set_icon_size(Gtk.IconSize.NORMAL)
+        else:
+            self.thumbnail.icon.set_icon_size(Gtk.IconSize.LARGE)
 
     def _content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
         self.content_type = content_type
