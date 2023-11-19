@@ -43,11 +43,12 @@ class HypItemsPage(Adw.NavigationPage):
         if not self.path.is_dir():
             return
 
-        self._refresh()
+        self.update()
 
         self.flow_box.connect("child-activated", self._child_activated)
 
-    def _refresh(self) -> None:
+    def update(self) -> None:
+        """Updates the visible items in the view"""
         self.flow_box.remove_all()
         for item in self.path.iterdir():
             self.flow_box.append(Adw.Clamp(maximum_size=160, child=HypItem(item)))

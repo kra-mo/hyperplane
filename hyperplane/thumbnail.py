@@ -48,18 +48,16 @@ class HypThumb(Gtk.Overlay):
         self.item = self.get_parent()
 
     def update_icon(self, *_args: Any) -> None:
+        """Update the symbolic icon and badge representing the file"""
         self.icon.set_visible(True)
         self.thumbnail.set_visible(False)
 
-        if self.item.path.is_file() and (suffix := self.item.path.suffix):
-            self.extension_label.set_label(suffix[1:].upper())
-            self.extension_label.set_visible(True)
-        else:
-            self.extension_label.set_visible(False)
+        self._update_extension()
 
         get_symbolic_icon_async(self.item.gfile, self._icon_callback)
 
     def update_thumbnail(self) -> None:
+        """Update the visible thumbnail of the file"""
         color = get_color_for_content_type(self.item.content_type)
         self.add_css_class(color + "-background")
 
@@ -110,6 +108,13 @@ class HypThumb(Gtk.Overlay):
             self.thumbnail.set_paintable(texture)
             self.thumbnail.set_visible(True)
             self.icon.set_visible(False)
+
+    def _update_extension(self, *_args: Any) -> None:
+        if self.item.path.is_file() and (suffix := self.item.path.suffix):
+            self.extension_label.set_label(suffix[1:].upper())
+            self.extension_label.set_visible(True)
+        else:
+            self.extension_label.set_visible(False)
 
     def _dir_icon_callback(
         self, _gfile: Gio.File, icon: Gio.Icon, thumbnail: Gtk.Overlay

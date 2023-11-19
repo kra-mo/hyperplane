@@ -31,7 +31,7 @@ class HypItem(Gtk.Box):
     __gtype_name__ = "HypItem"
 
     label: Gtk.Label = Gtk.Template.Child()
-    thumbnail_overlay: Gtk.Overlay = Gtk.Template.Child()
+    thumbnail: Gtk.Overlay = Gtk.Template.Child()
 
     gfile = Gio.File
     path: Path
@@ -58,9 +58,9 @@ class HypItem(Gtk.Box):
 
     def update_thumbnail(self, *_args: Any) -> None:
         """Update the visible thumbnail of the file"""
-        self.thumbnail_overlay.update_icon()
+        self.thumbnail.update_icon()
         get_content_type_async(self.gfile, self._content_type_callback)
 
     def _content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
         self.content_type = content_type
-        self.thumbnail_overlay.update_thumbnail()
+        self.thumbnail.update_thumbnail()
