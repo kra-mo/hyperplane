@@ -64,12 +64,11 @@ class HypWindow(Adw.ApplicationWindow):
 
     def new_page(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
         """Push a new page with the given path or tag to the navigation stack."""
-        if path == self.items_page.path:
-            return
         if path:
             self.navigation_view.push(HypItemsPage(path))
         elif tag:
-            self.navigation_view.push(HypItemsPage(tag=tag))
+            self.tags.append(tag)
+            self.navigation_view.push(HypItemsPage(tags=self.tags))
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -114,10 +113,6 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __pushed(self, *_args: Any) -> None:
         self.__update_items_page()
-        if self.items_page.tag:
-            self.tags.append(self.items_page.tag)
-        else:
-            self.tags.append(self.items_page.path.name)
 
     def __popped(self, *_args: Any) -> None:
         self.__update_items_page()

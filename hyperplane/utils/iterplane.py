@@ -61,6 +61,7 @@ def __walk(node: Path, tags: dict[str:bool]) -> Generator:
         for tag, value in tags.copy().items():
             if not value:
                 if child.name == tag:
+                    yield tag
                     new_tags[tag] = True
                     yield from __walk(child, new_tags.copy())
             else:

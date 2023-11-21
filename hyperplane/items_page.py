@@ -35,11 +35,14 @@ class HypItemsPage(Adw.NavigationPage):
     flow_box: Gtk.FlowBox = Gtk.Template.Child()
 
     def __init__(
-        self, path: Optional[Path] = None, tag: Optional[str] = None, **kwargs: Any
+        self,
+        path: Optional[Path] = None,
+        tags: Optional[list[str]] = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.path = path
-        self.tag = tag
+        self.tags = tags
 
         if self.path and not self.path.is_dir():
             return
@@ -48,6 +51,8 @@ class HypItemsPage(Adw.NavigationPage):
             self.set_title(_("Home"))
         elif self.path:
             self.set_title(self.path.name)
+        elif self.tags:
+            self.set_title(" + ".join(self.tags))
 
         self.update()
 
@@ -68,9 +73,12 @@ class HypItemsPage(Adw.NavigationPage):
             for item in self.path.iterdir():
                 self.flow_box.append(HypItem(item))
 
-        elif self.tag:
-            for item in iterplane([self.tag]):  # TODO: combine multiple tags
-                self.flow_box.append(HypItem(item))
+        elif self.tags:
+            for item in iterplane(self.tags):
+                if isinstance(item, Path):
+                    self.flow_box.append(HypItem(item))
+                elif isinstance(item, str):
+                    self.flow_box.append(HypTag(item))
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
