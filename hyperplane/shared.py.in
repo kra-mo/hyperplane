@@ -34,3 +34,10 @@ config_dir = Path(GLib.get_user_config_dir())
 cache_dir = Path(GLib.get_user_cache_dir())
 
 home = data_dir / "hyperplane" / "home"
+
+tags = ()
+
+if (path := home / ".hyperplane").is_file():
+    tags = tuple(path.read_text(encoding="utf-8").strip().split("\n"))
+
+del path

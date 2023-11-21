@@ -1,9 +1,10 @@
-.solid-white-background { background: @light_1; }
-.solid-white-icon { color: @light_1; }
+.white-background { background: @light_1; }
+.white-icon { color: @light_1; }
 
-.solid-blue-background { background: @blue_5; }
-
+.dark-blue-background { background: @blue_5; }
 .light-blue-background { background: @blue_3; }
+
+.dark-orange-background { background: @orange_4; }
 
 .blue-background { background: alpha(@blue_3, 0.3); }
 .blue-icon { color: @blue_5; }

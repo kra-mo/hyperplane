@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from gi.repository import Adw, Gio, Gtk
 
@@ -36,6 +36,7 @@ class HypWindow(Adw.ApplicationWindow):
     navigation_view: Adw.NavigationView = Gtk.Template.Child()
 
     items_page: HypItemsPage
+    tags: list = []
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -58,15 +59,17 @@ class HypWindow(Adw.ApplicationWindow):
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
-        self.navigation_view.connect("popped", self.__update_items_page)
-        self.navigation_view.connect("pushed", self.__update_items_page)
+        self.navigation_view.connect("popped", self.__popped)
+        self.navigation_view.connect("pushed", self.__pushed)
 
-    def new_page(self, path: Path) -> None:
-        """Push a new page with the given path to the navigation stack."""
+    def new_page(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
+        """Push a new page with the given path or tag to the navigation stack."""
         if path == self.items_page.path:
             return
-
-        self.navigation_view.push(HypItemsPage(path))
+        if path:
+            self.navigation_view.push(HypItemsPage(path))
+        elif tag:
+            self.navigation_view.push(HypItemsPage(tag=tag))
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -109,7 +112,16 @@ class HypWindow(Adw.ApplicationWindow):
         shared.state_schema.set_uint("zoom-level", zoom_level - 1)
         self.update_zoom()
 
-    def __update_items_page(
-        self, navigation_view: Adw.NavigationView, *_args: Any
-    ) -> None:
-        self.items_page = navigation_view.get_visible_page()
+    def __pushed(self, *_args: Any) -> None:
+        self.__update_items_page()
+        if self.items_page.tag:
+            self.tags.append(self.items_page.tag)
+        else:
+            self.tags.append(self.items_page.path.name)
+
+    def __popped(self, *_args: Any) -> None:
+        self.__update_items_page()
+        self.tags.pop()
+
+    def __update_items_page(self) -> None:
+        self.items_page = self.navigation_view.get_visible_page()

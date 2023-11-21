@@ -134,7 +134,7 @@ class HypThumb(Gtk.Overlay):
     def __dir_thumbnail_callback(
         self, _gfile: Gio.File, texture: Gdk.Texture, thumbnail: Gtk.Overlay
     ) -> None:
-        thumbnail.remove_css_class("solid-white-background")
+        thumbnail.remove_css_class("white-background")
         thumbnail.add_css_class("light-blue-background")
 
         picture = Gtk.Picture.new_for_paintable(texture)
@@ -147,7 +147,7 @@ class HypThumb(Gtk.Overlay):
     ) -> None:
         path = Path(gfile.get_path())
         if path.is_file():
-            thumbnail.add_css_class("solid-white-background")
+            thumbnail.add_css_class("white-background")
             color = get_color_for_content_type(content_type)
             thumbnail.get_child().add_css_class(color + "-icon-light-only")
             get_thumbnail_async(
@@ -156,7 +156,7 @@ class HypThumb(Gtk.Overlay):
 
         elif path.is_dir():
             thumbnail.add_css_class("light-blue-background")
-            thumbnail.get_child().add_css_class("solid-white-icon")
+            thumbnail.get_child().add_css_class("white-icon")
 
     def __icon_callback(self, _gfile: Gio.File, icon: Gio.Icon) -> None:
         self.icon.set_from_gicon(icon)

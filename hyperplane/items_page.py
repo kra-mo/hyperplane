@@ -18,12 +18,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
+from hyperplane.tag import HypTag
+from hyperplane.utils.iterplane import iterplane
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
@@ -32,16 +34,20 @@ class HypItemsPage(Adw.NavigationPage):
 
     flow_box: Gtk.FlowBox = Gtk.Template.Child()
 
-    def __init__(self, path: Path, **kwargs: Any) -> None:
+    def __init__(
+        self, path: Optional[Path] = None, tag: Optional[str] = None, **kwargs: Any
+    ) -> None:
         super().__init__(**kwargs)
         self.path = path
+        self.tag = tag
+
+        if self.path and not self.path.is_dir():
+            return
+
         if self.path == shared.home:
             self.set_title(_("Home"))
-        else:
+        elif self.path:
             self.set_title(self.path.name)
-
-        if not self.path.is_dir():
-            return
 
         self.update()
 
@@ -50,13 +56,29 @@ class HypItemsPage(Adw.NavigationPage):
     def update(self) -> None:
         """Updates the visible items in the view."""
         self.flow_box.remove_all()
-        for item in self.path.iterdir():
-            self.flow_box.append(HypItem(item))
+        if self.path:
+            if self.path == shared.home:
+                for item in self.path.iterdir():
+                    if item.name not in shared.tags:
+                        self.flow_box.append(HypItem(item))
+                for tag in shared.tags:
+                    self.flow_box.append(HypTag(tag))
+                return
+
+            for item in self.path.iterdir():
+                self.flow_box.append(HypItem(item))
+
+        elif self.tag:
+            for item in iterplane([self.tag]):  # TODO: combine multiple tags
+                self.flow_box.append(HypItem(item))
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
-        if (item := flow_box_child.get_child()).path.is_file():
-            Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
-        elif item.path.is_dir():
-            shared.win.new_page(item.path)
+        if isinstance((item := flow_box_child.get_child()), HypItem):
+            if item.path.is_file():
+                Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
+            elif item.path.is_dir():
+                shared.win.new_page(item.path)
+        elif isinstance(item, HypTag):
+            shared.win.new_page(tag=item.name)

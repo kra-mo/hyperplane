@@ -1,0 +1,40 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HypTag : Adw.Bin {
+    Adw.Clamp clamp {
+
+        Box box {
+            orientation: vertical;
+
+            Overlay thumbnail {
+                overflow: hidden;
+                halign: center;
+
+                Image icon {
+                    icon-name: "view-grid";
+
+                    styles [
+                        "white-icon"
+                    ]
+                }
+
+                styles [
+                    "item-thumbnail",
+                    "dark-orange-background" // TODO: use a hash function to determine the color of tags (or make it customizable)
+                ]
+            }
+
+
+            Label label {
+                margin-top: 12;
+                justify: center;
+                wrap: true;
+                wrap-mode: word_char;
+                ellipsize: middle;
+                lines: 3;
+                label: "⋯";
+            }
+        }
+    }
+}

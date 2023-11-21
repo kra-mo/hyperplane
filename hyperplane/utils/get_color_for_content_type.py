@@ -21,7 +21,7 @@
 # pylint: disable=too-many-return-statements
 def get_color_for_content_type(content_type: str) -> None:
     if content_type == "inode/directory":
-        return "solid-blue"
+        return "dark-blue"
 
     match content_type.split("/")[0]:
         case "audio":
