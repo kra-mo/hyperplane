@@ -45,7 +45,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         self.update()
 
-        self.flow_box.connect("child-activated", self._child_activated)
+        self.flow_box.connect("child-activated", self.__child_activated)
 
     def update(self) -> None:
         """Updates the visible items in the view."""
@@ -53,7 +53,7 @@ class HypItemsPage(Adw.NavigationPage):
         for item in self.path.iterdir():
             self.flow_box.append(HypItem(item))
 
-    def _child_activated(
+    def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
     ) -> None:
         if (item := flow_box_child.get_child()).path.is_file():

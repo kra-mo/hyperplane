@@ -43,9 +43,9 @@ class HypThumb(Gtk.Overlay):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self._map_connection = self.connect("map", self._set_item)
+        self._map_connection = self.connect("map", self.__set_item)
 
-    def _set_item(self, *_args: Any) -> None:
+    def __set_item(self, *_args: Any) -> None:
         self.disconnect(self._map_connection)
         self.item = self.get_parent().get_parent().get_parent()
 
@@ -54,9 +54,9 @@ class HypThumb(Gtk.Overlay):
         self.icon.set_visible(True)
         self.thumbnail.set_visible(False)
 
-        self._update_extension()
+        self.__update_extension()
 
-        get_symbolic_icon_async(self.item.gfile, self._icon_callback)
+        get_symbolic_icon_async(self.item.gfile, self.__icon_callback)
 
     def update_thumbnail(self) -> None:
         """Update the visible thumbnail of the file."""
@@ -71,7 +71,10 @@ class HypThumb(Gtk.Overlay):
             self.extension_label.remove_css_class(color + "-extension-thumb")
             self.extension_label.add_css_class(color + "-extension")
             get_thumbnail_async(
-                self.item.gfile, self.item.content_type, self._thumbnail_callback, color
+                self.item.gfile,
+                self.item.content_type,
+                self.__thumbnail_callback,
+                color,
             )
         elif self.item.path.is_dir():
             self.thumbnail.set_content_fit(Gtk.ContentFit.FILL)
@@ -107,28 +110,28 @@ class HypThumb(Gtk.Overlay):
 
                     gfile = Gio.File.new_for_path(str(path))
 
-                    get_symbolic_icon_async(gfile, self._dir_icon_callback, thumbnail)
+                    get_symbolic_icon_async(gfile, self.__dir_icon_callback, thumbnail)
                     get_content_type_async(
-                        gfile, self._dir_content_type_callback, thumbnail
+                        gfile, self.__dir_content_type_callback, thumbnail
                     )
 
             self.thumbnail.set_paintable(texture)
             self.thumbnail.set_visible(True)
             self.icon.set_visible(False)
 
-    def _update_extension(self, *_args: Any) -> None:
+    def __update_extension(self, *_args: Any) -> None:
         if self.item.path.is_file() and (suffix := self.item.path.suffix):
             self.extension_label.set_label(suffix[1:].upper())
             self.extension_label.set_visible(True)
         else:
             self.extension_label.set_visible(False)
 
-    def _dir_icon_callback(
+    def __dir_icon_callback(
         self, _gfile: Gio.File, icon: Gio.Icon, thumbnail: Gtk.Overlay
     ) -> None:
         thumbnail.get_child().set_from_gicon(icon)
 
-    def _dir_thumbnail_callback(
+    def __dir_thumbnail_callback(
         self, _gfile: Gio.File, texture: Gdk.Texture, thumbnail: Gtk.Overlay
     ) -> None:
         thumbnail.remove_css_class("solid-white-background")
@@ -139,7 +142,7 @@ class HypThumb(Gtk.Overlay):
         thumbnail.get_child().set_visible(False)
         thumbnail.add_overlay(picture)
 
-    def _dir_content_type_callback(
+    def __dir_content_type_callback(
         self, gfile: Gio.File, content_type: str, thumbnail: Gtk.Overlay
     ) -> None:
         path = Path(gfile.get_path())
@@ -148,17 +151,17 @@ class HypThumb(Gtk.Overlay):
             color = get_color_for_content_type(content_type)
             thumbnail.get_child().add_css_class(color + "-icon-light-only")
             get_thumbnail_async(
-                gfile, content_type, self._dir_thumbnail_callback, thumbnail
+                gfile, content_type, self.__dir_thumbnail_callback, thumbnail
             )
 
         elif path.is_dir():
             thumbnail.add_css_class("light-blue-background")
             thumbnail.get_child().add_css_class("solid-white-icon")
 
-    def _icon_callback(self, _gfile: Gio.File, icon: Gio.Icon) -> None:
+    def __icon_callback(self, _gfile: Gio.File, icon: Gio.Icon) -> None:
         self.icon.set_from_gicon(icon)
 
-    def _thumbnail_callback(
+    def __thumbnail_callback(
         self, _gfile: Gio.File, texture: Gdk.Texture, color: str
     ) -> None:
         self.thumbnail.set_paintable(texture)

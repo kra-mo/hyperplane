@@ -63,7 +63,7 @@ class HypItem(Adw.Bin):
         """Update the visible thumbnail of the file."""
         self.disconnect(self._map_connection)
         self.thumbnail.update_icon()
-        get_content_type_async(self.gfile, self._content_type_callback)
+        get_content_type_async(self.gfile, self.__content_type_callback)
 
     def zoom(self, zoom_level: int) -> None:
         """Set the zoom level for the item."""
@@ -97,6 +97,6 @@ class HypItem(Adw.Bin):
             self.thumbnail.icon.set_pixel_size(-1)
             self.thumbnail.icon.set_icon_size(Gtk.IconSize.LARGE)
 
-    def _content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
+    def __content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
         self.content_type = content_type
         self.thumbnail.update_thumbnail()

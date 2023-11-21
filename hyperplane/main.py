@@ -43,8 +43,8 @@ class HypApplication(Adw.Application):
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
-        self.create_action("about", self._on_about_action)
-        self.create_action("preferences", self._on_preferences_action)
+        self.create_action("about", self.__on_about_action)
+        self.create_action("preferences", self.__on_preferences_action)
 
     def do_activate(self):
         """Called when the application is activated.
@@ -69,23 +69,6 @@ class HypApplication(Adw.Application):
 
         shared.win.present()
 
-    def _on_about_action(self, _widget, _):
-        """Callback for the app.about action."""
-        about = Adw.AboutWindow(
-            transient_for=self.props.active_window,
-            application_name="Hyperplane",
-            application_icon=shared.APP_ID,
-            developer_name="kramo",
-            version="0.1.0",
-            developers=["kramo"],
-            copyright="© 2023 kramo",
-        )
-        about.present()
-
-    def _on_preferences_action(self, _widget, _):
-        """Callback for the app.preferences action."""
-        print("app.preferences action activated")
-
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
 
@@ -100,6 +83,23 @@ class HypApplication(Adw.Application):
         self.add_action(action)
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
+
+    def __on_about_action(self, _widget, _):
+        """Callback for the app.about action."""
+        about = Adw.AboutWindow(
+            transient_for=self.props.active_window,
+            application_name="Hyperplane",
+            application_icon=shared.APP_ID,
+            developer_name="kramo",
+            version="0.1.0",
+            developers=["kramo"],
+            copyright="© 2023 kramo",
+        )
+        about.present()
+
+    def __on_preferences_action(self, _widget, _):
+        """Callback for the app.preferences action."""
+        print("app.preferences action activated")
 
 
 def main(_version):

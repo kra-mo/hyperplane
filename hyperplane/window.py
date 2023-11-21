@@ -49,17 +49,17 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("close", lambda *_: self.close(), ("<primary>w",))
         self.create_action(
             "zoom-in",
-            self._on_zoom_in_action,
+            self.__on_zoom_in_action,
             ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
         )
         self.create_action(
             "zoom-out",
-            self._on_zoom_out_action,
+            self.__on_zoom_out_action,
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
-        self.navigation_view.connect("popped", self._update_items_page)
-        self.navigation_view.connect("pushed", self._update_items_page)
+        self.navigation_view.connect("popped", self.__update_items_page)
+        self.navigation_view.connect("pushed", self.__update_items_page)
 
     def new_page(self, path: Path) -> None:
         """Push a new page with the given path to the navigation stack."""
@@ -95,21 +95,21 @@ class HypWindow(Adw.ApplicationWindow):
                 child_index += 1
             page_index += 1
 
-    def _on_zoom_in_action(self, *_args) -> None:
+    def __on_zoom_in_action(self, *_args) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level + 1)
         self.update_zoom()
 
-    def _on_zoom_out_action(self, *_args) -> None:
+    def __on_zoom_out_action(self, *_args) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level - 1)
         self.update_zoom()
 
-    def _update_items_page(
+    def __update_items_page(
         self, navigation_view: Adw.NavigationView, *_args: Any
     ) -> None:
         self.items_page = navigation_view.get_visible_page()

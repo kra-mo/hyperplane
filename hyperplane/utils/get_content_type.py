@@ -29,13 +29,13 @@ def get_content_type_async(gfile: Gio.File, callback: callable, *args: Any) -> N
         Gio.FileQueryInfoFlags.NONE,
         GLib.PRIORITY_DEFAULT,
         None,
-        _query_callback,
+        __query_callback,
         callback,
         *args,
     )
 
 
-def _query_callback(
+def __query_callback(
     gfile: Gio.File, result: Gio.Task, callback: callable, *args: Any
 ) -> None:
     try:

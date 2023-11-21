@@ -32,14 +32,14 @@ def get_thumbnail_async(
         Gio.FileQueryInfoFlags.NONE,
         GLib.PRIORITY_DEFAULT,
         None,
-        _query_callback,
+        __query_callback,
         content_type,
         callback,
         *args,
     )
 
 
-def _query_callback(
+def __query_callback(
     gfile: Gio.File, result: Gio.Task, content_type: str, callback: callable, *args: Any
 ) -> None:
     try:
@@ -48,7 +48,7 @@ def _query_callback(
         return
     if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
         texture = Gdk.Texture.new_from_filename(path)
-    elif pixbuf := _generate_thumbnail(Path(gfile.get_path()), content_type):
+    elif pixbuf := __generate_thumbnail(Path(gfile.get_path()), content_type):
         texture = Gdk.Texture.new_for_pixbuf(pixbuf)
     else:
         return
@@ -57,7 +57,7 @@ def _query_callback(
     callback(gfile, texture, *args)
 
 
-def _generate_thumbnail(path, mime_type):
+def __generate_thumbnail(path, mime_type):
     factory = GnomeDesktop.DesktopThumbnailFactory()
     uri = Gio.file_new_for_path(str(path)).get_uri()
     mtime = path.stat().st_mtime
