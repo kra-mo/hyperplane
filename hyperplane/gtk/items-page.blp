@@ -33,6 +33,12 @@ template $HypItemsPage : Adw.NavigationPage {
   }
 }
 
+PopoverMenu right_click_menu {
+  halign: start;
+  menu-model: right_click;
+  has-arrow: false;
+}
+
 Adw.StatusPage empty_folder {
   title: _("Folder is Empty");
   icon-name: "folder-symbolic";
@@ -43,22 +49,23 @@ Adw.StatusPage empty_filter {
   icon-name: "view-grid-symbolic";
 }
 
-
 menu primary_menu {
   section {
-    item {
-      label: _('_Preferences');
-      action: 'app.preferences';
-    }
+    item (_("Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
+    item (_("_About Hyperplane"), "app.about")
+  }
+}
 
-    item {
-      label: _('_Keyboard Shortcuts');
-      action: 'win.show-help-overlay';
-    }
-
-    item {
-      label: _('_About Hyperplane');
-      action: 'app.about';
-    }
+menu right_click {
+  section {
+    item (_("Copy"), "app.copy")
+    item (_("Cut"), "app.cut")
+    item (_("Paste"), "app.paste")
+    item (_("Select All"), "app.select-all")
+  }
+  section {
+    item (_("Rename…"), "app.rename")
+    item (_("Move to Trash"), "app.trash")
   }
 }

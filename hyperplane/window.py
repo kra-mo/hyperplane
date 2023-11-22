@@ -34,6 +34,7 @@ class HypWindow(Adw.ApplicationWindow):
     __gtype_name__ = "HypWindow"
 
     navigation_view: Adw.NavigationView = Gtk.Template.Child()
+    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
     items_page: HypItemsPage
     tags: list = []
@@ -62,6 +63,13 @@ class HypWindow(Adw.ApplicationWindow):
         self.navigation_view.connect("popped", self.__popped)
         self.navigation_view.connect("pushed", self.__pushed)
 
+    def send_toast(self, message: str) -> None:
+        toast = Adw.Toast.new(message)
+        toast.set_priority(Adw.ToastPriority.HIGH)
+        toast.set_use_markup(False)
+
+        self.toast_overlay.add_toast(toast)
+
     def new_page(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
         """Push a new page with the given path or tag to the navigation stack."""
         if path:
@@ -69,6 +77,18 @@ class HypWindow(Adw.ApplicationWindow):
         elif tag:
             self.tags.append(tag)
             self.navigation_view.push(HypItemsPage(tags=self.tags))
+
+    def update_zoom(self) -> None:
+        """Update the zoom level of all items in the navigation stack"""
+        stack = self.navigation_view.get_navigation_stack()
+        page_index = 0
+        while page := stack.get_item(page_index):
+            child_index = 0
+            while child := page.flow_box.get_child_at_index(child_index):
+                child.get_child().zoom(shared.state_schema.get_uint("zoom-level"))
+
+                child_index += 1
+            page_index += 1
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -84,18 +104,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.add_action(action)
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
-
-    def update_zoom(self) -> None:
-        """Update the zoom level of all items in the navigation stack"""
-        stack = self.navigation_view.get_navigation_stack()
-        page_index = 0
-        while page := stack.get_item(page_index):
-            child_index = 0
-            while child := page.flow_box.get_child_at_index(child_index):
-                child.get_child().zoom(shared.state_schema.get_uint("zoom-level"))
-
-                child_index += 1
-            page_index += 1
 
     def __on_zoom_in_action(self, *_args) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:

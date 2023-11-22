@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
+from typing import Any
 
 import gi
 
@@ -27,11 +28,11 @@ gi.require_version("GnomeDesktop", "4.0")
 
 # pylint: disable=wrong-import-position
 
-from gi.repository import Adw, Gio
+from gi.repository import Adw, Gdk, Gio, GLib
 
 from hyperplane import shared
-
-from .window import HypWindow
+from hyperplane.item import HypItem
+from hyperplane.window import HypWindow
 
 
 class HypApplication(Adw.Application):
@@ -45,6 +46,58 @@ class HypApplication(Adw.Application):
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__on_about_action)
         self.create_action("preferences", self.__on_preferences_action)
+
+        self.create_action("copy", self.__on_copy_action, ("<primary>c",))
+        self.create_action("select-all", self.__on_select_all_action)
+        self.create_action("trash", self.__on_trash_action, ("Delete",))
+
+    def __on_copy_action(self, *_args: Any) -> None:
+        clipboard = Gdk.Display.get_default().get_clipboard()
+
+        uris = ""
+
+        for child in self.get_windows()[0].items_page.flow_box.get_selected_children():
+            child = child.get_child()
+
+            if not isinstance(child, HypItem):
+                continue
+            uris += str(child.path) + "\n"
+
+        if uris:
+            clipboard.set(uris.strip())
+
+    def __on_select_all_action(self, *_args: Any) -> None:
+        self.get_windows()[0].items_page.flow_box.select_all()
+
+    def __on_trash_action(self, *_args: Any) -> None:
+        n = 0
+        for child in (
+            items_page := self.get_windows()[0].items_page
+        ).flow_box.get_selected_children():
+            child = child.get_child()
+
+            if not isinstance(child, HypItem):
+                continue
+
+            try:
+                child.gfile.trash()
+            except GLib.GError:
+                pass
+            else:
+                items_page.flow_box.remove(child.get_parent())
+                n += 1
+
+        if not n:
+            return
+
+        if n > 1:
+            message = _("{} files moved to trash").format(n)
+        elif n:
+            message = _("{} moved to trash").format(
+                '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
+            )
+
+        self.get_windows()[0].send_toast(message)
 
     def do_activate(self):
         """Called when the application is activated.

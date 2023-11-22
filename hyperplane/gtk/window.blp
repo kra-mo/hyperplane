@@ -3,9 +3,8 @@ using Adw 1;
 
 template $HypWindow : Adw.ApplicationWindow {
   title: _("Hyperplane");
-  content: 
-  Adw.NavigationView navigation_view {
-    animate-transitions: false;
+  content: Adw.ToastOverlay toast_overlay {
+    Adw.NavigationView navigation_view {}
   };
 
   styles [

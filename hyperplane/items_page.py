@@ -20,7 +20,7 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from gi.repository import Adw, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -37,6 +37,7 @@ class HypItemsPage(Adw.NavigationPage):
     empty_filter: Adw.StatusPage = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
+    right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     def __init__(
         self,
@@ -61,6 +62,17 @@ class HypItemsPage(Adw.NavigationPage):
         self.update()
 
         self.flow_box.connect("child-activated", self.__child_activated)
+
+        self.right_click_menu.set_parent(self)
+        gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        gesture_click.connect("pressed", self.__right_click)
+        self.add_controller(gesture_click)
+
+    def __right_click(self, _gesture, _n, x, y) -> None:
+        rectangle = Gdk.Rectangle()
+        rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
+        self.right_click_menu.set_pointing_to(rectangle)
+        self.right_click_menu.popup()
 
     def update(self) -> None:
         """Updates the visible items in the view."""
