@@ -114,12 +114,11 @@ class HypItemsPage(Adw.NavigationPage):
             if item.path.is_file():
                 Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
             elif item.path.is_dir():
-                shared.win.new_page(item.path)
+                shared.get_win().new_page(item.path)
         elif isinstance(item, HypTag):
-            shared.win.new_page(tag=item.name)
+            shared.get_win().new_page(tag=item.name)
 
     def __set_actions(self, *_args: Any) -> None:
-
         enable = {
             "copy",
             "cut",

@@ -63,22 +63,22 @@ class HypApplication(Adw.Application):
         necessary.
         """
         shared.app = self
-        shared.win = self.props.active_window
-        if not shared.win:
-            shared.win = HypWindow(application=self)
+        win = self.props.active_window
+        if not win:
+            win = HypWindow(application=self)
 
         # Save window geometry
         shared.state_schema.bind(
-            "width", shared.win, "default-width", Gio.SettingsBindFlags.DEFAULT
+            "width", win, "default-width", Gio.SettingsBindFlags.DEFAULT
         )
         shared.state_schema.bind(
-            "height", shared.win, "default-height", Gio.SettingsBindFlags.DEFAULT
+            "height", win, "default-height", Gio.SettingsBindFlags.DEFAULT
         )
         shared.state_schema.bind(
-            "is-maximized", shared.win, "maximized", Gio.SettingsBindFlags.DEFAULT
+            "is-maximized", win, "maximized", Gio.SettingsBindFlags.DEFAULT
         )
 
-        shared.win.present()
+        win.present()
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -113,10 +113,10 @@ class HypApplication(Adw.Application):
         print("app.preferences action activated")
 
     def __on_new_folder_action(self, *_args: Any) -> None:
-        if not self.get_windows()[0].items_page.path:
+        if not shared.get_win().items_page.path:
             return
 
-        dialog = Adw.MessageDialog.new(self.get_windows()[0], _("New Folder"))
+        dialog = Adw.MessageDialog.new(shared.get_win(), _("New Folder"))
 
         dialog.add_response("cancel", _("Cancel"))
         dialog.add_response("create", _("Create"))
@@ -147,7 +147,7 @@ class HypApplication(Adw.Application):
                 revealer.set_reveal_child(False)
                 return
 
-            if Path(self.get_windows()[0].items_page.path, text.strip()).is_dir():
+            if Path(shared.get_win().items_page.path, text.strip()).is_dir():
                 can_create = False
                 dialog.set_response_enabled("create", False)
                 revealer.set_reveal_child(True)
@@ -162,9 +162,9 @@ class HypApplication(Adw.Application):
             if not can_create:
                 return
 
-            path = Path(self.get_windows()[0].items_page.path, entry.get_text().strip())
+            path = Path(shared.get_win().items_page.path, entry.get_text().strip())
             path.mkdir(parents=True, exist_ok=True)
-            self.get_windows()[0].items_page.flow_box.append(HypItem(path))
+            shared.get_win().items_page.flow_box.append(HypItem(path))
             dialog.close()
 
         def handle_response(_dialog, response):
@@ -182,7 +182,7 @@ class HypApplication(Adw.Application):
 
         uris = ""
 
-        for child in self.get_windows()[0].items_page.flow_box.get_selected_children():
+        for child in shared.get_win().items_page.flow_box.get_selected_children():
             child = child.get_child()
 
             if isinstance(child, HypItem):
@@ -194,12 +194,12 @@ class HypApplication(Adw.Application):
             clipboard.set(uris.strip())
 
     def __on_select_all_action(self, *_args: Any) -> None:
-        self.get_windows()[0].items_page.flow_box.select_all()
+        shared.get_win().items_page.flow_box.select_all()
 
     def __on_trash_action(self, *_args: Any) -> None:
         n = 0
         for child in (
-            items_page := self.get_windows()[0].items_page
+            items_page := shared.get_win().items_page
         ).flow_box.get_selected_children():
             child = child.get_child()
 
@@ -224,7 +224,7 @@ class HypApplication(Adw.Application):
                 '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
             )
 
-        self.get_windows()[0].send_toast(message)
+        shared.get_win().send_toast(message)
 
 
 def main(_version):
