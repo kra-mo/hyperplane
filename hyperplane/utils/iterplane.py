@@ -27,6 +27,10 @@ def iterplane(filter_tags: Iterable[str]) -> Generator:
     if not filter_tags:
         return
 
+    for tag in shared.tags:
+        if tag not in filter_tags:
+            yield tag
+
     tags = {tag: tag in filter_tags for tag in shared.tags}
 
     yield from __walk(shared.home, tags)
@@ -57,11 +61,10 @@ def __walk(node: Path, tags: dict[str:bool]) -> Generator:
     for child in node.iterdir():
         if not child.is_dir():
             continue
-        new_tags = tags
+        new_tags = tags.copy()
         for tag, value in tags.copy().items():
             if not value:
                 if child.name == tag:
-                    yield tag
                     new_tags[tag] = True
                     yield from __walk(child, new_tags.copy())
             else:
