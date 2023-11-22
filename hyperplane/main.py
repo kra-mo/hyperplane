@@ -33,6 +33,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
+from hyperplane.tag import HypTag
 from hyperplane.window import HypWindow
 
 
@@ -61,6 +62,7 @@ class HypApplication(Adw.Application):
         We raise the application's main window, creating it if
         necessary.
         """
+        shared.app = self
         shared.win = self.props.active_window
         if not shared.win:
             shared.win = HypWindow(application=self)
@@ -136,7 +138,7 @@ class HypApplication(Adw.Application):
         dialog.set_response_enabled("create", False)
         can_create = False
 
-        def set_incative(*_args):
+        def set_incative(*_args: Any):
             nonlocal can_create
 
             if not (text := entry.get_text()):
@@ -154,7 +156,7 @@ class HypApplication(Adw.Application):
                 dialog.set_response_enabled("create", True)
                 revealer.set_reveal_child(False)
 
-        def create_folder(*_args):
+        def create_folder(*_args: Any):
             nonlocal can_create
 
             if not can_create:
@@ -183,9 +185,10 @@ class HypApplication(Adw.Application):
         for child in self.get_windows()[0].items_page.flow_box.get_selected_children():
             child = child.get_child()
 
-            if not isinstance(child, HypItem):
-                continue
-            uris += str(child.path) + "\n"
+            if isinstance(child, HypItem):
+                uris += str(child.path) + "\n"
+            elif isinstance(child, HypTag):
+                uris += child.name + "\n"
 
         if uris:
             clipboard.set(uris.strip())

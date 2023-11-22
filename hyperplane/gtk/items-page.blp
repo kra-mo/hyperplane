@@ -59,16 +59,44 @@ menu primary_menu {
 
 menu right_click {
   section {
-    item (_("New Folder…"), "app.new-folder")
+    item {
+      label: _("New Folder…");
+      action: "app.new-folder";
+      hidden-when: "action-disabled";
+    }
   }
   section {
-    item (_("Copy"), "app.copy")
-    item (_("Cut"), "app.cut")
-    item (_("Paste"), "app.paste")
-    item (_("Select All"), "app.select-all")
+    item {
+      label: _("Copy");
+      action: "app.copy";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Cut");
+      action: "app.cut";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Paste");
+      action: "app.paste";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Select All");
+      action: "app.show-all";
+      hidden-when: "action-disabled";
+    }
   }
   section {
-    item (_("Rename…"), "app.rename")
-    item (_("Move to Trash"), "app.trash")
+    item {
+      label: _("Rename…");
+      action: "app.rename";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Move to Trash");
+      action: "app.trash";
+      hidden-when: "action-disabled";
+    }
   }
 }

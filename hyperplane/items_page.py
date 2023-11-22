@@ -67,6 +67,7 @@ class HypItemsPage(Adw.NavigationPage):
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
+        self.right_click_menu.connect("closed", self.__set_actions)
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         rectangle = Gdk.Rectangle()
@@ -116,3 +117,19 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.win.new_page(item.path)
         elif isinstance(item, HypTag):
             shared.win.new_page(tag=item.name)
+
+    def __set_actions(self, *_args: Any) -> None:
+
+        enable = {
+            "copy",
+            "cut",
+            "paste",
+            "trash",
+            "new-folder",
+            "select-all",
+        }
+        for action in enable:
+            try:
+                shared.app.lookup_action(action).set_enabled(True)
+            except AttributeError:
+                pass

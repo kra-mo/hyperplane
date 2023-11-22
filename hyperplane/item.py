@@ -20,7 +20,7 @@
 from pathlib import Path
 from typing import Any
 
-from gi.repository import Adw, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.utils.get_content_type import get_content_type_async
@@ -49,6 +49,10 @@ class HypItem(Adw.Bin):
         self.gfile = Gio.File.new_for_path(str(path))
         self.zoom(shared.state_schema.get_uint("zoom-level"))
         self.update()
+
+        gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        gesture_click.connect("pressed", self.__right_click)
+        self.add_controller(gesture_click)
 
     def update(self) -> None:
         """Update the file name and thumbnail."""
@@ -100,3 +104,29 @@ class HypItem(Adw.Bin):
     def __content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
         self.content_type = content_type
         self.thumbnail.update_thumbnail()
+
+    def __right_click(self, *_args: Any) -> None:
+        (flow_box := self.get_parent().get_parent()).unselect_all()
+        flow_box.select_child(self.get_parent())
+
+        disable = {
+            "new-folder",
+            "select-all",
+            "paste",
+        }
+        for action in disable:
+            try:
+                shared.app.lookup_action(action).set_enabled(False)
+            except AttributeError:
+                pass
+
+        enable = {
+            "copy",
+            "cut",
+            "trash",
+        }
+        for action in enable:
+            try:
+                shared.app.lookup_action(action).set_enabled(True)
+            except AttributeError:
+                pass

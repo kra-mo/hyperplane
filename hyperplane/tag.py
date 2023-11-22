@@ -19,7 +19,7 @@
 
 from typing import Any
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gdk, Gtk
 
 from hyperplane import shared
 
@@ -42,6 +42,10 @@ class HypTag(Adw.Bin):
 
         self.zoom(shared.state_schema.get_uint("zoom-level"))
         self.update_label()
+
+        gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        gesture_click.connect("pressed", self.__right_click)
+        self.add_controller(gesture_click)
 
     def update_label(self) -> None:
         """Updates the tag's visible label"""
@@ -69,3 +73,30 @@ class HypTag(Adw.Bin):
         else:
             self.icon.set_pixel_size(-1)
             self.icon.set_icon_size(Gtk.IconSize.LARGE)
+
+    def __right_click(self, *_args: Any) -> None:
+        (flow_box := self.get_parent().get_parent()).unselect_all()
+        flow_box.select_child(self.get_parent())
+        shared.app.lookup_action("")
+
+        disable = {
+            "new-folder",
+            "select-all",
+            "cut",
+            "paste",
+            "trash",
+        }
+        for action in disable:
+            try:
+                shared.app.lookup_action(action).set_enabled(False)
+            except AttributeError:
+                pass
+
+        enable = {
+            "copy",
+        }
+        for action in enable:
+            try:
+                shared.app.lookup_action(action).set_enabled(True)
+            except AttributeError:
+                pass

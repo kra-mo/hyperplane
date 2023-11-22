@@ -105,14 +105,14 @@ class HypWindow(Adw.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
-    def __on_zoom_in_action(self, *_args) -> None:
+    def __on_zoom_in_action(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level + 1)
         self.update_zoom()
 
-    def __on_zoom_out_action(self, *_args) -> None:
+    def __on_zoom_out_action(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
             return
 
