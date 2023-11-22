@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
+from pathlib import Path
 from typing import Any
 
 import gi
@@ -28,7 +29,7 @@ gi.require_version("GnomeDesktop", "4.0")
 
 # pylint: disable=wrong-import-position
 
-from gi.repository import Adw, Gdk, Gio, GLib
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -47,57 +48,12 @@ class HypApplication(Adw.Application):
         self.create_action("about", self.__on_about_action)
         self.create_action("preferences", self.__on_preferences_action)
 
+        self.create_action(
+            "new-folder", self.__on_new_folder_action, ("<primary><shift>n",)
+        )
         self.create_action("copy", self.__on_copy_action, ("<primary>c",))
         self.create_action("select-all", self.__on_select_all_action)
         self.create_action("trash", self.__on_trash_action, ("Delete",))
-
-    def __on_copy_action(self, *_args: Any) -> None:
-        clipboard = Gdk.Display.get_default().get_clipboard()
-
-        uris = ""
-
-        for child in self.get_windows()[0].items_page.flow_box.get_selected_children():
-            child = child.get_child()
-
-            if not isinstance(child, HypItem):
-                continue
-            uris += str(child.path) + "\n"
-
-        if uris:
-            clipboard.set(uris.strip())
-
-    def __on_select_all_action(self, *_args: Any) -> None:
-        self.get_windows()[0].items_page.flow_box.select_all()
-
-    def __on_trash_action(self, *_args: Any) -> None:
-        n = 0
-        for child in (
-            items_page := self.get_windows()[0].items_page
-        ).flow_box.get_selected_children():
-            child = child.get_child()
-
-            if not isinstance(child, HypItem):
-                continue
-
-            try:
-                child.gfile.trash()
-            except GLib.GError:
-                pass
-            else:
-                items_page.flow_box.remove(child.get_parent())
-                n += 1
-
-        if not n:
-            return
-
-        if n > 1:
-            message = _("{} files moved to trash").format(n)
-        elif n:
-            message = _("{} moved to trash").format(
-                '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
-            )
-
-        self.get_windows()[0].send_toast(message)
 
     def do_activate(self):
         """Called when the application is activated.
@@ -153,6 +109,119 @@ class HypApplication(Adw.Application):
     def __on_preferences_action(self, _widget, _):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
+
+    def __on_new_folder_action(self, *_args: Any) -> None:
+        if not self.get_windows()[0].items_page.path:
+            return
+
+        dialog = Adw.MessageDialog.new(self.get_windows()[0], _("New Folder"))
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("create", _("Create"))
+
+        dialog.set_default_response("create")
+        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
+
+        preferences_group = Adw.PreferencesGroup()
+        exists_label = Gtk.Label(
+            label=_("A folder with that name already exists."),
+            margin_start=6,
+            margin_end=6,
+            margin_top=12,
+        )
+        preferences_group.add(revealer := Gtk.Revealer(child=exists_label))
+        preferences_group.add(entry := Adw.EntryRow(title=_("Folder name")))
+        dialog.set_extra_child(preferences_group)
+
+        dialog.set_response_enabled("create", False)
+        can_create = False
+
+        def set_incative(*_args):
+            nonlocal can_create
+
+            if not (text := entry.get_text()):
+                can_create = False
+                dialog.set_response_enabled("create", False)
+                revealer.set_reveal_child(False)
+                return
+
+            if Path(self.get_windows()[0].items_page.path, text.strip()).is_dir():
+                can_create = False
+                dialog.set_response_enabled("create", False)
+                revealer.set_reveal_child(True)
+            else:
+                can_create = True
+                dialog.set_response_enabled("create", True)
+                revealer.set_reveal_child(False)
+
+        def create_folder(*_args):
+            nonlocal can_create
+
+            if not can_create:
+                return
+
+            path = Path(self.get_windows()[0].items_page.path, entry.get_text().strip())
+            path.mkdir(parents=True, exist_ok=True)
+            self.get_windows()[0].items_page.flow_box.append(HypItem(path))
+            dialog.close()
+
+        def handle_response(_dialog, response):
+            if response == "create":
+                create_folder()
+
+        dialog.connect("response", handle_response)
+        entry.connect("entry-activated", create_folder)
+        entry.connect("changed", set_incative)
+
+        dialog.present()
+
+    def __on_copy_action(self, *_args: Any) -> None:
+        clipboard = Gdk.Display.get_default().get_clipboard()
+
+        uris = ""
+
+        for child in self.get_windows()[0].items_page.flow_box.get_selected_children():
+            child = child.get_child()
+
+            if not isinstance(child, HypItem):
+                continue
+            uris += str(child.path) + "\n"
+
+        if uris:
+            clipboard.set(uris.strip())
+
+    def __on_select_all_action(self, *_args: Any) -> None:
+        self.get_windows()[0].items_page.flow_box.select_all()
+
+    def __on_trash_action(self, *_args: Any) -> None:
+        n = 0
+        for child in (
+            items_page := self.get_windows()[0].items_page
+        ).flow_box.get_selected_children():
+            child = child.get_child()
+
+            if not isinstance(child, HypItem):
+                continue
+
+            try:
+                child.gfile.trash()
+            except GLib.GError:
+                pass
+            else:
+                items_page.flow_box.remove(child.get_parent())
+                n += 1
+
+        if not n:
+            return
+
+        if n > 1:
+            message = _("{} files moved to trash").format(n)
+        elif n:
+            message = _("{} moved to trash").format(
+                '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
+            )
+
+        self.get_windows()[0].send_toast(message)
 
 
 def main(_version):
