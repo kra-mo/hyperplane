@@ -116,7 +116,10 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __popped(self, *_args: Any) -> None:
         self.__update_items_page()
-        self.tags.pop()
+        try:
+            self.tags.pop()
+        except IndexError:
+            pass
 
     def __update_items_page(self) -> None:
         self.items_page = self.navigation_view.get_visible_page()

@@ -33,6 +33,10 @@ class HypItemsPage(Adw.NavigationPage):
     __gtype_name__ = "HypItemsPage"
 
     flow_box: Gtk.FlowBox = Gtk.Template.Child()
+    empty_folder: Adw.StatusPage = Gtk.Template.Child()
+    empty_filter: Adw.StatusPage = Gtk.Template.Child()
+    toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
+    scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
 
     def __init__(
         self,
@@ -60,6 +64,10 @@ class HypItemsPage(Adw.NavigationPage):
 
     def update(self) -> None:
         """Updates the visible items in the view."""
+
+        if self.toolbar_view.get_content() != self.scrolled_window:
+            self.toolbar_view.set_content(self.scrolled_window)
+
         self.flow_box.remove_all()
         if self.path:
             if self.path == shared.home:
@@ -73,12 +81,18 @@ class HypItemsPage(Adw.NavigationPage):
             for item in self.path.iterdir():
                 self.flow_box.append(HypItem(item))
 
+            if "item" not in vars():
+                self.toolbar_view.set_content(self.empty_folder)
+
         elif self.tags:
             for item in iterplane(self.tags):
                 if isinstance(item, Path):
                     self.flow_box.append(HypItem(item))
                 elif isinstance(item, str):
                     self.flow_box.append(HypTag(item))
+
+            if "item" not in vars():
+                self.toolbar_view.set_content(self.empty_filter)
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild

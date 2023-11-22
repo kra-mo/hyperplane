@@ -2,7 +2,7 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypItemsPage : Adw.NavigationPage {
-  Adw.ToolbarView {
+  Adw.ToolbarView toolbar_view {
     [top]
     Adw.HeaderBar header_bar {
       [end]
@@ -14,7 +14,7 @@ template $HypItemsPage : Adw.NavigationPage {
       }
     }
     content: 
-    ScrolledWindow {
+    ScrolledWindow scrolled_window {
       FlowBox flow_box {
         valign: start;
         margin-start: 12;
@@ -32,6 +32,17 @@ template $HypItemsPage : Adw.NavigationPage {
     ;
   }
 }
+
+Adw.StatusPage empty_folder {
+  title: _("Folder is Empty");
+  icon-name: "folder-symbolic";
+}
+
+Adw.StatusPage empty_filter {
+  title: _("No Items");
+  icon-name: "view-grid-symbolic";
+}
+
 
 menu primary_menu {
   section {
