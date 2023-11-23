@@ -17,12 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Any
+from typing import Any, Callable
 
 from gi.repository import Gio, GLib
 
 
-def get_symbolic_icon_async(gfile: Gio.File, callback: callable, *args: Any) -> None:
+def get_symbolic_icon_async(gfile: Gio.File, callback: Callable, *args: Any) -> None:
     """A wrapper around gfile.query_info_async."""
     gfile.query_info_async(
         Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
@@ -36,7 +36,7 @@ def get_symbolic_icon_async(gfile: Gio.File, callback: callable, *args: Any) -> 
 
 
 def __query_callback(
-    gfile: Gio.File, result: Gio.Task, callback: callable, *args: Any
+    gfile: Gio.File, result: Gio.Task, callback: Callable, *args: Any
 ) -> None:
     try:
         file_info = gfile.query_info_finish(result)

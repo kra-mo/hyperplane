@@ -40,7 +40,7 @@ hyperplane_sources = [
   '__init__.py',
   'main.py',
   'window.py',
-  'navigation_view.py',
+  'navigation_bin.py',
   'items_page.py',
   'item.py',
   'thumbnail.py',

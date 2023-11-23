@@ -1,4 +1,4 @@
-# navigation_view.py
+# navigation_bin.py
 #
 # Copyright 2023 kramo
 #
@@ -25,17 +25,17 @@ from gi.repository import Adw
 from hyperplane.items_page import HypItemsPage
 
 
-class HypNavigationView(Adw.Bin):
-    __gtype_name__ = "HypNavigationView"
+class HypNavigationBin(Adw.Bin):
+    __gtype_name__ = "HypNavigationBin"
 
     items_page: HypItemsPage
     view: Adw.NavigationView
 
-    tags: list = []
+    tags: list[str] = []
 
     def __init__(
         self,
-        initial_path: Optional[HypItemsPage] = None,
+        initial_path: Optional[Path] = None,
         initial_tags: Optional[Iterable[str]] = None,
         **kwargs: Any
     ) -> None:
@@ -46,7 +46,7 @@ class HypNavigationView(Adw.Bin):
         if initial_path:
             self.view.push(HypItemsPage(path=initial_path))
         elif initial_tags:
-            self.tags = initial_tags
+            self.tags = list(initial_tags)
             self.view.push(HypItemsPage(tags=self.tags))
 
         self.view.connect("popped", self.__popped)

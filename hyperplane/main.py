@@ -19,7 +19,7 @@
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Iterable, Optional
 
 import gi
 
@@ -48,6 +48,14 @@ class HypApplication(Adw.Application):
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__on_about_action)
         self.create_action("preferences", self.__on_preferences_action)
+        self.create_action(
+            "refresh",
+            self.__on_refresh_action,
+            (
+                "<primary>r",
+                "F5",
+            ),
+        )
 
         self.create_action(
             "new-folder", self.__on_new_folder_action, ("<primary><shift>n",)
@@ -80,7 +88,9 @@ class HypApplication(Adw.Application):
 
         win.present()
 
-    def create_action(self, name, callback, shortcuts=None):
+    def create_action(
+        self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
+    ) -> None:
         """Add an application action.
 
         Args:
@@ -95,7 +105,7 @@ class HypApplication(Adw.Application):
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
-    def __on_about_action(self, _widget, _):
+    def __on_about_action(self, *_args: Any) -> None:
         """Callback for the app.about action."""
         about = Adw.AboutWindow(
             transient_for=self.props.active_window,
@@ -108,9 +118,12 @@ class HypApplication(Adw.Application):
         )
         about.present()
 
-    def __on_preferences_action(self, _widget, _):
+    def __on_preferences_action(self, *_args: Any) -> None:
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
+
+    def __on_refresh_action(self, *_args: Any) -> None:
+        self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
 
     def __on_new_folder_action(self, *_args: Any) -> None:
         if (
@@ -181,9 +194,7 @@ class HypApplication(Adw.Application):
                 entry.get_text().strip(),
             )
             path.mkdir(parents=True, exist_ok=True)
-            self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().flow_box.append(
-                HypItem(path)
-            )
+            self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
             dialog.close()
 
         def handle_response(_dialog, response):
@@ -237,7 +248,7 @@ class HypApplication(Adw.Application):
             except GLib.GError:
                 pass
             else:
-                items_page.flow_box.remove(child.get_parent())
+                items_page.update()
                 n += 1
 
         if not n:

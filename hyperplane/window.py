@@ -18,12 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Iterable, Optional
 
 from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
-from hyperplane.navigation_view import HypNavigationView
+from hyperplane.navigation_bin import HypNavigationBin
 
 # This is to avoid a circular import in item.py
 from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
@@ -45,10 +45,11 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.tab_view.connect("page-attached", self.__page_attached)
 
-        navigation_view = HypNavigationView(initial_path=shared.home)
+        navigation_view = HypNavigationBin(initial_path=shared.home)
         self.tab_view.append(navigation_view).set_title(
-            navigation_view.view.get_visible_page().get_title()
+            title := navigation_view.view.get_visible_page().get_title()
         )
+        self.set_title(title)
 
         self.create_action("close", self.__on_close_action, ("<primary>w",))
         self.create_action(
@@ -62,10 +63,22 @@ class HypWindow(Adw.ApplicationWindow):
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
-    def __update_tab_title(self, view: Adw.NavigationView, *_args: Any) -> None:
-        self.tab_view.get_page(view.get_parent()).set_title(
-            view.get_visible_page().get_title()
+        self.tab_view.connect("notify::selected-page", self.__update_window_title)
+
+    def __update_window_title(self, *_args: Any) -> None:
+        self.set_title(
+            self.tab_view.get_selected_page()
+            .get_child()
+            .view.get_visible_page()
+            .get_title()
         )
+
+    def __update_tab_title(self, view: Adw.NavigationView, *_args: Any) -> None:
+        title = view.get_visible_page().get_title()
+        (page := self.tab_view.get_page(view.get_parent())).set_title(title)
+
+        if self.tab_view.get_selected_page() == page:
+            self.set_title(title)
 
     def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
         page.get_child().view.connect("popped", self.__update_tab_title)
@@ -81,12 +94,12 @@ class HypWindow(Adw.ApplicationWindow):
     def new_tab(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
         """Open a new path with the given path or tag."""
         if path and path.is_dir():
-            navigation_view = HypNavigationView(initial_path=path)
+            navigation_view = HypNavigationBin(initial_path=path)
             self.tab_view.append(navigation_view).set_title(
                 navigation_view.view.get_visible_page().get_title()
             )
         elif tag:
-            navigation_view = HypNavigationView(
+            navigation_view = HypNavigationBin(
                 initial_tags=self.tab_view.get_selected_page().get_child().tags + [tag]
             )
             self.tab_view.append(navigation_view).set_title(
@@ -99,7 +112,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         tab_index = 0
         while item := tab_pages.get_item(tab_index):
-            stack = item.get_child().get_navigation_stack()
+            stack = item.get_child().view.get_navigation_stack()
             page_index = 0
             while page := stack.get_item(page_index):
                 child_index = 0
@@ -111,7 +124,9 @@ class HypWindow(Adw.ApplicationWindow):
 
             tab_index += 1
 
-    def create_action(self, name, callback, shortcuts=None):
+    def create_action(
+        self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
+    ) -> None:
         """Add an application action.
 
         Args:

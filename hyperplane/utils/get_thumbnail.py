@@ -18,15 +18,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
-from gi.repository import Gdk, Gio, GLib, GnomeDesktop
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, GnomeDesktop
 
 
 def get_thumbnail_async(
-    gfile: Gio.File, content_type: str, callback: callable, *args: Any
+    gfile: Gio.File, content_type: str, callback: Callable, *args: Any
 ) -> None:
-    """A wrapper around gfile.query_info_async."""
+    """Get the thumbnail of a file or generate it if one doesn't already exist."""
     gfile.query_info_async(
         Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
         Gio.FileQueryInfoFlags.NONE,
@@ -40,7 +40,7 @@ def get_thumbnail_async(
 
 
 def __query_callback(
-    gfile: Gio.File, result: Gio.Task, content_type: str, callback: callable, *args: Any
+    gfile: Gio.File, result: Gio.Task, content_type: str, callback: Callable, *args: Any
 ) -> None:
     try:
         file_info = gfile.query_info_finish(result)
@@ -57,7 +57,7 @@ def __query_callback(
     callback(gfile, texture, *args)
 
 
-def __generate_thumbnail(path, mime_type):
+def __generate_thumbnail(path, mime_type) -> Optional[GdkPixbuf.Pixbuf]:
     factory = GnomeDesktop.DesktopThumbnailFactory()
     uri = Gio.file_new_for_path(str(path)).get_uri()
     mtime = path.stat().st_mtime

@@ -36,7 +36,7 @@ def iterplane(filter_tags: Iterable[str]) -> Generator:
     yield from __walk(shared.home, tags)
 
 
-def __walk(node: Path, tags: dict[str:bool]) -> Generator:
+def __walk(node: Path, tags: dict[str, bool]) -> Generator:
     if tags.get(node.name):
         tags.pop(node.name)
 

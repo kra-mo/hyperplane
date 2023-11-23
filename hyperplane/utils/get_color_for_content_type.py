@@ -19,7 +19,7 @@
 
 
 # pylint: disable=too-many-return-statements
-def get_color_for_content_type(content_type: str) -> None:
+def get_color_for_content_type(content_type: str) -> str:
     if content_type == "inode/directory":
         return "dark-blue"
 
