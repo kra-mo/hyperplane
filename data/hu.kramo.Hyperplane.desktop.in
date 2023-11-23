@@ -1,8 +1,13 @@
 [Desktop Entry]
 Name=Hyperplane
-Exec=hyperplane
+Exec=hyperplane --new-window
 Icon=@APP_ID@
 Terminal=false
 Type=Application
 Categories=GTK;
 StartupNotify=true
+Actions=new-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=hyperplane --new-window

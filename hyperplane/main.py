@@ -45,6 +45,19 @@ class HypApplication(Adw.Application):
             application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
+        shared.app = self
+
+        new_window = GLib.OptionEntry()
+        new_window.long_name = "new-window"
+        new_window.short_name = ord("n")
+        new_window.flags = int(GLib.OptionFlags.NONE)
+        new_window.arg = int(GLib.OptionArg.NONE)
+        new_window.arg_data = None
+        new_window.description = "Open the app with a new window"
+        new_window.arg_description = None
+
+        self.add_main_option_entries((new_window,))
+
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__on_about_action)
         self.create_action("preferences", self.__on_preferences_action)
@@ -64,29 +77,35 @@ class HypApplication(Adw.Application):
         self.create_action("select-all", self.__on_select_all_action)
         self.create_action("trash", self.__on_trash_action, ("Delete",))
 
-    def do_activate(self):
-        """Called when the application is activated.
+    def do_activate(self) -> HypWindow:
+        """Called when the application is activated."""
+        win = HypWindow(application=self)
 
-        We raise the application's main window, creating it if
-        necessary.
-        """
-        shared.app = self
-        win = self.props.active_window
-        if not win:
-            win = HypWindow(application=self)
+        win.set_default_size(
+            shared.state_schema.get_int("width"),
+            shared.state_schema.get_int("height"),
+        )
+        if shared.state_schema.get_boolean("is-maximized"):
+            win.maximize()
 
         # Save window geometry
         shared.state_schema.bind(
-            "width", win, "default-width", Gio.SettingsBindFlags.DEFAULT
+            "width", win, "default-width", Gio.SettingsBindFlags.SET
         )
         shared.state_schema.bind(
-            "height", win, "default-height", Gio.SettingsBindFlags.DEFAULT
+            "height", win, "default-height", Gio.SettingsBindFlags.SET
         )
         shared.state_schema.bind(
-            "is-maximized", win, "maximized", Gio.SettingsBindFlags.DEFAULT
+            "is-maximized", win, "maximized", Gio.SettingsBindFlags.SET
         )
 
         win.present()
+        return win
+
+    def do_handle_local_options(self, options: GLib.VariantDict) -> int:
+        if options.contains("new-window") and self.get_is_registered():
+            self.do_activate()
+        return -1
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None

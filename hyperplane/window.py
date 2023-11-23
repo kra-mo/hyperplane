@@ -64,8 +64,12 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
         self.tab_view.connect("notify::selected-page", self.__update_window_title)
+        self.tab_view.connect("create-window", self.__create_window)
 
     def __update_window_title(self, *_args: Any) -> None:
+        if not self.tab_view.get_selected_page():
+            return
+
         self.set_title(
             self.tab_view.get_selected_page()
             .get_child()
@@ -160,3 +164,10 @@ class HypWindow(Adw.ApplicationWindow):
             self.tab_view.close_page(self.tab_view.get_selected_page())
         else:
             self.close()
+
+    def __create_window(self, *_args: Any) -> Adw.TabView:
+        win = self.get_application().do_activate()
+
+        # Close the initial Home tab
+        win.tab_view.close_page(win.tab_view.get_selected_page())
+        return win.tab_view
