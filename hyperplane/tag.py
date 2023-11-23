@@ -81,7 +81,6 @@ class HypTag(Adw.Bin):
     def __right_click(self, *_args: Any) -> None:
         (flow_box := self.get_parent().get_parent()).unselect_all()
         flow_box.select_child(self.get_parent())
-        shared.app.lookup_action("")
 
         disable = {
             "new-folder",
@@ -106,4 +105,7 @@ class HypTag(Adw.Bin):
                 pass
 
     def __middle_click(self, *_args) -> None:
+        (flow_box := self.get_parent().get_parent()).unselect_all()
+        flow_box.select_child(self.get_parent())
+
         self.get_root().new_tab(tag=self.name)

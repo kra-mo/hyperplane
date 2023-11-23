@@ -136,4 +136,7 @@ class HypItem(Adw.Bin):
                 pass
 
     def __middle_click(self, *_args) -> None:
+        (flow_box := self.get_parent().get_parent()).unselect_all()
+        flow_box.select_child(self.get_parent())
+
         self.get_root().new_tab(path=self.path)

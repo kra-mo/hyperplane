@@ -126,12 +126,19 @@ class HypApplication(Adw.Application):
         self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
 
     def __on_new_folder_action(self, *_args: Any) -> None:
-        if (
-            not self.props.active_window.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-            .path
+        if not (
+            path := (
+                page := self.props.active_window.tab_view.get_selected_page()
+                .get_child()
+                .view.get_visible_page()
+                .path
+            )
         ):
+            if page.tags:
+                path = Path(
+                    shared.home, *(tag for tag in shared.tags if tag in page.tags)
+                )
+        if not path:
             return
 
         dialog = Adw.MessageDialog.new(self.props.active_window, _("New Folder"))
@@ -156,8 +163,9 @@ class HypApplication(Adw.Application):
         dialog.set_response_enabled("create", False)
         can_create = False
 
-        def set_incative(*_args: Any):
+        def set_incative(*_args: Any) -> None:
             nonlocal can_create
+            nonlocal path
 
             if not (text := entry.get_text()):
                 can_create = False
@@ -165,13 +173,7 @@ class HypApplication(Adw.Application):
                 revealer.set_reveal_child(False)
                 return
 
-            if Path(
-                self.props.active_window.tab_view.get_selected_page()
-                .get_child()
-                .view.get_visible_page()
-                .path,
-                text.strip(),
-            ).is_dir():
+            if Path(path, text.strip()).is_dir():
                 can_create = False
                 dialog.set_response_enabled("create", False)
                 revealer.set_reveal_child(True)
@@ -182,22 +184,16 @@ class HypApplication(Adw.Application):
 
         def create_folder(*_args: Any):
             nonlocal can_create
+            nonlocal path
 
             if not can_create:
                 return
 
-            path = Path(
-                self.props.active_window.tab_view.get_selected_page()
-                .get_child()
-                .view.get_visible_page()
-                .path,
-                entry.get_text().strip(),
-            )
-            path.mkdir(parents=True, exist_ok=True)
+            Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
             self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
             dialog.close()
 
-        def handle_response(_dialog, response):
+        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "create":
                 create_folder()
 
