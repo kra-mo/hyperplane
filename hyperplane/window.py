@@ -23,7 +23,7 @@ from typing import Any, Optional
 from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
-from hyperplane.items_page import HypItemsPage
+from hyperplane.navigation_view import HypNavigationView
 
 # This is to avoid a circular import in item.py
 from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
@@ -33,11 +33,9 @@ from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
 class HypWindow(Adw.ApplicationWindow):
     __gtype_name__ = "HypWindow"
 
-    navigation_view: Adw.NavigationView = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
-
-    items_page: HypItemsPage
-    tags: list = []
+    tab_view: Adw.TabView = Gtk.Template.Child()
+    toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -45,10 +43,14 @@ class HypWindow(Adw.ApplicationWindow):
         if shared.PROFILE == "development":
             self.add_css_class("devel")
 
-        self.items_page = HypItemsPage(shared.home)
-        self.navigation_view.push(self.items_page)
+        self.tab_view.connect("page-attached", self.__page_attached)
 
-        self.create_action("close", lambda *_: self.close(), ("<primary>w",))
+        navigation_view = HypNavigationView(initial_path=shared.home)
+        self.tab_view.append(navigation_view).set_title(
+            navigation_view.view.get_visible_page().get_title()
+        )
+
+        self.create_action("close", self.__on_close_action, ("<primary>w",))
         self.create_action(
             "zoom-in",
             self.__on_zoom_in_action,
@@ -60,8 +62,14 @@ class HypWindow(Adw.ApplicationWindow):
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
-        self.navigation_view.connect("popped", self.__popped)
-        self.navigation_view.connect("pushed", self.__pushed)
+    def __update_tab_title(self, view: Adw.NavigationView, *_args: Any) -> None:
+        self.tab_view.get_page(view.get_parent()).set_title(
+            view.get_visible_page().get_title()
+        )
+
+    def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
+        page.get_child().view.connect("popped", self.__update_tab_title)
+        page.get_child().view.connect("pushed", self.__update_tab_title)
 
     def send_toast(self, message: str) -> None:
         toast = Adw.Toast.new(message)
@@ -70,25 +78,38 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.toast_overlay.add_toast(toast)
 
-    def new_page(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
-        """Push a new page with the given path or tag to the navigation stack."""
-        if path:
-            self.navigation_view.push(HypItemsPage(path))
+    def new_tab(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
+        """Open a new path with the given path or tag."""
+        if path and path.is_dir():
+            navigation_view = HypNavigationView(initial_path=path)
+            self.tab_view.append(navigation_view).set_title(
+                navigation_view.view.get_visible_page().get_title()
+            )
         elif tag:
-            self.tags.append(tag)
-            self.navigation_view.push(HypItemsPage(tags=self.tags))
+            navigation_view = HypNavigationView(
+                initial_tags=self.tab_view.get_selected_page().get_child().tags + [tag]
+            )
+            self.tab_view.append(navigation_view).set_title(
+                navigation_view.view.get_visible_page().get_title()
+            )
 
     def update_zoom(self) -> None:
         """Update the zoom level of all items in the navigation stack"""
-        stack = self.navigation_view.get_navigation_stack()
-        page_index = 0
-        while page := stack.get_item(page_index):
-            child_index = 0
-            while child := page.flow_box.get_child_at_index(child_index):
-                child.get_child().zoom(shared.state_schema.get_uint("zoom-level"))
+        tab_pages = self.tab_view.get_pages()
 
-                child_index += 1
-            page_index += 1
+        tab_index = 0
+        while item := tab_pages.get_item(tab_index):
+            stack = item.get_child().get_navigation_stack()
+            page_index = 0
+            while page := stack.get_item(page_index):
+                child_index = 0
+                while child := page.flow_box.get_child_at_index(child_index):
+                    child.get_child().zoom(shared.state_schema.get_uint("zoom-level"))
+
+                    child_index += 1
+                page_index += 1
+
+            tab_index += 1
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -119,15 +140,8 @@ class HypWindow(Adw.ApplicationWindow):
         shared.state_schema.set_uint("zoom-level", zoom_level - 1)
         self.update_zoom()
 
-    def __pushed(self, *_args: Any) -> None:
-        self.__update_items_page()
-
-    def __popped(self, *_args: Any) -> None:
-        self.__update_items_page()
-        try:
-            self.tags.pop()
-        except IndexError:
-            pass
-
-    def __update_items_page(self) -> None:
-        self.items_page = self.navigation_view.get_visible_page()
+    def __on_close_action(self, *_args: Any) -> None:
+        if self.tab_view.get_n_pages() > 1:
+            self.tab_view.close_page(self.tab_view.get_selected_page())
+        else:
+            self.close()

@@ -50,9 +50,13 @@ class HypItem(Adw.Bin):
         self.zoom(shared.state_schema.get_uint("zoom-level"))
         self.update()
 
-        gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
-        gesture_click.connect("pressed", self.__right_click)
-        self.add_controller(gesture_click)
+        right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        right_click.connect("pressed", self.__right_click)
+        self.add_controller(right_click)
+
+        middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
+        middle_click.connect("pressed", self.__middle_click)
+        self.add_controller(middle_click)
 
     def update(self) -> None:
         """Update the file name and thumbnail."""
@@ -130,3 +134,6 @@ class HypItem(Adw.Bin):
                 shared.app.lookup_action(action).set_enabled(True)
             except AttributeError:
                 pass
+
+    def __middle_click(self, *_args) -> None:
+        self.get_root().new_tab(path=self.path)

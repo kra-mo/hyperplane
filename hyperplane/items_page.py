@@ -35,7 +35,6 @@ class HypItemsPage(Adw.NavigationPage):
     flow_box: Gtk.FlowBox = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     empty_filter: Adw.StatusPage = Gtk.Template.Child()
-    toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
@@ -69,17 +68,11 @@ class HypItemsPage(Adw.NavigationPage):
         self.add_controller(gesture_click)
         self.right_click_menu.connect("closed", self.__set_actions)
 
-    def __right_click(self, _gesture, _n, x, y) -> None:
-        rectangle = Gdk.Rectangle()
-        rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
-        self.right_click_menu.set_pointing_to(rectangle)
-        self.right_click_menu.popup()
-
     def update(self) -> None:
         """Updates the visible items in the view."""
 
-        if self.toolbar_view.get_content() != self.scrolled_window:
-            self.toolbar_view.set_content(self.scrolled_window)
+        if self.get_child() != self.scrolled_window:
+            self.set_child(self.scrolled_window)
 
         self.flow_box.remove_all()
         if self.path:
@@ -95,7 +88,7 @@ class HypItemsPage(Adw.NavigationPage):
                 self.flow_box.append(HypItem(item))
 
             if "item" not in vars():
-                self.toolbar_view.set_content(self.empty_folder)
+                self.set_child(self.empty_folder)
 
         elif self.tags:
             for item in iterplane(self.tags):
@@ -105,7 +98,7 @@ class HypItemsPage(Adw.NavigationPage):
                     self.flow_box.append(HypTag(item))
 
             if "item" not in vars():
-                self.toolbar_view.set_content(self.empty_filter)
+                self.set_child(self.empty_filter)
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
@@ -114,9 +107,13 @@ class HypItemsPage(Adw.NavigationPage):
             if item.path.is_file():
                 Gio.AppInfo.launch_default_for_uri(item.gfile.get_uri())
             elif item.path.is_dir():
-                shared.get_win().new_page(item.path)
+                self.get_root().tab_view.get_selected_page().get_child().new_page(
+                    item.path
+                )
         elif isinstance(item, HypTag):
-            shared.get_win().new_page(tag=item.name)
+            self.get_root().tab_view.get_selected_page().get_child().new_page(
+                tag=item.name
+            )
 
     def __set_actions(self, *_args: Any) -> None:
         enable = {
@@ -132,3 +129,9 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.app.lookup_action(action).set_enabled(True)
             except AttributeError:
                 pass
+
+    def __right_click(self, _gesture, _n, x, y) -> None:
+        rectangle = Gdk.Rectangle()
+        rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
+        self.right_click_menu.set_pointing_to(rectangle)
+        self.right_click_menu.popup()

@@ -4,10 +4,37 @@ using Adw 1;
 template $HypWindow : Adw.ApplicationWindow {
   title: _("Hyperplane");
   content: Adw.ToastOverlay toast_overlay {
-    Adw.NavigationView navigation_view {}
-  };
+      Adw.ToolbarView toolbar_view {
+      top-bar-style: raised;
+
+      [top]
+      Adw.HeaderBar header_bar {
+        [end]
+        MenuButton {
+          primary: true;
+          icon-name: 'open-menu-symbolic';
+          tooltip-text: _('Menu');
+          menu-model: primary_menu;
+        }
+      }
+      [top]
+      Adw.TabBar tab_bar {
+        view: tab_view;
+      }
+      Adw.TabView tab_view {}
+    }
+  }
+  ;
 
   styles [
     "view"
   ]
+}
+
+menu primary_menu {
+  section {
+    item (_("Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
+    item (_("_About Hyperplane"), "app.about")
+  }
 }

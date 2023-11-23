@@ -2,34 +2,19 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypItemsPage : Adw.NavigationPage {
-  Adw.ToolbarView toolbar_view {
-    [top]
-    Adw.HeaderBar header_bar {
-      [end]
-      MenuButton {
-        primary: true;
-        icon-name: 'open-menu-symbolic';
-        tooltip-text: _('Menu');
-        menu-model: primary_menu;
-      }
+  ScrolledWindow scrolled_window {
+    FlowBox flow_box {
+      valign: start;
+      margin-start: 12;
+      margin-end: 12;
+      margin-top: 12;
+      margin-bottom: 12;
+      selection-mode: multiple;
+      row-spacing: 12;
+      column-spacing: 12;
+      activate-on-single-click: false;
+      max-children-per-line: 24;
     }
-    content: 
-    ScrolledWindow scrolled_window {
-      FlowBox flow_box {
-        valign: start;
-        margin-start: 12;
-        margin-end: 12;
-        margin-top: 12;
-        margin-bottom: 12;
-        selection-mode: multiple;
-        row-spacing: 12;
-        column-spacing: 12;
-        activate-on-single-click: false;
-        max-children-per-line: 24;
-      }
-    }
-
-    ;
   }
 }
 
@@ -47,14 +32,6 @@ Adw.StatusPage empty_folder {
 Adw.StatusPage empty_filter {
   title: _("No Items");
   icon-name: "view-grid-symbolic";
-}
-
-menu primary_menu {
-  section {
-    item (_("Preferences"), "app.preferences")
-    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
-    item (_("_About Hyperplane"), "app.about")
-  }
 }
 
 menu right_click {
@@ -83,7 +60,7 @@ menu right_click {
     }
     item {
       label: _("Select All");
-      action: "app.show-all";
+      action: "app.select-all";
       hidden-when: "action-disabled";
     }
   }

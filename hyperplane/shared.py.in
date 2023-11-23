@@ -44,7 +44,6 @@ del path
 
 app = None  # pylint: disable=invalid-name
 
-
 def get_win():
     if app:
         return app.get_windows()[0]

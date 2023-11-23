@@ -47,6 +47,10 @@ class HypTag(Adw.Bin):
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
 
+        middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
+        middle_click.connect("pressed", self.__middle_click)
+        self.add_controller(middle_click)
+
     def update_label(self) -> None:
         """Updates the tag's visible label"""
         self.label.set_label(self.name)
@@ -100,3 +104,6 @@ class HypTag(Adw.Bin):
                 shared.app.lookup_action(action).set_enabled(True)
             except AttributeError:
                 pass
+
+    def __middle_click(self, *_args) -> None:
+        self.get_root().new_tab(tag=self.name)
