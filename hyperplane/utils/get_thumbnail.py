@@ -18,9 +18,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, GnomeDesktop
+from gi.repository import Gdk, Gio, GLib, GnomeDesktop
 
 
 def get_thumbnail_async(
@@ -47,29 +47,25 @@ def __query_callback(
     except GLib.GError:
         return
     if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
-        texture = Gdk.Texture.new_from_filename(path)
-    elif pixbuf := __generate_thumbnail(Path(gfile.get_path()), content_type):
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-    else:
+        callback(gfile, Gdk.Texture.new_from_filename(path), *args)
         return
 
-    # Only call the callback if successful. Content type cannot be NULL.
-    callback(gfile, texture, *args)
+    GLib.Thread.new(None, __generate_thumbnail, gfile, content_type, callback, *args)
 
 
-def __generate_thumbnail(path, mime_type) -> Optional[GdkPixbuf.Pixbuf]:
+def __generate_thumbnail(gfile, content_type, callback, *args) -> None:
     factory = GnomeDesktop.DesktopThumbnailFactory()
-    uri = Gio.file_new_for_path(str(path)).get_uri()
-    mtime = path.stat().st_mtime
+    uri = Gio.file_new_for_path(str(gfile.get_path())).get_uri()
+    mtime = Path(gfile.get_path()).stat().st_mtime
 
     if factory.lookup(uri, mtime):
-        return None
+        return
 
-    if not factory.can_thumbnail(uri, mime_type, mtime):
-        return None
+    if not factory.can_thumbnail(uri, content_type, mtime):
+        return
 
-    if not (thumbnail := factory.generate_thumbnail(uri, mime_type)):
-        return None
+    if not (thumbnail := factory.generate_thumbnail(uri, content_type)):
+        return
 
     factory.save_thumbnail(thumbnail, uri, mtime)
-    return thumbnail
+    GLib.idle_add(callback, gfile, Gdk.Texture.new_for_pixbuf(thumbnail), *args)
