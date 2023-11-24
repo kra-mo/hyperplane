@@ -47,7 +47,7 @@ class HypItem(Adw.Bin):
             return
 
         self.gfile = Gio.File.new_for_path(str(path))
-        self.zoom(shared.state_schema.get_uint("zoom-level"))
+        self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         self.build()
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
@@ -57,6 +57,8 @@ class HypItem(Adw.Bin):
         middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
+
+        shared.postmaster.connect("zoom", self.__zoom)
 
     def build(self) -> None:
         """Update the file name and thumbnail."""
@@ -69,8 +71,7 @@ class HypItem(Adw.Bin):
         self.thumbnail.build_icon()
         get_content_type_async(self.gfile, self.__content_type_callback)
 
-    def zoom(self, zoom_level: int) -> None:
-        """Set the zoom level for the item."""
+    def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
         self.box.set_margin_start(4 * zoom_level)
         self.box.set_margin_end(4 * zoom_level)

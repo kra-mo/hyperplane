@@ -94,8 +94,7 @@ class HypApplication(Adw.Application):
         shared.state_schema.set_boolean("show-hidden", value)
         shared.show_hidden = value
 
-        for window in self.get_windows():
-            window.get_visible_page().flow_box.invalidate_filter()
+        shared.postmaster.emit("toggle-hidden")
 
     def do_activate(self) -> HypWindow:
         """Called when the application is activated."""

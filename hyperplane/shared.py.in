@@ -21,6 +21,8 @@ from pathlib import Path
 
 from gi.repository import Gio, GLib
 
+from hyperplane.postmaster_general import HypPostmasterGeneral
+
 APP_ID = "@APP_ID@"
 VERSION = "@VERSION@"
 PREFIX = "@PREFIX@"
@@ -44,3 +46,5 @@ if (path := home / ".hyperplane").is_file():
 del path
 
 app = None  # pylint: disable=invalid-name
+
+postmaster = HypPostmasterGeneral()

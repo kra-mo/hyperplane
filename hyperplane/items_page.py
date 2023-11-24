@@ -71,6 +71,8 @@ class HypItemsPage(Adw.NavigationPage):
         self.add_controller(gesture_click)
         self.right_click_menu.connect("closed", self.__set_actions)
 
+        shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
+
     def update(self) -> None:
         """Updates the visible items in the view."""
 
@@ -102,6 +104,9 @@ class HypItemsPage(Adw.NavigationPage):
 
             if "item" not in vars():
                 self.set_child(self.empty_filter)
+
+    def __toggle_hidden(self, *_args: Any) -> None:
+        self.flow_box.invalidate_filter()
 
     def __sort_func(self, child1: Gtk.FlowBoxChild, child2: Gtk.FlowBoxChild) -> int:
         child1 = child1.get_child()

@@ -40,7 +40,7 @@ class HypTag(Adw.Bin):
         super().__init__(**kwargs)
         self.name = name
 
-        self.zoom(shared.state_schema.get_uint("zoom-level"))
+        self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         self.update_label()
 
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
@@ -51,12 +51,13 @@ class HypTag(Adw.Bin):
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
 
+        shared.postmaster.connect("zoom", self.__zoom)
+
     def update_label(self) -> None:
         """Updates the tag's visible label"""
         self.label.set_label(self.name)
 
-    def zoom(self, zoom_level: int) -> None:
-        """Set the zoom level for the item."""
+    def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
         self.box.set_margin_start(4 * zoom_level)
         self.box.set_margin_end(4 * zoom_level)

@@ -106,21 +106,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def update_zoom(self) -> None:
         """Update the zoom level of all items in the navigation stack"""
-        tab_pages = self.tab_view.get_pages()
-
-        tab_index = 0
-        while item := tab_pages.get_item(tab_index):
-            stack = item.get_child().view.get_navigation_stack()
-            page_index = 0
-            while page := stack.get_item(page_index):
-                child_index = 0
-                while child := page.flow_box.get_child_at_index(child_index):
-                    child.get_child().zoom(shared.state_schema.get_uint("zoom-level"))
-
-                    child_index += 1
-                page_index += 1
-
-            tab_index += 1
+        shared.postmaster.emit("zoom", shared.state_schema.get_uint("zoom-level"))
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
