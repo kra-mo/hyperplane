@@ -44,7 +44,7 @@ def __query_callback(
 ) -> None:
     try:
         file_info = gfile.query_info_finish(result)
-    except GLib.GError:
+    except GLib.Error:
         return
     if path := file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH):
         callback(gfile, Gdk.Texture.new_from_filename(path), *args)

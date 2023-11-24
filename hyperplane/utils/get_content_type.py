@@ -40,7 +40,7 @@ def __query_callback(
 ) -> None:
     try:
         file_info = gfile.query_info_finish(result)
-    except GLib.GError:
+    except GLib.Error:
         return
     if not (content_type := file_info.get_content_type()):
         return

@@ -285,7 +285,7 @@ class HypApplication(Adw.Application):
         def rename(*_args: Any) -> None:
             try:
                 child.gfile.set_display_name(entry.get_text().strip())
-            except GLib.GError:
+            except GLib.Error:
                 pass
             self.get_active_window().get_visible_page().update()
             popover.popdown()
@@ -330,7 +330,7 @@ class HypApplication(Adw.Application):
 
             try:
                 child.gfile.trash()
-            except GLib.GError:
+            except GLib.Error:
                 pass
             else:
                 items_page.update()
