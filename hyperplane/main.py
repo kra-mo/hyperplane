@@ -79,6 +79,24 @@ class HypApplication(Adw.Application):
         self.create_action("rename", self.__on_rename_action, ("F2",))
         self.create_action("trash", self.__on_trash_action, ("Delete",))
 
+        show_hidden_action = Gio.SimpleAction.new_stateful(
+            "show-hidden", None, shared.state_schema.get_value("show-hidden")
+        )
+        show_hidden_action.connect("activate", self.__show_hidden)
+        show_hidden_action.connect("change-state", self.__show_hidden)
+        self.add_action(show_hidden_action)
+        self.set_accels_for_action("app.show-hidden", ("<primary>h",))
+
+    def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
+        value = not action.get_property("state").get_boolean()
+        action.set_state(GLib.Variant.new_boolean(value))
+
+        shared.state_schema.set_boolean("show-hidden", value)
+        shared.show_hidden = value
+
+        for window in self.get_windows():
+            window.get_visible_page().flow_box.invalidate_filter()
+
     def do_activate(self) -> HypWindow:
         """Called when the application is activated."""
         win = HypWindow(application=self)

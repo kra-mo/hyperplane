@@ -34,6 +34,7 @@ config_dir = Path(GLib.get_user_config_dir())
 cache_dir = Path(GLib.get_user_cache_dir())
 
 home = data_dir / "hyperplane" / "home"
+show_hidden = state_schema.get_boolean("show-hidden")
 
 tags = ()
 

@@ -23,6 +23,7 @@ from typing import Any, Callable, Iterable, Optional
 from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
+from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 
 # This is to avoid a circular import in item.py
@@ -98,6 +99,10 @@ class HypWindow(Adw.ApplicationWindow):
             self.tab_view.append(navigation_view).set_title(
                 navigation_view.view.get_visible_page().get_title()
             )
+
+    def get_visible_page(self) -> HypItemsPage:
+        """Return the currently visible HypItemsPage."""
+        return self.tab_view.get_selected_page().get_child().view.get_visible_page()
 
     def update_zoom(self) -> None:
         """Update the zoom level of all items in the navigation stack"""

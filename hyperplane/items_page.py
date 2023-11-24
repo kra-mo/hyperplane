@@ -63,6 +63,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         self.flow_box.connect("child-activated", self.__child_activated)
         self.flow_box.set_sort_func(self.__sort_func)
+        self.flow_box.set_filter_func(self.__filter_func)
 
         self.right_click_menu.set_parent(self)
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
@@ -113,6 +114,22 @@ class HypItemsPage(Adw.NavigationPage):
         if isinstance(child2, HypItem):
             return -1
         return strcoll(child1.name, child2.name)
+
+    def __filter_func(self, child: Gtk.FlowBoxChild) -> bool:
+        if shared.show_hidden:
+            return True
+
+        child = child.get_child()
+
+        if isinstance(child, HypTag):
+            return True
+
+        if child.gfile.query_info(
+            Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, Gio.FileQueryInfoFlags.NONE
+        ).get_is_hidden():
+            return False
+
+        return True
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild
