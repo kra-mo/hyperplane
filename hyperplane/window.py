@@ -58,6 +58,7 @@ class HypWindow(Adw.ApplicationWindow):
         )
         self.set_title(title)
 
+        self.create_action("home", self.__go_home, ("<alt>Home",))
         self.create_action("close", self.__on_close_action, ("<primary>w",))
         self.create_action("back", self.__on_back_action)
         self.lookup_action("back").set_enabled(False)
@@ -75,48 +76,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
 
-    def __tab_changed(self, *_args: Any) -> None:
-        if not self.tab_view.get_selected_page():
-            return
-
-        self.set_title(
-            self.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-            .get_title()
-        )
-        self.lookup_action("back").set_enabled(
-            bool(
-                self.tab_view.get_selected_page()
-                .get_child()
-                .view.get_navigation_stack()
-                .get_n_items()
-                - 1
-            )
-        )
-
-    def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
-        title = view.get_visible_page().get_title()
-        (page := self.tab_view.get_page(view.get_parent())).set_title(title)
-
-        if self.tab_view.get_selected_page() == page:
-            self.set_title(title)
-
-        self.lookup_action("back").set_enabled(
-            bool(
-                self.tab_view.get_selected_page()
-                .get_child()
-                .view.get_navigation_stack()
-                .get_n_items()
-                - 1
-            )
-        )
-
-    def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
-        page.get_child().view.connect("popped", self.__navigation_changed)
-        page.get_child().view.connect("pushed", self.__navigation_changed)
-
     def send_toast(self, message: str) -> None:
+        """Displays a toast with the given message in the window."""
         toast = Adw.Toast.new(message)
         toast.set_priority(Adw.ToastPriority.HIGH)
         toast.set_use_markup(False)
@@ -172,6 +133,50 @@ class HypWindow(Adw.ApplicationWindow):
         self.add_action(action)
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
+
+    def __tab_changed(self, *_args: Any) -> None:
+        if not self.tab_view.get_selected_page():
+            return
+
+        self.set_title(
+            self.tab_view.get_selected_page()
+            .get_child()
+            .view.get_visible_page()
+            .get_title()
+        )
+        self.lookup_action("back").set_enabled(
+            bool(
+                self.tab_view.get_selected_page()
+                .get_child()
+                .view.get_navigation_stack()
+                .get_n_items()
+                - 1
+            )
+        )
+
+    def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
+        title = view.get_visible_page().get_title()
+        (page := self.tab_view.get_page(view.get_parent())).set_title(title)
+
+        if self.tab_view.get_selected_page() == page:
+            self.set_title(title)
+
+        self.lookup_action("back").set_enabled(
+            bool(
+                self.tab_view.get_selected_page()
+                .get_child()
+                .view.get_navigation_stack()
+                .get_n_items()
+                - 1
+            )
+        )
+
+    def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
+        page.get_child().view.connect("popped", self.__navigation_changed)
+        page.get_child().view.connect("pushed", self.__navigation_changed)
+
+    def __go_home(self, *_args) -> None:
+        self.tab_view.get_selected_page().get_child().new_page(shared.home)
 
     def __on_zoom_in_action(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:

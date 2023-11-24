@@ -13,13 +13,20 @@ template $HypWindow : Adw.ApplicationWindow {
         Button {
           icon-name: "go-previous-symbolic";
           action-name: "win.back";
+          tooltip-text: _("Back");
+        }
+        [start]
+        Button {
+          icon-name: "go-home-symbolic";
+          action-name: "win.home";
+          tooltip-text: _("Home");
         }
 
         [end]
         MenuButton {
           primary: true;
-          icon-name: 'open-menu-symbolic';
-          tooltip-text: _('Menu');
+          icon-name: "open-menu-symbolic";
+          tooltip-text: _("Menu");
           menu-model: primary_menu;
         }
       }
@@ -83,6 +90,9 @@ Popover rename_popover {
 }
 
 menu primary_menu {
+  section {
+    item (_("_Reload"), "app.refresh")
+  }
   section {
     item (_("Preferences"), "app.preferences")
     item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
