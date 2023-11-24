@@ -162,21 +162,10 @@ class HypApplication(Adw.Application):
         print("app.preferences action activated")
 
     def __on_refresh_action(self, *_args: Any) -> None:
-        (
-            self.props.active_window.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-        ).update()
+        self.props.active_window.get_visible_page().update()
 
     def __on_new_folder_action(self, *_args: Any) -> None:
-        if not (
-            path := (
-                page := self.props.active_window.tab_view.get_selected_page()
-                .get_child()
-                .view.get_visible_page()
-                .path
-            )
-        ):
+        if not (path := (page := self.props.active_window.get_visible_page()).path):
             if page.tags:
                 path = Path(
                     shared.home, *(tag for tag in shared.tags if tag in page.tags)
@@ -229,11 +218,7 @@ class HypApplication(Adw.Application):
                 return
 
             Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
-            (
-                self.props.active_window.tab_view.get_selected_page()
-                .get_child()
-                .view.get_visible_page()
-            ).update()
+            self.props.active_window.get_visible_page().update()
             dialog.close()
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
@@ -251,11 +236,10 @@ class HypApplication(Adw.Application):
 
         uris = ""
 
-        for child in (
-            self.props.active_window.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-            .flow_box.get_selected_children()
+        for (
+            child
+        ) in (
+            self.props.active_window.get_visible_page().flow_box.get_selected_children()
         ):
             child = child.get_child()
 
@@ -268,22 +252,12 @@ class HypApplication(Adw.Application):
             clipboard.set(uris.strip())
 
     def __on_select_all_action(self, *_args: Any) -> None:
-        (
-            self.props.active_window.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-            .flow_box
-        ).select_all()
+        self.props.active_window.get_visible_page().flow_box.select_all()
 
     def __on_rename_action(self, *_args: Any) -> None:
         if not isinstance(
             child := (
-                (
-                    flow_box := self.props.active_window.tab_view.get_selected_page()
-                    .get_child()
-                    .view.get_visible_page()
-                    .flow_box
-                )
+                (flow_box := self.props.active_window.get_visible_page().flow_box)
                 .get_selected_children()[0]
                 .get_child()
             ),
@@ -316,11 +290,7 @@ class HypApplication(Adw.Application):
                 child.gfile.set_display_name(entry.get_text().strip())
             except GLib.GError:
                 pass
-            (
-                self.props.active_window.tab_view.get_selected_page()
-                .get_child()
-                .view.get_visible_page()
-            ).update()
+            self.props.active_window.get_visible_page().update()
             popover.popdown()
 
         def set_incative(*_args: Any) -> None:
@@ -354,9 +324,7 @@ class HypApplication(Adw.Application):
     def __on_trash_action(self, *_args: Any) -> None:
         n = 0
         for child in (
-            items_page := self.props.active_window.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
+            items_page := self.props.active_window.get_visible_page()
         ).flow_box.get_selected_children():
             child = child.get_child()
 

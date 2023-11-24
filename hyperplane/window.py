@@ -55,7 +55,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         navigation_view = HypNavigationBin(initial_path=shared.home)
         self.tab_view.append(navigation_view).set_title(
-            title := navigation_view.view.get_visible_page().get_title()
+            title := self.get_visible_page().get_title()
         )
         self.set_title(title)
 
@@ -90,14 +90,14 @@ class HypWindow(Adw.ApplicationWindow):
         if path and path.is_dir():
             navigation_view = HypNavigationBin(initial_path=path)
             self.tab_view.append(navigation_view).set_title(
-                navigation_view.view.get_visible_page().get_title()
+                self.get_visible_page().get_title()
             )
         elif tag:
             navigation_view = HypNavigationBin(
                 initial_tags=self.tab_view.get_selected_page().get_child().tags + [tag]
             )
             self.tab_view.append(navigation_view).set_title(
-                navigation_view.view.get_visible_page().get_title()
+                self.get_visible_page().get_title()
             )
 
     def get_visible_page(self) -> HypItemsPage:
@@ -143,12 +143,7 @@ class HypWindow(Adw.ApplicationWindow):
         if not self.tab_view.get_selected_page():
             return
 
-        self.set_title(
-            self.tab_view.get_selected_page()
-            .get_child()
-            .view.get_visible_page()
-            .get_title()
-        )
+        self.set_title(self.get_visible_page().get_title())
         self.lookup_action("back").set_enabled(
             bool(
                 self.tab_view.get_selected_page()
