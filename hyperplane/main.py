@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
@@ -75,6 +76,7 @@ class HypApplication(Adw.Application):
             "new-folder", self.__on_new_folder_action, ("<primary><shift>n",)
         )
         self.create_action("copy", self.__on_copy_action, ("<primary>c",))
+        self.create_action("paste", self.__on_paste_action, ("<primary>v",))
         self.create_action("select-all", self.__on_select_all_action)
         self.create_action("rename", self.__on_rename_action, ("F2",))
         self.create_action("trash", self.__on_trash_action, ("Delete",))
@@ -241,12 +243,53 @@ class HypApplication(Adw.Application):
             child = child.get_child()
 
             if isinstance(child, HypItem):
-                uris += str(child.path) + "\n"
+                uris += child.gfile.get_uri() + "\n"
             elif isinstance(child, HypTag):
-                uris += child.name + "\n"
+                uris += "hyperplane://" + child.name + "\n"
 
         if uris:
             clipboard.set(uris.strip())
+
+    def __on_paste_action(self, *_args: Any) -> None:
+        clipboard = Gdk.Display.get_default().get_clipboard()
+
+        def __callback(clipboard, result) -> None:
+            try:
+                text = clipboard.read_text_finish(result)
+            except GLib.Error:
+                return
+
+            for line in text.split("\n"):
+                if line.startswith("hyperplane://"):
+                    continue
+                page = self.get_active_window().get_visible_page()
+                if page.tags:
+                    dst = Path(
+                        shared.home,
+                        *(tag for tag in shared.tags if tag in page.tags),
+                    )
+                else:
+                    dst = page.path
+                src = Path(Gio.File.new_for_uri(line).get_path())
+                if not src.exists():
+                    continue
+
+                dst = dst / src.name
+
+                if src.is_dir():
+                    try:
+                        shutil.copytree(src, dst)
+                    except FileExistsError:
+                        continue
+                elif src.is_file():
+                    try:
+                        shutil.copyfile(src, dst)
+                    except (OSError, shutil.Error, shutil.SameFileError):
+                        continue
+
+            self.get_active_window().get_visible_page().update()
+
+        clipboard.read_text_async(None, __callback)
 
     def __on_select_all_action(self, *_args: Any) -> None:
         self.get_active_window().get_visible_page().flow_box.select_all()

@@ -107,8 +107,12 @@ class HypItem(Adw.Bin):
         self.thumbnail.build_thumbnail()
 
     def __right_click(self, *_args: Any) -> None:
-        (flow_box := self.get_parent().get_parent()).unselect_all()
-        flow_box.select_child(self.get_parent())
+        if (
+            self.get_parent()
+            not in (flow_box := self.get_parent().get_parent()).get_selected_children()
+        ):
+            flow_box.unselect_all()
+            flow_box.select_child(self.get_parent())
 
         self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
             {
