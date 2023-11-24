@@ -9,6 +9,12 @@ template $HypWindow : Adw.ApplicationWindow {
 
       [top]
       Adw.HeaderBar header_bar {
+        [start]
+        Button {
+          icon-name: "go-previous-symbolic";
+          action-name: "win.back";
+        }
+
         [end]
         MenuButton {
           primary: true;

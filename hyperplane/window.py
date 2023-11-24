@@ -59,6 +59,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.set_title(title)
 
         self.create_action("close", self.__on_close_action, ("<primary>w",))
+        self.create_action("back", self.__on_back_action)
+        self.lookup_action("back").set_enabled(False)
         self.create_action(
             "zoom-in",
             self.__on_zoom_in_action,
@@ -70,10 +72,10 @@ class HypWindow(Adw.ApplicationWindow):
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
-        self.tab_view.connect("notify::selected-page", self.__update_window_title)
+        self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
 
-    def __update_window_title(self, *_args: Any) -> None:
+    def __tab_changed(self, *_args: Any) -> None:
         if not self.tab_view.get_selected_page():
             return
 
@@ -83,17 +85,36 @@ class HypWindow(Adw.ApplicationWindow):
             .view.get_visible_page()
             .get_title()
         )
+        self.lookup_action("back").set_enabled(
+            bool(
+                self.tab_view.get_selected_page()
+                .get_child()
+                .view.get_navigation_stack()
+                .get_n_items()
+                - 1
+            )
+        )
 
-    def __update_tab_title(self, view: Adw.NavigationView, *_args: Any) -> None:
+    def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
         title = view.get_visible_page().get_title()
         (page := self.tab_view.get_page(view.get_parent())).set_title(title)
 
         if self.tab_view.get_selected_page() == page:
             self.set_title(title)
 
+        self.lookup_action("back").set_enabled(
+            bool(
+                self.tab_view.get_selected_page()
+                .get_child()
+                .view.get_navigation_stack()
+                .get_n_items()
+                - 1
+            )
+        )
+
     def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
-        page.get_child().view.connect("popped", self.__update_tab_title)
-        page.get_child().view.connect("pushed", self.__update_tab_title)
+        page.get_child().view.connect("popped", self.__navigation_changed)
+        page.get_child().view.connect("pushed", self.__navigation_changed)
 
     def send_toast(self, message: str) -> None:
         toast = Adw.Toast.new(message)
@@ -171,6 +192,9 @@ class HypWindow(Adw.ApplicationWindow):
             self.tab_view.close_page(self.tab_view.get_selected_page())
         else:
             self.close()
+
+    def __on_back_action(self, *_args: Any) -> None:
+        self.tab_view.get_selected_page().get_child().view.pop()
 
     def __create_window(self, *_args: Any) -> Adw.TabView:
         win = self.get_application().do_activate()
