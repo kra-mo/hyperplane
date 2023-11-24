@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from locale import strcoll
 from pathlib import Path
 from typing import Any, Optional
 
@@ -61,6 +62,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.update()
 
         self.flow_box.connect("child-activated", self.__child_activated)
+        self.flow_box.set_sort_func(self.__sort_func)
 
         self.right_click_menu.set_parent(self)
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
@@ -99,6 +101,18 @@ class HypItemsPage(Adw.NavigationPage):
 
             if "item" not in vars():
                 self.set_child(self.empty_filter)
+
+    def __sort_func(self, child1: Gtk.FlowBoxChild, child2: Gtk.FlowBoxChild) -> int:
+        child1 = child1.get_child()
+        child2 = child2.get_child()
+
+        if isinstance(child1, HypItem):
+            if isinstance(child2, HypItem):
+                return strcoll(child1.path.name, child2.path.name)
+            return 1
+        if isinstance(child2, HypItem):
+            return -1
+        return strcoll(child1.name, child2.name)
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild

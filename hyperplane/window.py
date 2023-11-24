@@ -156,7 +156,8 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
         title = view.get_visible_page().get_title()
-        (page := self.tab_view.get_page(view.get_parent())).set_title(title)
+        if page := self.tab_view.get_page(view.get_parent()):
+            page.set_title(title)
 
         if self.tab_view.get_selected_page() == page:
             self.set_title(title)
