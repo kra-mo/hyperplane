@@ -42,6 +42,8 @@ from hyperplane.window import HypWindow
 class HypApplication(Adw.Application):
     """The main application singleton class."""
 
+    cut_page: bool = False
+
     def __init__(self):
         super().__init__(
             application_id=shared.APP_ID,
@@ -76,6 +78,7 @@ class HypApplication(Adw.Application):
             "new-folder", self.__on_new_folder_action, ("<primary><shift>n",)
         )
         self.create_action("copy", self.__on_copy_action, ("<primary>c",))
+        self.create_action("cut", self.__on_cut_action, ("<primary>x",))
         self.create_action("paste", self.__on_paste_action, ("<primary>v",))
         self.create_action("select-all", self.__on_select_all_action)
         self.create_action("rename", self.__on_rename_action, ("F2",))
@@ -233,6 +236,7 @@ class HypApplication(Adw.Application):
         dialog.present()
 
     def __on_copy_action(self, *_args: Any) -> None:
+        self.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
 
         uris = ""
@@ -250,6 +254,10 @@ class HypApplication(Adw.Application):
         if uris:
             clipboard.set(uris.strip())
 
+    def __on_cut_action(self, *args: Any) -> None:
+        self.__on_copy_action(*args)
+        self.cut_page = self.get_active_window().get_visible_page()
+
     def __on_paste_action(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
 
@@ -257,6 +265,7 @@ class HypApplication(Adw.Application):
             try:
                 text = clipboard.read_text_finish(result)
             except GLib.Error:
+                self.cut_page = None
                 return
 
             for line in text.split("\n"):
@@ -276,18 +285,34 @@ class HypApplication(Adw.Application):
 
                 dst = dst / src.name
 
-                if src.is_dir():
+                if self.cut_page:
                     try:
-                        shutil.copytree(src, dst)
-                    except FileExistsError:
-                        continue
-                elif src.is_file():
-                    try:
-                        shutil.copyfile(src, dst)
-                    except (OSError, shutil.Error, shutil.SameFileError):
+                        shutil.move(src, dst.parent)
+                    except (
+                        OSError,
+                        IsADirectoryError,
+                        NotADirectoryError,
+                        FileExistsError,
+                    ):
                         continue
 
+                else:
+                    if src.is_dir():
+                        try:
+                            shutil.copytree(src, dst)
+                        except FileExistsError:
+                            continue
+                    elif src.is_file():
+                        try:
+                            shutil.copyfile(src, dst)
+                        except (OSError, shutil.Error, shutil.SameFileError):
+                            continue
+
             self.get_active_window().get_visible_page().update()
+
+            if self.cut_page:
+                self.cut_page.update()
+            self.cut_page = None
 
         clipboard.read_text_async(None, __callback)
 
