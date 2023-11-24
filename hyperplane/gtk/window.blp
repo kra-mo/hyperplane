@@ -31,6 +31,51 @@ template $HypWindow : Adw.ApplicationWindow {
   ]
 }
 
+Popover rename_popover {
+  position: bottom;
+  width-request: 400;
+
+  Box {
+    orientation: vertical;
+    margin-start: 24;
+    margin-end: 24;
+    margin-top: 12;
+    margin-bottom: 24;
+    spacing: 15;
+
+    Label rename_label {
+      styles [
+        "title-2"
+      ]
+    }
+
+    Adw.PreferencesGroup {
+        Adw.EntryRow rename_row {
+          title: _("Name");
+
+        }
+        Revealer rename_revealer {
+          margin-start: 6;
+          margin-end: 6;
+          margin-top: 12;
+
+          Label rename_revealer_label {
+            wrap: true;
+          }
+        }
+        Button rename_button {
+          margin-top: 12;
+          label: _("Rename");
+
+            styles [
+                "suggested-action",
+                "pill",
+            ]
+        }
+    }
+  }
+}
+
 menu primary_menu {
   section {
     item (_("Preferences"), "app.preferences")

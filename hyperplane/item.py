@@ -65,7 +65,7 @@ class HypItem(Adw.Bin):
 
     def update_label(self) -> None:
         """Update the visible name of the file."""
-        self.label.set_label(self.path.stem)
+        self.label.set_label(self.path.name if self.path.is_dir() else self.path.stem)
 
     def update_thumbnail(self, _object: Any) -> None:
         """Update the visible thumbnail of the file."""
@@ -125,6 +125,7 @@ class HypItem(Adw.Bin):
                 pass
 
         enable = {
+            "rename",
             "copy",
             "cut",
             "trash",

@@ -117,6 +117,7 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __set_actions(self, *_args: Any) -> None:
         enable = {
+            "rename",
             "copy",
             "cut",
             "paste",

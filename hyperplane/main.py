@@ -34,6 +34,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.tag import HypTag
+from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
 
 
@@ -75,6 +76,7 @@ class HypApplication(Adw.Application):
         )
         self.create_action("copy", self.__on_copy_action, ("<primary>c",))
         self.create_action("select-all", self.__on_select_all_action)
+        self.create_action("rename", self.__on_rename_action, ("F2",))
         self.create_action("trash", self.__on_trash_action, ("Delete",))
 
     def do_activate(self) -> HypWindow:
@@ -142,7 +144,11 @@ class HypApplication(Adw.Application):
         print("app.preferences action activated")
 
     def __on_refresh_action(self, *_args: Any) -> None:
-        self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
+        (
+            self.props.active_window.tab_view.get_selected_page()
+            .get_child()
+            .view.get_visible_page()
+        ).update()
 
     def __on_new_folder_action(self, *_args: Any) -> None:
         if not (
@@ -168,14 +174,13 @@ class HypApplication(Adw.Application):
         dialog.set_default_response("create")
         dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
 
-        preferences_group = Adw.PreferencesGroup()
-        exists_label = Gtk.Label(
-            label=_("A folder with that name already exists."),
+        preferences_group = Adw.PreferencesGroup(width_request=360)
+        revealer_label = Gtk.Label(
             margin_start=6,
             margin_end=6,
             margin_top=12,
         )
-        preferences_group.add(revealer := Gtk.Revealer(child=exists_label))
+        preferences_group.add(revealer := Gtk.Revealer(child=revealer_label))
         preferences_group.add(entry := Adw.EntryRow(title=_("Folder name")))
         dialog.set_extra_child(preferences_group)
 
@@ -186,20 +191,17 @@ class HypApplication(Adw.Application):
             nonlocal can_create
             nonlocal path
 
-            if not (text := entry.get_text()):
+            if not (text := entry.get_text().strip()):
                 can_create = False
                 dialog.set_response_enabled("create", False)
                 revealer.set_reveal_child(False)
                 return
 
-            if Path(path, text.strip()).is_dir():
-                can_create = False
-                dialog.set_response_enabled("create", False)
-                revealer.set_reveal_child(True)
-            else:
-                can_create = True
-                dialog.set_response_enabled("create", True)
-                revealer.set_reveal_child(False)
+            can_create, message = validate_name(path, text)
+            dialog.set_response_enabled("create", can_create)
+            revealer.set_reveal_child(bool(message))
+            if message:
+                revealer_label.set_label(message)
 
         def create_folder(*_args: Any):
             nonlocal can_create
@@ -209,7 +211,11 @@ class HypApplication(Adw.Application):
                 return
 
             Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
-            self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().update()
+            (
+                self.props.active_window.tab_view.get_selected_page()
+                .get_child()
+                .view.get_visible_page()
+            ).update()
             dialog.close()
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
@@ -244,7 +250,85 @@ class HypApplication(Adw.Application):
             clipboard.set(uris.strip())
 
     def __on_select_all_action(self, *_args: Any) -> None:
-        self.props.active_window.tab_view.get_selected_page().get_child().view.get_visible_page().flow_box.select_all()
+        (
+            self.props.active_window.tab_view.get_selected_page()
+            .get_child()
+            .view.get_visible_page()
+            .flow_box
+        ).select_all()
+
+    def __on_rename_action(self, *_args: Any) -> None:
+        if not isinstance(
+            child := (
+                (
+                    flow_box := self.props.active_window.tab_view.get_selected_page()
+                    .get_child()
+                    .view.get_visible_page()
+                    .flow_box
+                )
+                .get_selected_children()[0]
+                .get_child()
+            ),
+            HypItem,
+        ):
+            return
+
+        flow_box.unselect_all()
+        flow_box.select_child(child.get_parent())
+
+        (popover := self.props.active_window.rename_popover).unparent()
+        popover.set_parent(child)
+        if child.path.is_dir():
+            self.props.active_window.rename_label.set_label(_("Rename Folder"))
+        else:
+            self.props.active_window.rename_label.set_label(_("Rename File"))
+
+        path = child.path
+        entry = self.props.active_window.rename_row
+        entry.set_text(path.name)
+        entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
+
+        button = self.props.active_window.rename_button
+        revealer = self.props.active_window.rename_revealer
+        revealer_label = self.props.active_window.rename_revealer_label
+        can_rename = True
+
+        def rename(*_args: Any) -> None:
+            path.rename(path.parent / entry.get_text().strip())
+            (
+                self.props.active_window.tab_view.get_selected_page()
+                .get_child()
+                .view.get_visible_page()
+            ).update()
+            popover.popdown()
+
+        def set_incative(*_args: Any) -> None:
+            nonlocal can_rename
+            nonlocal path
+
+            if not popover.is_visible():
+                return
+
+            text = entry.get_text().strip()
+
+            if not text:
+                can_rename = False
+                button.set_sensitive(False)
+                revealer.set_reveal_child(False)
+                return
+
+            can_rename, message = validate_name(path, text, True)
+            button.set_sensitive(can_rename)
+            revealer.set_reveal_child(bool(message))
+            if message:
+                revealer_label.set_label(message)
+
+        popover.connect("notify::visible", set_incative)
+        entry.connect("changed", set_incative)
+        entry.connect("entry-activated", rename)
+        button.connect("clicked", rename)
+
+        popover.popup()
 
     def __on_trash_action(self, *_args: Any) -> None:
         n = 0

@@ -37,6 +37,13 @@ class HypWindow(Adw.ApplicationWindow):
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
 
+    rename_popover = Gtk.Template.Child()
+    rename_label = Gtk.Template.Child()
+    rename_row = Gtk.Template.Child()
+    rename_revealer = Gtk.Template.Child()
+    rename_revealer_label = Gtk.Template.Child()
+    rename_button = Gtk.Template.Child()
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 

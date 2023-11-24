@@ -83,6 +83,7 @@ class HypTag(Adw.Bin):
         flow_box.select_child(self.get_parent())
 
         disable = {
+            "rename",
             "new-folder",
             "select-all",
             "cut",
