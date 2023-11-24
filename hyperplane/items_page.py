@@ -19,7 +19,7 @@
 
 from locale import strcoll
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from gi.repository import Adw, Gdk, Gio, Gtk
 
@@ -146,8 +146,9 @@ class HypItemsPage(Adw.NavigationPage):
                 tag=item.name
             )
 
-    def __set_actions(self, *_args: Any) -> None:
-        enable = {
+    def set_menu_items(self, menu_items: Iterable[str]) -> None:
+        """Disables all right-clickc menu items not in `menu_items`."""
+        actions = {
             "rename",
             "copy",
             "cut",
@@ -156,11 +157,30 @@ class HypItemsPage(Adw.NavigationPage):
             "new-folder",
             "select-all",
         }
-        for action in enable:
+
+        for action in actions.difference(menu_items):
+            try:
+                shared.app.lookup_action(action).set_enabled(False)
+            except AttributeError:
+                pass
+        for action in menu_items:
             try:
                 shared.app.lookup_action(action).set_enabled(True)
             except AttributeError:
                 pass
+
+    def __set_actions(self, *_args: Any) -> None:
+        self.set_menu_items(
+            {
+                "rename",
+                "copy",
+                "cut",
+                "paste",
+                "trash",
+                "new-folder",
+                "select-all",
+            }
+        )
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         rectangle = Gdk.Rectangle()

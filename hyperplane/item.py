@@ -48,7 +48,7 @@ class HypItem(Adw.Bin):
 
         self.gfile = Gio.File.new_for_path(str(path))
         self.zoom(shared.state_schema.get_uint("zoom-level"))
-        self.update()
+        self.build()
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
@@ -58,19 +58,15 @@ class HypItem(Adw.Bin):
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
 
-    def update(self) -> None:
+    def build(self) -> None:
         """Update the file name and thumbnail."""
-        self.update_label()
-        self._map_connection = self.connect("map", self.update_thumbnail)
-
-    def update_label(self) -> None:
-        """Update the visible name of the file."""
         self.label.set_label(self.path.name if self.path.is_dir() else self.path.stem)
+        self._map_connection = self.connect("map", self.build_thumbnail)
 
-    def update_thumbnail(self, _object: Any) -> None:
-        """Update the visible thumbnail of the file."""
+    def build_thumbnail(self, _object: Any) -> None:
+        """Build the thumbnail of the file."""
         self.disconnect(self._map_connection)
-        self.thumbnail.update_icon()
+        self.thumbnail.build_icon()
         get_content_type_async(self.gfile, self.__content_type_callback)
 
     def zoom(self, zoom_level: int) -> None:
@@ -107,34 +103,20 @@ class HypItem(Adw.Bin):
 
     def __content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
         self.content_type = content_type
-        self.thumbnail.update_thumbnail()
+        self.thumbnail.build_thumbnail()
 
     def __right_click(self, *_args: Any) -> None:
         (flow_box := self.get_parent().get_parent()).unselect_all()
         flow_box.select_child(self.get_parent())
 
-        disable = {
-            "new-folder",
-            "select-all",
-            "paste",
-        }
-        for action in disable:
-            try:
-                shared.app.lookup_action(action).set_enabled(False)
-            except AttributeError:
-                pass
-
-        enable = {
-            "rename",
-            "copy",
-            "cut",
-            "trash",
-        }
-        for action in enable:
-            try:
-                shared.app.lookup_action(action).set_enabled(True)
-            except AttributeError:
-                pass
+        self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
+            {
+                "rename",
+                "copy",
+                "cut",
+                "trash",
+            }
+        )
 
     def __middle_click(self, *_args) -> None:
         (flow_box := self.get_parent().get_parent()).unselect_all()

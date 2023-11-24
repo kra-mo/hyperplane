@@ -49,20 +49,17 @@ class HypThumb(Gtk.Overlay):
         self.disconnect(self._map_connection)
         self.item = self.get_parent().get_parent().get_parent()
 
-    def update_icon(self, *_args: Any) -> None:
-        """Update the symbolic icon and badge representing the file."""
+    def build_icon(self, *_args: Any) -> None:
+        """Build the symbolic icon and badge representing the file."""
         self.icon.set_visible(True)
         self.thumbnail.set_visible(False)
 
-        self.__update_extension()
+        self.__build_extension()
 
         get_symbolic_icon_async(self.item.gfile, self.__icon_callback)
 
-    def update_thumbnail(self) -> None:
-        """Update the visible thumbnail of the file."""
-        self.play_button.set_visible(False)
-        self.thumbnail.set_content_fit(Gtk.ContentFit.COVER)
-
+    def build_thumbnail(self) -> None:
+        """Build the thumbnail of the file."""
         color = get_color_for_content_type(self.item.content_type)
         self.add_css_class(color + "-background")
 
@@ -119,7 +116,7 @@ class HypThumb(Gtk.Overlay):
             self.thumbnail.set_visible(True)
             self.icon.set_visible(False)
 
-    def __update_extension(self, *_args: Any) -> None:
+    def __build_extension(self, *_args: Any) -> None:
         if self.item.path.is_file() and (suffix := self.item.path.suffix):
             self.extension_label.set_label(suffix[1:].upper())
             self.extension_label.set_visible(True)

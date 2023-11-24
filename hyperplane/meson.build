@@ -36,6 +36,10 @@ configure_file(
 
 install_subdir('utils', install_dir: moduledir)
 
+if profile == 'development'
+  install_subdir('devel', install_dir: moduledir)
+endif
+
 hyperplane_sources = [
   '__init__.py',
   'main.py',

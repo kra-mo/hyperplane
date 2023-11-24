@@ -1,4 +1,4 @@
-# shared.py.in
+# timer.py
 #
 # Copyright 2023 kramo
 #
@@ -17,30 +17,20 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
+from time import time
+from typing import Callable
 
-from gi.repository import Gio, GLib
 
-APP_ID = "@APP_ID@"
-VERSION = "@VERSION@"
-PREFIX = "@PREFIX@"
-PROFILE = "@PROFILE@"
+def timer(func: Callable) -> Callable:
+    """Print the time it took to execute a function."""
 
-schema = Gio.Settings.new(APP_ID)
-state_schema = Gio.Settings.new(APP_ID + ".State")
+    def wrapper(*args, **kwargs):
+        start = time()
+        retval = func(*args, **kwargs)
+        end = time()
 
-data_dir = Path(GLib.get_user_data_dir())
-config_dir = Path(GLib.get_user_config_dir())
-cache_dir = Path(GLib.get_user_cache_dir())
+        print(round(end - start, 3))
 
-home = data_dir / "hyperplane" / "home"
-show_hidden = state_schema.get_boolean("show-hidden")
+        return retval
 
-tags = ()
-
-if (path := home / ".hyperplane").is_file():
-    tags = tuple(path.read_text(encoding="utf-8").strip().split("\n"))
-
-del path
-
-app = None  # pylint: disable=invalid-name
+    return wrapper

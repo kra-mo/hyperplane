@@ -82,28 +82,11 @@ class HypTag(Adw.Bin):
         (flow_box := self.get_parent().get_parent()).unselect_all()
         flow_box.select_child(self.get_parent())
 
-        disable = {
-            "rename",
-            "new-folder",
-            "select-all",
-            "cut",
-            "paste",
-            "trash",
-        }
-        for action in disable:
-            try:
-                shared.app.lookup_action(action).set_enabled(False)
-            except AttributeError:
-                pass
-
-        enable = {
-            "copy",
-        }
-        for action in enable:
-            try:
-                shared.app.lookup_action(action).set_enabled(True)
-            except AttributeError:
-                pass
+        self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
+            {
+                "copy",
+            }
+        )
 
     def __middle_click(self, *_args) -> None:
         (flow_box := self.get_parent().get_parent()).unselect_all()
