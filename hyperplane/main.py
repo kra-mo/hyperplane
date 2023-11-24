@@ -294,7 +294,10 @@ class HypApplication(Adw.Application):
         can_rename = True
 
         def rename(*_args: Any) -> None:
-            path.rename(path.parent / entry.get_text().strip())
+            try:
+                child.gfile.set_display_name(entry.get_text().strip())
+            except GLib.GError:
+                pass
             (
                 self.props.active_window.tab_view.get_selected_page()
                 .get_child()
