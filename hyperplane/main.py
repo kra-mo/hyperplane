@@ -146,7 +146,7 @@ class HypApplication(Adw.Application):
     def __on_about_action(self, *_args: Any) -> None:
         """Callback for the app.about action."""
         about = Adw.AboutWindow(
-            transient_for=self.props.active_window,
+            transient_for=self.get_active_window(),
             application_name="Hyperplane",
             application_icon=shared.APP_ID,
             developer_name="kramo",
@@ -161,10 +161,10 @@ class HypApplication(Adw.Application):
         print("app.preferences action activated")
 
     def __on_refresh_action(self, *_args: Any) -> None:
-        self.props.active_window.get_visible_page().update()
+        self.get_active_window().get_visible_page().update()
 
     def __on_new_folder_action(self, *_args: Any) -> None:
-        if not (path := (page := self.props.active_window.get_visible_page()).path):
+        if not (path := (page := self.get_active_window().get_visible_page()).path):
             if page.tags:
                 path = Path(
                     shared.home, *(tag for tag in shared.tags if tag in page.tags)
@@ -172,7 +172,7 @@ class HypApplication(Adw.Application):
         if not path:
             return
 
-        dialog = Adw.MessageDialog.new(self.props.active_window, _("New Folder"))
+        dialog = Adw.MessageDialog.new(self.get_active_window(), _("New Folder"))
 
         dialog.add_response("cancel", _("Cancel"))
         dialog.add_response("create", _("Create"))
@@ -217,7 +217,7 @@ class HypApplication(Adw.Application):
                 return
 
             Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
-            self.props.active_window.get_visible_page().update()
+            self.get_active_window().get_visible_page().update()
             dialog.close()
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
@@ -235,10 +235,8 @@ class HypApplication(Adw.Application):
 
         uris = ""
 
-        for (
-            child
-        ) in (
-            self.props.active_window.get_visible_page().flow_box.get_selected_children()
+        for child in (
+            self.get_active_window().get_visible_page().flow_box.get_selected_children()
         ):
             child = child.get_child()
 
@@ -251,12 +249,12 @@ class HypApplication(Adw.Application):
             clipboard.set(uris.strip())
 
     def __on_select_all_action(self, *_args: Any) -> None:
-        self.props.active_window.get_visible_page().flow_box.select_all()
+        self.get_active_window().get_visible_page().flow_box.select_all()
 
     def __on_rename_action(self, *_args: Any) -> None:
         if not isinstance(
             child := (
-                (flow_box := self.props.active_window.get_visible_page().flow_box)
+                (flow_box := self.get_active_window().get_visible_page().flow_box)
                 .get_selected_children()[0]
                 .get_child()
             ),
@@ -267,21 +265,21 @@ class HypApplication(Adw.Application):
         flow_box.unselect_all()
         flow_box.select_child(child.get_parent())
 
-        (popover := self.props.active_window.rename_popover).unparent()
+        (popover := self.get_active_window().rename_popover).unparent()
         popover.set_parent(child)
         if child.path.is_dir():
-            self.props.active_window.rename_label.set_label(_("Rename Folder"))
+            self.get_active_window().rename_label.set_label(_("Rename Folder"))
         else:
-            self.props.active_window.rename_label.set_label(_("Rename File"))
+            self.get_active_window().rename_label.set_label(_("Rename File"))
 
         path = child.path
-        entry = self.props.active_window.rename_row
+        entry = self.get_active_window().rename_row
         entry.set_text(path.name)
         entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
-        button = self.props.active_window.rename_button
-        revealer = self.props.active_window.rename_revealer
-        revealer_label = self.props.active_window.rename_revealer_label
+        button = self.get_active_window().rename_button
+        revealer = self.get_active_window().rename_revealer
+        revealer_label = self.get_active_window().rename_revealer_label
         can_rename = True
 
         def rename(*_args: Any) -> None:
@@ -289,7 +287,7 @@ class HypApplication(Adw.Application):
                 child.gfile.set_display_name(entry.get_text().strip())
             except GLib.GError:
                 pass
-            self.props.active_window.get_visible_page().update()
+            self.get_active_window().get_visible_page().update()
             popover.popdown()
 
         def set_incative(*_args: Any) -> None:
@@ -323,7 +321,7 @@ class HypApplication(Adw.Application):
     def __on_trash_action(self, *_args: Any) -> None:
         n = 0
         for child in (
-            items_page := self.props.active_window.get_visible_page()
+            items_page := self.get_active_window().get_visible_page()
         ).flow_box.get_selected_children():
             child = child.get_child()
 
@@ -348,7 +346,7 @@ class HypApplication(Adw.Application):
                 '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
             )
 
-        self.props.active_window.send_toast(message)
+        self.get_active_window().send_toast(message)
 
 
 def main(_version):
