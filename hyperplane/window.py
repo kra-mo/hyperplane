@@ -74,7 +74,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action(
             "toggle-path-bar", self.__toggle_path_bar, ("F6", "<primary>l")
         )
+        self.create_action("hide-path-bar", self.__hide_path_bar)
         self.create_action("close", self.__on_close_action, ("<primary>w",))
+        self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
         self.create_action("back", self.__on_back_action)
         self.lookup_action("back").set_enabled(False)
         self.create_action(
@@ -92,13 +94,12 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("create-window", self.__create_window)
 
         self.path_bar.connect("activate", self.__path_bar_activated)
-
         self.search_entry.set_key_capture_widget(self)
         self.search_entry.connect("search-started", self.__show_search_entry)
         self.search_entry.connect("search-changed", self.__search_changed)
         self.search_entry.connect("stop-search", self.__hide_search_entry)
         self.search_entry.connect("activate", self.__search_activate)
-        self.search_button.connect("clicked", self.__search_button_clicked)
+        self.search_button.connect("clicked", self.__toggle_search_entry)
         self.searched_page = self.get_visible_page()
 
     def send_toast(self, message: str) -> None:
@@ -216,6 +217,57 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.send_toast(_("Unable to find path"))
 
+    def __title_stack_set_child(self, new: Gtk.Widget) -> None:
+        old = self.title_stack.get_visible_child()
+        if old == new:
+            return
+
+        self.title_stack.set_visible_child(new)
+
+        match old:
+            case self.search_entry_clamp:
+                self.search_button.set_active(False)
+                self.search_entry.set_text("")
+                shared.search = ""
+                self.searched_page.flow_box.invalidate_filter()
+
+                try:
+                    self.set_focus(
+                        self.get_visible_page().flow_box.get_selected_children()[0]
+                    )
+                except IndexError:
+                    pass
+            case self.path_bar_clamp:
+                try:
+                    self.set_focus(
+                        self.get_visible_page().flow_box.get_selected_children()[0]
+                    )
+                except IndexError:
+                    pass
+
+                if self.path_bar_connection:
+                    self.path_bar.disconnect(self.path_bar_connection)
+                    self.path_bar_connection = None
+
+        match new:
+            case self.search_entry_clamp:
+                self.search_button.set_active(True)
+                self.searched_page = self.get_visible_page()
+
+                self.set_focus(self.search_entry)
+            case self.path_bar_clamp:
+                if (page := self.get_visible_page()).path:
+                    self.path_bar.set_text(str(page.path) + sep)
+                elif page.tags:
+                    self.path_bar.set_text("//" + "//".join(page.tags) + "//")
+
+                self.set_focus(self.path_bar)
+                self.path_bar.select_region(-1, -1)
+
+                self.path_bar_connection = self.path_bar.connect(
+                    "notify::has-focus", self.__path_bar_focus
+                )
+
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
             self.__show_search_entry()
@@ -224,29 +276,10 @@ class HypWindow(Adw.ApplicationWindow):
         self.__hide_search_entry()
 
     def __show_search_entry(self, *_args: Any) -> None:
-        self.search_button.set_active(True)
-        if self.title_stack.get_visible_child() == self.search_entry_clamp:
-            return
-
-        self.searched_page = self.get_visible_page()
-
-        self.title_stack.set_visible_child(self.search_entry_clamp)
-        self.set_focus(self.search_entry)
+        self.__title_stack_set_child(self.search_entry_clamp)
 
     def __hide_search_entry(self, *_args: Any) -> None:
-        self.search_button.set_active(False)
-        if self.title_stack.get_visible_child() != self.search_entry_clamp:
-            return
-
-        self.title_stack.set_visible_child(self.window_title)
-        self.search_entry.set_text("")
-        shared.search = ""
-        self.searched_page.flow_box.invalidate_filter()
-
-        try:
-            self.set_focus(self.get_visible_page().flow_box.get_selected_children()[0])
-        except IndexError:
-            pass
+        self.__title_stack_set_child(self.window_title)
 
     def __search_activate(self, *_args: Any) -> None:
         try:
@@ -258,33 +291,11 @@ class HypWindow(Adw.ApplicationWindow):
         shared.search = entry.get_text().strip()
         self.searched_page.flow_box.invalidate_filter()
 
-    def __search_button_clicked(self, *_args: Any) -> None:
-        self.__toggle_search_entry()
-
     def __show_path_bar(self, *_args: Any) -> None:
-        if (page := self.get_visible_page()).path:
-            self.path_bar.set_text(str(page.path) + sep)
-        elif page.tags:
-            self.path_bar.set_text("//" + "//".join(page.tags) + "//")
-
-        self.title_stack.set_visible_child(self.path_bar_clamp)
-        self.set_focus(self.path_bar)
-        self.path_bar.select_region(-1, -1)
-
-        self.path_bar_connection = self.path_bar.connect(
-            "notify::has-focus", self.__path_bar_focus
-        )
+        self.__title_stack_set_child(self.path_bar_clamp)
 
     def __hide_path_bar(self, *_args: Any) -> None:
-        self.title_stack.set_visible_child(self.window_title)
-        try:
-            self.set_focus(self.get_visible_page().flow_box.get_selected_children()[0])
-        except IndexError:
-            pass
-
-        if self.path_bar_connection:
-            self.path_bar.disconnect(self.path_bar_connection)
-            self.path_bar_connection = None
+        self.__title_stack_set_child(self.window_title)
 
     def __toggle_path_bar(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.path_bar_clamp:
