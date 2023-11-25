@@ -38,6 +38,7 @@ from hyperplane.item import HypItem
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag import HypTag
+from hyperplane.utils.restore_file import restore_file
 from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
 
@@ -156,21 +157,24 @@ class HypApplication(Adw.Application):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
 
-    def __undo(self, *_args: Any) -> None:
+    def __undo(self, toast: Any, *_args: Any) -> None:
         if not self.undo_queue:
             return
 
-        index = tuple(self.undo_queue.keys())[-1]
+        if isinstance(toast, Adw.Toast):
+            index = toast
+        else:
+            index = tuple(self.undo_queue.keys())[-1]
         item = self.undo_queue[index]
 
         # TODO: Lookup the pages with the paths and update those
         match item[0]:
             case "copy":
-                for path in item[1]:
-                    if path.is_dir():
-                        shutil.rmtree(path, ignore_errors=True)
+                for trash_item in item[1]:
+                    if trash_item.is_dir():
+                        shutil.rmtree(trash_item, ignore_errors=True)
                     else:
-                        path.unlink(missing_ok=True)
+                        trash_item.unlink(missing_ok=True)
                 item[2].update()
                 if (page := self.get_active_window().get_visible_page()) != item[2]:
                     page.update()
@@ -194,6 +198,12 @@ class HypApplication(Adw.Application):
                     item[3].update()
                     if (page := self.get_active_window().get_visible_page()) != item[3]:
                         page.update()
+            case "trash":
+                for trash_item in item[1]:
+                    restore_file(*trash_item)
+                item[2].update()
+                if (page := self.get_active_window().get_visible_page()) != item[2]:
+                    page.update()
 
         if isinstance(index, Adw.Toast):
             index.dismiss()
@@ -489,6 +499,7 @@ class HypApplication(Adw.Application):
         popover.popup()
 
     def __trash(self, *_args: Any) -> None:
+        files = []
         n = 0
         for child in (
             items_page := self.get_active_window().get_visible_page()
@@ -503,11 +514,13 @@ class HypApplication(Adw.Application):
             except GLib.Error:
                 pass
             else:
-                items_page.update()
+                files.append((child.gfile.get_path(), int(time())))
                 n += 1
 
         if not n:
             return
+
+        items_page.update()
 
         if n > 1:
             message = _("{} files moved to trash").format(n)
@@ -516,7 +529,9 @@ class HypApplication(Adw.Application):
                 '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
             )
 
-        self.get_active_window().send_toast(message)
+        toast = self.get_active_window().send_toast(message, undo=True)
+        self.undo_queue[toast] = ("trash", files, items_page)
+        toast.connect("button-clicked", self.__undo)
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
         value = not action.get_property("state").get_boolean()
