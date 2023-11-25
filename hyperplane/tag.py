@@ -93,7 +93,7 @@ class HypTag(Adw.Bin):
             }
         )
 
-    def __middle_click(self, *_args) -> None:
+    def __middle_click(self, *_args: Any) -> None:
         (flow_box := self.get_parent().get_parent()).unselect_all()
         flow_box.select_child(self.get_parent())
 

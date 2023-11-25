@@ -76,41 +76,46 @@ class HypThumb(Gtk.Overlay):
         elif self.item.path.is_dir():
             self.thumbnail.set_content_fit(Gtk.ContentFit.FILL)
 
-            if not any(self.item.path.iterdir()):
-                texture = Gdk.Texture.new_from_resource(
-                    shared.PREFIX + "/assets/folder-closed.svg"
-                )
-            else:
-                texture = Gdk.Texture.new_from_resource(
-                    shared.PREFIX + "/assets/folder-open.svg"
-                )
+            texture = Gdk.Texture.new_from_resource(
+                shared.PREFIX + "/assets/folder-closed.svg"
+            )
 
-                index = 0
-                for path in self.item.path.iterdir():
-                    if index == 3:
-                        break
-
-                    if not path.exists():
-                        continue
-
-                    index += 1
-
-                    thumbnail = Gtk.Overlay(
-                        width_request=32,
-                        height_request=32,
-                        overflow=Gtk.Overflow.HIDDEN,
+            try:
+                if any(self.item.path.iterdir()):
+                    texture = Gdk.Texture.new_from_resource(
+                        shared.PREFIX + "/assets/folder-open.svg"
                     )
-                    thumbnail.add_css_class("small-thumbnail")
-                    thumbnail.set_child(Gtk.Image())
 
-                    self.dir_thumbnails.append(thumbnail)
+                    index = 0
+                    for path in self.item.path.iterdir():
+                        if index == 3:
+                            break
 
-                    gfile = Gio.File.new_for_path(str(path))
+                        if not path.exists():
+                            continue
 
-                    get_symbolic_icon_async(gfile, self.__dir_icon_callback, thumbnail)
-                    get_content_type_async(
-                        gfile, self.__dir_content_type_callback, thumbnail
-                    )
+                        index += 1
+
+                        thumbnail = Gtk.Overlay(
+                            width_request=32,
+                            height_request=32,
+                            overflow=Gtk.Overflow.HIDDEN,
+                        )
+                        thumbnail.add_css_class("small-thumbnail")
+                        thumbnail.set_child(Gtk.Image())
+
+                        self.dir_thumbnails.append(thumbnail)
+
+                        gfile = Gio.File.new_for_path(str(path))
+
+                        get_symbolic_icon_async(
+                            gfile, self.__dir_icon_callback, thumbnail
+                        )
+                        get_content_type_async(
+                            gfile, self.__dir_content_type_callback, thumbnail
+                        )
+            except PermissionError:
+                pass
 
             self.thumbnail.set_paintable(texture)
             self.thumbnail.set_visible(True)

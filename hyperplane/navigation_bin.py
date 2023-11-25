@@ -51,12 +51,20 @@ class HypNavigationBin(Adw.Bin):
 
         self.view.connect("popped", self.__popped)
 
-    def new_page(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
+    def new_page(
+        self,
+        path: Optional[Path] = None,
+        tag: Optional[str] = None,
+        tags: Optional[Iterable[str]] = None,
+    ) -> None:
         """Push a new page with the given path or tag to the navigation stack."""
         if path:
             self.view.push(HypItemsPage(path))
         elif tag:
             self.tags.append(tag)
+            self.view.push(HypItemsPage(tags=self.tags))
+        elif tags:
+            self.tags = list(tags)
             self.view.push(HypItemsPage(tags=self.tags))
 
     def __popped(self, *_args: Any) -> None:

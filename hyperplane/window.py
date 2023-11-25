@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from os import sep
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
@@ -38,12 +39,19 @@ class HypWindow(Adw.ApplicationWindow):
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
 
-    rename_popover = Gtk.Template.Child()
-    rename_label = Gtk.Template.Child()
-    rename_row = Gtk.Template.Child()
-    rename_revealer = Gtk.Template.Child()
-    rename_revealer_label = Gtk.Template.Child()
-    rename_button = Gtk.Template.Child()
+    path_bar_stack: Gtk.Stack = Gtk.Template.Child()
+    path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
+    path_bar: Gtk.Entry = Gtk.Template.Child()
+    window_title: Adw.WindowTitle = Gtk.Template.Child()
+
+    rename_popover: Gtk.Popover = Gtk.Template.Child()
+    rename_label: Gtk.Label = Gtk.Template.Child()
+    rename_entry: Adw.EntryRow = Gtk.Template.Child()
+    rename_revealer: Gtk.Revealer = Gtk.Template.Child()
+    rename_revealer_label: Gtk.Label = Gtk.Template.Child()
+    rename_button: Gtk.Button = Gtk.Template.Child()
+
+    path_bar_connection: int
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -60,6 +68,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.set_title(title)
 
         self.create_action("home", self.__go_home, ("<alt>Home",))
+        self.create_action(
+            "toggle-path-bar", self.__toggle_path_bar, ("F6", "<primary>l")
+        )
         self.create_action("close", self.__on_close_action, ("<primary>w",))
         self.create_action("back", self.__on_back_action)
         self.lookup_action("back").set_enabled(False)
@@ -77,6 +88,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
 
+        self.path_bar.connect("activate", self.__path_bar_activated)
+
     def send_toast(self, message: str) -> None:
         """Displays a toast with the given message in the window."""
         toast = Adw.Toast.new(message)
@@ -90,14 +103,14 @@ class HypWindow(Adw.ApplicationWindow):
         if path and path.is_dir():
             navigation_view = HypNavigationBin(initial_path=path)
             self.tab_view.append(navigation_view).set_title(
-                self.get_visible_page().get_title()
+                navigation_view.view.get_visible_page().get_title()
             )
         elif tag:
             navigation_view = HypNavigationBin(
                 initial_tags=self.tab_view.get_selected_page().get_child().tags + [tag]
             )
             self.tab_view.append(navigation_view).set_title(
-                self.get_visible_page().get_title()
+                navigation_view.view.get_visible_page().get_title()
             )
 
     def get_visible_page(self) -> HypItemsPage:
@@ -162,7 +175,70 @@ class HypWindow(Adw.ApplicationWindow):
         page.get_child().view.connect("popped", self.__navigation_changed)
         page.get_child().view.connect("pushed", self.__navigation_changed)
 
-    def __go_home(self, *_args) -> None:
+    def __path_bar_activated(self, entry, *_args: Any) -> None:
+        text = entry.get_text().strip()
+        nav_bin = self.tab_view.get_selected_page().get_child()
+
+        if text.startswith("//"):
+            self.__hide_path_bar()
+            tags = list(
+                tag
+                for tag in shared.tags
+                if tag in text.lstrip("/").rstrip("/").split("//")
+            )
+            if not tags:
+                self.send_toast(_("No such tags"))
+            if tags == self.get_visible_page().tags:
+                return
+            nav_bin.new_page(tags=tags)
+            return
+
+        if (path := Path(text)).is_dir():
+            self.__hide_path_bar()
+            if path == self.get_visible_page().path:
+                return
+            nav_bin.new_page(path)
+            return
+
+        self.send_toast(_("Unable to find path"))
+
+    def __show_path_bar(self, *_args: Any) -> None:
+        if (page := self.get_visible_page()).path:
+            self.path_bar.set_text(str(page.path) + sep)
+        elif page.tags:
+            self.path_bar.set_text("//" + "//".join(page.tags) + "//")
+
+        self.path_bar_stack.set_visible_child(self.path_bar_clamp)
+        self.set_focus(self.path_bar)
+        self.path_bar.select_region(-1, -1)
+
+        self.path_bar_connection = self.path_bar.connect(
+            "notify::has-focus", self.__path_bar_focus
+        )
+
+    def __hide_path_bar(self, *_args: Any) -> None:
+        self.path_bar_stack.set_visible_child(self.window_title)
+        try:
+            self.set_focus(self.get_visible_page().flow_box.get_selected_children()[0])
+        except IndexError:
+            pass
+
+        if self.path_bar_connection:
+            self.path_bar.disconnect(self.path_bar_connection)
+            self.path_bar_connection = None
+
+    def __toggle_path_bar(self, *_args: Any) -> None:
+        if self.path_bar_stack.get_visible_child() == self.window_title:
+            self.__show_path_bar()
+            return
+
+        self.__hide_path_bar()
+
+    def __path_bar_focus(self, entry: Gtk.Entry, *_args: Any) -> None:
+        if not entry.has_focus():
+            self.__hide_path_bar()
+
+    def __go_home(self, *_args: Any) -> None:
         self.tab_view.get_selected_page().get_child().new_page(shared.home)
 
     def __on_zoom_in_action(self, *_args: Any) -> None:

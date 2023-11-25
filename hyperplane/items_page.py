@@ -21,7 +21,7 @@ from locale import strcoll
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -129,11 +129,13 @@ class HypItemsPage(Adw.NavigationPage):
         if isinstance(child, HypTag):
             return True
 
-        if child.gfile.query_info(
-            Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, Gio.FileQueryInfoFlags.NONE
-        ).get_is_hidden():
-            return False
-
+        try:
+            if child.gfile.query_info(
+                Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, Gio.FileQueryInfoFlags.NONE
+            ).get_is_hidden():
+                return False
+        except GLib.Error:
+            pass
         return True
 
     def __child_activated(

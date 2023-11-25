@@ -341,7 +341,7 @@ class HypApplication(Adw.Application):
             self.get_active_window().rename_label.set_label(_("Rename File"))
 
         path = child.path
-        entry = self.get_active_window().rename_row
+        entry = self.get_active_window().rename_entry
         entry.set_text(path.name)
         entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 

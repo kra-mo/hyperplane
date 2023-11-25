@@ -21,6 +21,28 @@ template $HypWindow : Adw.ApplicationWindow {
           action-name: "win.home";
           tooltip-text: _("Home");
         }
+        [title]
+        Stack path_bar_stack {
+          transition-type: crossfade;
+          transition-duration: 100;
+
+          Adw.WindowTitle window_title {
+            title: bind template.title;
+          }
+
+          Adw.Clamp path_bar_clamp {
+            Entry path_bar {
+              hexpand: true;
+
+              ShortcutController {
+                Shortcut {
+                  trigger: "Escape";
+                  action: "action(win.toggle-path-bar)";
+                }
+              }
+            }
+          }
+        }
 
         [end]
         MenuButton {
@@ -63,7 +85,7 @@ Popover rename_popover {
     }
 
     Adw.PreferencesGroup {
-        Adw.EntryRow rename_row {
+        Adw.EntryRow rename_entry {
           title: _("Name");
 
         }
