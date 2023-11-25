@@ -18,15 +18,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from gi.repository import Gdk, Gio, GLib, GnomeDesktop
 
 
 def get_thumbnail_async(
-    gfile: Gio.File, content_type: str, callback: Callable, *args: Any
+    gfile: Gio.File,
+    content_type: str,
+    callback: Callable,
+    thumbnail_path: Optional[str],
+    *args: Any,
 ) -> None:
     """Get the thumbnail of a file or generate it if one doesn't already exist."""
+
+    # TODO: Maybe put this in some outer scope
+    if thumbnail_path:
+        callback(gfile, Gdk.Texture.new_from_filename(thumbnail_path), *args)
+
     gfile.query_info_async(
         Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
         Gio.FileQueryInfoFlags.NONE,

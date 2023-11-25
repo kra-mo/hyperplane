@@ -9,6 +9,7 @@
         "--socket=fallback-x11",
         "--device=dri",
         "--socket=wayland",
+        "--filesystem=home",
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfsd"
     ],

@@ -210,6 +210,9 @@ class HypApplication(Adw.Application):
         self.undo_queue.popitem()
 
     def __open(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         children = (
             self.get_active_window().get_visible_page().flow_box.get_selected_children()
         )
@@ -227,6 +230,9 @@ class HypApplication(Adw.Application):
         child.activate()
 
     def __open_new_tab(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         children = (
             self.get_active_window().get_visible_page().flow_box.get_selected_children()
         )
@@ -240,6 +246,9 @@ class HypApplication(Adw.Application):
                 self.get_active_window().new_tab(tag=child.name)
 
     def __open_new_window(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         children = (
             self.get_active_window().get_visible_page().flow_box.get_selected_children()
         )
@@ -333,6 +342,9 @@ class HypApplication(Adw.Application):
         dialog.present()
 
     def __copy(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         self.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
 
@@ -403,10 +415,14 @@ class HypApplication(Adw.Application):
                         try:
                             shutil.copytree(src, dst)
                         except FileExistsError:
+                            self.get_active_window().send_toast(
+                                _("A folder with that name already exists.")
+                            )
                             continue
                         else:
                             paths.append(dst)
                     elif src.is_file():
+                        # TODO: Ask before replacing
                         try:
                             shutil.copyfile(src, dst)
                         except (OSError, shutil.Error, shutil.SameFileError):
@@ -426,9 +442,12 @@ class HypApplication(Adw.Application):
         clipboard.read_text_async(None, __callback)
 
     def __select_all(self, *_args: Any) -> None:
-        self.get_active_window().get_visible_page().flow_box.select_all()
+        self.get_active_window().get_visible_page().multi_selection.select_all()
 
     def __rename(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         if not isinstance(
             child := (
                 (flow_box := self.get_active_window().get_visible_page().flow_box)
@@ -452,7 +471,6 @@ class HypApplication(Adw.Application):
         path = child.path
         entry = self.get_active_window().rename_entry
         entry.set_text(path.name)
-        entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
         button = self.get_active_window().rename_button
         revealer = self.get_active_window().rename_revealer
@@ -497,8 +515,12 @@ class HypApplication(Adw.Application):
         button.connect("clicked", rename)
 
         popover.popup()
+        entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
     def __trash(self, *_args: Any) -> None:
+        # TODO: post-flowbox
+        return
+
         files = []
         n = 0
         for child in (

@@ -170,7 +170,8 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
         self.__hide_search_entry()
-        view.get_visible_page().flow_box.invalidate_filter()
+        # TODO: post-flowbox
+        # view.get_visible_page().flow_box.invalidate_filter()
 
         title = view.get_visible_page().get_title()
         if page := self.tab_view.get_page(view.get_parent()):
@@ -232,19 +233,24 @@ class HypWindow(Adw.ApplicationWindow):
                 self.search_button.set_active(False)
                 self.search_entry.set_text("")
                 shared.search = ""
-                self.searched_page.flow_box.invalidate_filter()
+                # TODO: post-flowbox
+                # self.searched_page.flow_box.invalidate_filter()
 
                 try:
-                    self.set_focus(
-                        self.get_visible_page().flow_box.get_selected_children()[0]
-                    )
+                    # TODO: post-flowbox
+                    # self.set_focus(
+                    #     self.get_visible_page().flow_box.get_selected_children()[0]
+                    # )
+                    pass
                 except IndexError:
                     pass
             case self.path_bar_clamp:
                 try:
-                    self.set_focus(
-                        self.get_visible_page().flow_box.get_selected_children()[0]
-                    )
+                    # TODO: post-flowbox
+                    # self.set_focus(
+                    #     self.get_visible_page().flow_box.get_selected_children()[0]
+                    # )
+                    pass
                 except IndexError:
                     pass
 
@@ -286,13 +292,17 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __search_activate(self, *_args: Any) -> None:
         try:
-            self.get_visible_page().flow_box.get_selected_children()[0].activate()
+            # TODO: post-flowbox
+            # self.get_visible_page().flow_box.get_selected_children()[0].activate()
+            pass
         except IndexError:
             pass
 
     def __search_changed(self, entry: Gtk.SearchEntry) -> None:
         shared.search = entry.get_text().strip()
-        self.searched_page.flow_box.invalidate_filter()
+        # TODO: post-flowbox
+        # self.searched_page.flow_box.invalidate_filter()
+        pass
 
     def __show_path_bar(self, *_args: Any) -> None:
         self.__title_stack_set_child(self.path_bar_clamp)

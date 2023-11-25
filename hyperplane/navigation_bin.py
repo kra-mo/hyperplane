@@ -67,7 +67,9 @@ class HypNavigationBin(Adw.Bin):
             self.tags = list(tags)
             self.view.push(HypItemsPage(tags=self.tags))
 
-    def __popped(self, *_args: Any) -> None:
+    def __popped(self, _obj: Any, page) -> None:
+        if not page.tags:
+            return
         try:
             self.tags.pop()
         except IndexError:
