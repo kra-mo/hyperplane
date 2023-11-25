@@ -80,14 +80,15 @@ class HypTag(Adw.Bin):
             self.icon.set_icon_size(Gtk.IconSize.LARGE)
 
     def __right_click(self, *_args: Any) -> None:
-        if (
-            self.get_parent()
-            not in (flow_box := self.get_parent().get_parent()).get_selected_children()
-        ):
-            flow_box.unselect_all()
-            flow_box.select_child(self.get_parent())
+        # TODO: post-flowbox
+        # if (
+        #     self.get_parent()
+        #     not in (flow_box := self.get_parent().get_parent()).get_selected_children()
+        # ):
+        #     flow_box.unselect_all()
+        #     flow_box.select_child(self.get_parent())
 
-        self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
+        self.get_root().get_visible_page().set_menu_items(
             {
                 "copy",
                 "open",
@@ -97,7 +98,7 @@ class HypTag(Adw.Bin):
         )
 
     def __middle_click(self, *_args: Any) -> None:
-        (flow_box := self.get_parent().get_parent()).unselect_all()
-        flow_box.select_child(self.get_parent())
+        # (flow_box := self.get_parent().get_parent()).unselect_all()
+        # flow_box.select_child(self.get_parent())
 
         self.get_root().new_tab(tag=self.name)

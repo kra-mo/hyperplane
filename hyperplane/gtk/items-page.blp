@@ -3,17 +3,12 @@ using Adw 1;
 
 template $HypItemsPage : Adw.NavigationPage {
   ScrolledWindow scrolled_window {
-    FlowBox flow_box {
-      valign: start;
-      margin-start: 12;
-      margin-end: 12;
-      margin-top: 12;
-      margin-bottom: 12;
-      selection-mode: multiple;
-      row-spacing: 12;
-      column-spacing: 12;
-      activate-on-single-click: false;
-      max-children-per-line: 24;
+    GridView grid_view {
+      enable-rubberband: true;
+
+      styles [
+        "hyperplane-grid-view"
+      ]
     }
   }
 }

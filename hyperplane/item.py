@@ -23,7 +23,6 @@ from typing import Any
 from gi.repository import Adw, Gdk, Gio, Gtk
 
 from hyperplane import shared
-from hyperplane.utils.get_content_type import get_content_type_async
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
@@ -39,16 +38,16 @@ class HypItem(Adw.Bin):
     path: Path
     content_type: str
 
-    def __init__(self, path: Path, **kwargs: Any) -> None:
+    # TODO: Remove path property
+    def __init__(self, item: Gtk.ListItem, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.path = path
+        self.__setup(item)
 
-        if not self.path.exists():
-            return
-
-        self.gfile = Gio.File.new_for_path(str(path))
+    def __setup(self, item: Gtk.ListItem) -> None:
+        """Set up permanent properties."""
+        self.item = item
         self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
-        self.build()
+        shared.postmaster.connect("zoom", self.__zoom)
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
@@ -58,18 +57,18 @@ class HypItem(Adw.Bin):
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
 
-        shared.postmaster.connect("zoom", self.__zoom)
-
-    def build(self) -> None:
-        """Update the file name and thumbnail."""
+    def bind(self, gfile, icon, content_type, thumbnail_path) -> None:
+        """Set up widget with file attributes."""
+        self.gfile = gfile
+        self.path = Path(gfile.get_path())
         self.label.set_label(self.path.name if self.path.is_dir() else self.path.stem)
-        self._map_connection = self.connect("map", self.build_thumbnail)
+        self.__build_thumbnail(icon, content_type, thumbnail_path)
 
-    def build_thumbnail(self, _object: Any) -> None:
-        """Build the thumbnail of the file."""
-        self.disconnect(self._map_connection)
-        self.thumbnail.build_icon()
-        get_content_type_async(self.gfile, self.__content_type_callback)
+    def __build_thumbnail(self, icon, content_type, thumbnail_path) -> None:
+        self.thumbnail.set_item(self)
+        self.thumbnail.build_icon(icon)
+        self.content_type = content_type
+        self.thumbnail.build_thumbnail(thumbnail_path)
 
     def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
@@ -102,32 +101,23 @@ class HypItem(Adw.Bin):
             self.thumbnail.icon.set_pixel_size(-1)
             self.thumbnail.icon.set_icon_size(Gtk.IconSize.LARGE)
 
-    def __content_type_callback(self, _gfile: Gio.File, content_type: str) -> None:
-        self.content_type = content_type
-        self.thumbnail.build_thumbnail()
-
     def __right_click(self, *_args: Any) -> None:
-        if (
-            self.get_parent()
-            not in (flow_box := self.get_parent().get_parent()).get_selected_children()
-        ):
-            flow_box.unselect_all()
-            flow_box.select_child(self.get_parent())
+        if not (
+            multi_selection := self.get_parent().get_parent().get_model()
+        ).is_selected(pos := self.item.get_position()):
+            multi_selection.select_item(pos, True)
 
-        self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
-            {
-                "rename",
-                "copy",
-                "cut",
-                "trash",
-                "open",
-                "open-new-tab",
-                "open-new-window",
-            }
-        )
+        menu_items = {"rename", "copy", "cut", "trash", "open"}
+        if self.path.is_dir():
+            menu_items.add("open-new-tab")
+            menu_items.add("open-new-window")
+
+        self.get_root().get_visible_page().set_menu_items(menu_items)
 
     def __middle_click(self, *_args: Any) -> None:
-        (flow_box := self.get_parent().get_parent()).unselect_all()
-        flow_box.select_child(self.get_parent())
+        # TODO: Open multiple items if multiple are selected
+        self.get_parent().get_parent().get_model().select_item(
+            self.item.get_position(), True
+        )
 
         self.get_root().new_tab(path=self.path)

@@ -45,6 +45,15 @@
     border-radius: 6px;
 }
 
+.hyperplane-grid-view {
+    padding: 12px;
+    border-spacing: 12px;
+}
+
+rubberband {
+    border-radius: 6px;
+}
+
 .thumbnail-picture {
     /* Darken thumbnails so pure white images don't look weird */
     filter: brightness(.97);

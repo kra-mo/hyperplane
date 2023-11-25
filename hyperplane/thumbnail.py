@@ -38,30 +38,32 @@ class HypThumb(Gtk.Overlay):
     icon: Gtk.Image = Gtk.Template.Child()
     extension_label: Gtk.Label = Gtk.Template.Child()
     thumbnail: Gtk.Picture = Gtk.Template.Child()
-    dir_thumbnails: Gtk.Box = Gtk.Template.Child()
     play_button: Gtk.Box = Gtk.Template.Child()
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self._map_connection = self.connect("map", self.__set_item)
+    dir_thumbnails: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_1: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_2: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_3: Gtk.Box = Gtk.Template.Child()
 
-    def __set_item(self, *_args: Any) -> None:
-        self.disconnect(self._map_connection)
-        self.item = self.get_parent().get_parent().get_parent()
+    def set_item(self, item) -> None:
+        self.item = item
 
-    def build_icon(self, *_args: Any) -> None:
+    def build_icon(self, icon: Gio.Icon) -> None:
         """Build the symbolic icon and badge representing the file."""
         self.icon.set_visible(True)
         self.thumbnail.set_visible(False)
 
         self.__build_extension()
+        self.icon.set_from_gicon(icon)
 
-        get_symbolic_icon_async(self.item.gfile, self.__icon_callback)
-
-    def build_thumbnail(self) -> None:
+    def build_thumbnail(self, thumbnail_path: str) -> None:
         """Build the thumbnail of the file."""
         color = get_color_for_content_type(self.item.content_type)
         self.add_css_class(color + "-background")
+        self.thumbnail.set_content_fit(Gtk.ContentFit.COVER)
+        self.dir_thumbnail_1.set_visible(False)
+        self.dir_thumbnail_2.set_visible(False)
+        self.dir_thumbnail_3.set_visible(False)
 
         if self.item.path.is_file():
             self.icon.add_css_class(color + "-icon")
@@ -71,6 +73,7 @@ class HypThumb(Gtk.Overlay):
                 self.item.gfile,
                 self.item.content_type,
                 self.__thumbnail_callback,
+                thumbnail_path,
                 color,
             )
         elif self.item.path.is_dir():
@@ -94,17 +97,18 @@ class HypThumb(Gtk.Overlay):
                         if not path.exists():
                             continue
 
+                        match index:
+                            case 0:
+                                thumbnail = self.dir_thumbnail_1
+                                self.dir_thumbnail_1.set_visible(True)
+                            case 1:
+                                thumbnail = self.dir_thumbnail_2
+                                self.dir_thumbnail_2.set_visible(True)
+                            case 2:
+                                thumbnail = self.dir_thumbnail_3
+                                self.dir_thumbnail_3.set_visible(True)
+
                         index += 1
-
-                        thumbnail = Gtk.Overlay(
-                            width_request=32,
-                            height_request=32,
-                            overflow=Gtk.Overflow.HIDDEN,
-                        )
-                        thumbnail.add_css_class("small-thumbnail")
-                        thumbnail.set_child(Gtk.Image())
-
-                        self.dir_thumbnails.append(thumbnail)
 
                         gfile = Gio.File.new_for_path(str(path))
 
@@ -153,15 +157,12 @@ class HypThumb(Gtk.Overlay):
             color = get_color_for_content_type(content_type)
             thumbnail.get_child().add_css_class(color + "-icon-light-only")
             get_thumbnail_async(
-                gfile, content_type, self.__dir_thumbnail_callback, thumbnail
+                gfile, content_type, self.__dir_thumbnail_callback, None, thumbnail
             )
 
         elif path.is_dir():
             thumbnail.add_css_class("light-blue-background")
             thumbnail.get_child().add_css_class("white-icon")
-
-    def __icon_callback(self, _gfile: Gio.File, icon: Gio.Icon) -> None:
-        self.icon.set_from_gicon(icon)
 
     def __thumbnail_callback(
         self, _gfile: Gio.File, texture: Gdk.Texture, color: str
