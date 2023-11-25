@@ -34,6 +34,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
+from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag import HypTag
 from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
@@ -65,24 +66,20 @@ class HypApplication(Adw.Application):
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__on_about_action)
         self.create_action("preferences", self.__on_preferences_action)
-        self.create_action(
-            "refresh",
-            self.__on_refresh_action,
-            (
-                "<primary>r",
-                "F5",
-            ),
-        )
+        self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
+        self.create_action("open", self.__open, ("Return",))
+        self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
         self.create_action(
-            "new-folder", self.__on_new_folder_action, ("<primary><shift>n",)
+            "open-new-window", self.__open_new_window, ("<shift>Return",)
         )
-        self.create_action("copy", self.__on_copy_action, ("<primary>c",))
-        self.create_action("cut", self.__on_cut_action, ("<primary>x",))
-        self.create_action("paste", self.__on_paste_action, ("<primary>v",))
-        self.create_action("select-all", self.__on_select_all_action)
-        self.create_action("rename", self.__on_rename_action, ("F2",))
-        self.create_action("trash", self.__on_trash_action, ("Delete",))
+        self.create_action("new-folder", self.__new_folder, ("<primary><shift>n",))
+        self.create_action("copy", self.__copy, ("<primary>c",))
+        self.create_action("cut", self.__cut, ("<primary>x",))
+        self.create_action("paste", self.__paste, ("<primary>v",))
+        self.create_action("select-all", self.__select_all, ("<primary>a",))
+        self.create_action("rename", self.__rename, ("F2",))
+        self.create_action("trash", self.__trash, ("Delete",))
 
         show_hidden_action = Gio.SimpleAction.new_stateful(
             "show-hidden", None, shared.state_schema.get_value("show-hidden")
@@ -91,15 +88,6 @@ class HypApplication(Adw.Application):
         show_hidden_action.connect("change-state", self.__show_hidden)
         self.add_action(show_hidden_action)
         self.set_accels_for_action("app.show-hidden", ("<primary>h",))
-
-    def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
-        value = not action.get_property("state").get_boolean()
-        action.set_state(GLib.Variant.new_boolean(value))
-
-        shared.state_schema.set_boolean("show-hidden", value)
-        shared.show_hidden = value
-
-        shared.postmaster.emit("toggle-hidden")
 
     def do_activate(self) -> HypWindow:
         """Called when the application is activated."""
@@ -165,10 +153,63 @@ class HypApplication(Adw.Application):
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
 
-    def __on_refresh_action(self, *_args: Any) -> None:
+    def __open(self, *_args: Any) -> None:
+        children = (
+            self.get_active_window().get_visible_page().flow_box.get_selected_children()
+        )
+
+        if len(children) > 1:
+            # TODO: Maybe switch to newly opened tab like Nautilus?
+            self.__open_new_tab()
+            return
+
+        try:
+            child = children[0]
+        except IndexError:
+            return
+
+        child.activate()
+
+    def __open_new_tab(self, *_args: Any) -> None:
+        children = (
+            self.get_active_window().get_visible_page().flow_box.get_selected_children()
+        )
+
+        for child in children:
+            child = child.get_child()
+            if isinstance(child, HypItem):
+                self.get_active_window().new_tab(child.path)
+                return
+            if isinstance(child, HypTag):
+                self.get_active_window().new_tab(tag=child.name)
+
+    def __open_new_window(self, *_args: Any) -> None:
+        children = (
+            self.get_active_window().get_visible_page().flow_box.get_selected_children()
+        )
+
+        for child in children:
+            child = child.get_child()
+            new_bin = None
+            if isinstance(child, HypItem):
+                new_bin = HypNavigationBin(child.path)
+            elif isinstance(child, HypTag):
+                nav_bin = (
+                    self.get_active_window().tab_view.get_selected_page().get_child()
+                )
+                new_bin = HypNavigationBin(initial_tags=nav_bin.tags + [child.name])
+
+            if not new_bin:
+                return
+
+            win = self.do_activate()
+            win.tab_view.close_page(win.tab_view.get_selected_page())
+            win.tab_view.append(new_bin)
+
+    def __reload(self, *_args: Any) -> None:
         self.get_active_window().get_visible_page().update()
 
-    def __on_new_folder_action(self, *_args: Any) -> None:
+    def __new_folder(self, *_args: Any) -> None:
         if not (path := (page := self.get_active_window().get_visible_page()).path):
             if page.tags:
                 path = Path(
@@ -235,7 +276,7 @@ class HypApplication(Adw.Application):
 
         dialog.present()
 
-    def __on_copy_action(self, *_args: Any) -> None:
+    def __copy(self, *_args: Any) -> None:
         self.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
 
@@ -254,11 +295,11 @@ class HypApplication(Adw.Application):
         if uris:
             clipboard.set(uris.strip())
 
-    def __on_cut_action(self, *args: Any) -> None:
-        self.__on_copy_action(*args)
+    def __cut(self, *args: Any) -> None:
+        self.__copy(*args)
         self.cut_page = self.get_active_window().get_visible_page()
 
-    def __on_paste_action(self, *_args: Any) -> None:
+    def __paste(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
 
         def __callback(clipboard, result) -> None:
@@ -316,10 +357,10 @@ class HypApplication(Adw.Application):
 
         clipboard.read_text_async(None, __callback)
 
-    def __on_select_all_action(self, *_args: Any) -> None:
+    def __select_all(self, *_args: Any) -> None:
         self.get_active_window().get_visible_page().flow_box.select_all()
 
-    def __on_rename_action(self, *_args: Any) -> None:
+    def __rename(self, *_args: Any) -> None:
         if not isinstance(
             child := (
                 (flow_box := self.get_active_window().get_visible_page().flow_box)
@@ -386,7 +427,7 @@ class HypApplication(Adw.Application):
 
         popover.popup()
 
-    def __on_trash_action(self, *_args: Any) -> None:
+    def __trash(self, *_args: Any) -> None:
         n = 0
         for child in (
             items_page := self.get_active_window().get_visible_page()
@@ -415,6 +456,15 @@ class HypApplication(Adw.Application):
             )
 
         self.get_active_window().send_toast(message)
+
+    def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
+        value = not action.get_property("state").get_boolean()
+        action.set_state(GLib.Variant.new_boolean(value))
+
+        shared.state_schema.set_boolean("show-hidden", value)
+        shared.show_hidden = value
+
+        shared.postmaster.emit("toggle-hidden")
 
 
 def main(_version):

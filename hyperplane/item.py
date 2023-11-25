@@ -120,6 +120,9 @@ class HypItem(Adw.Bin):
                 "copy",
                 "cut",
                 "trash",
+                "open",
+                "open-new-tab",
+                "open-new-window",
             }
         )
 

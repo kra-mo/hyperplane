@@ -70,6 +70,7 @@ class HypItemsPage(Adw.NavigationPage):
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
         self.right_click_menu.connect("closed", self.__set_actions)
+        self.__set_actions()
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
@@ -188,6 +189,9 @@ class HypItemsPage(Adw.NavigationPage):
             "trash",
             "new-folder",
             "select-all",
+            "open",
+            "open-new-tab",
+            "open-new-window",
         }
 
         for action in actions.difference(menu_items):
@@ -211,6 +215,9 @@ class HypItemsPage(Adw.NavigationPage):
                 "trash",
                 "new-folder",
                 "select-all",
+                "open",
+                "open-new-tab",
+                "open-new-window",
             }
         )
 

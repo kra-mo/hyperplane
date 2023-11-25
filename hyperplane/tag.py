@@ -90,6 +90,9 @@ class HypTag(Adw.Bin):
         self.get_parent().get_parent().get_parent().get_parent().get_parent().set_menu_items(
             {
                 "copy",
+                "open",
+                "open-new-tab",
+                "open-new-window",
             }
         )
 
