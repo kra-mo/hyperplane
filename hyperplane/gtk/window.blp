@@ -4,7 +4,7 @@ using Adw 1;
 template $HypWindow : Adw.ApplicationWindow {
   title: _("Hyperplane");
   content: Adw.ToastOverlay toast_overlay {
-      Adw.ToolbarView toolbar_view {
+    Adw.ToolbarView toolbar_view {
       top-bar-style: raised;
 
       [top]
@@ -22,7 +22,7 @@ template $HypWindow : Adw.ApplicationWindow {
           tooltip-text: _("Home");
         }
         [title]
-        Stack path_bar_stack {
+        Stack title_stack {
           transition-type: crossfade;
           transition-duration: 100;
 
@@ -42,14 +42,25 @@ template $HypWindow : Adw.ApplicationWindow {
               }
             }
           }
-        }
 
+          Adw.Clamp search_entry_clamp {
+            SearchEntry search_entry {}
+          }
+
+        }
+        
         [end]
         MenuButton {
           primary: true;
           icon-name: "open-menu-symbolic";
           tooltip-text: _("Menu");
           menu-model: primary_menu;
+        }
+
+        [end]
+        ToggleButton search_button {
+          icon-name: "system-search-symbolic";
+          tooltip-text: _("Search");
         }
       }
       [top]
@@ -58,6 +69,7 @@ template $HypWindow : Adw.ApplicationWindow {
       }
       Adw.TabView tab_view {}
     }
+
   }
   ;
 

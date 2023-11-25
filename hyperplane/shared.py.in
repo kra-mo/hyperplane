@@ -46,5 +46,6 @@ if (path := home / ".hyperplane").is_file():
 del path
 
 app = None  # pylint: disable=invalid-name
+search = ""
 
 postmaster = HypPostmasterGeneral()

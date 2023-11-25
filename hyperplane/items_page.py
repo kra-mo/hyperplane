@@ -120,11 +120,32 @@ class HypItemsPage(Adw.NavigationPage):
             return -1
         return strcoll(child1.name, child2.name)
 
-    def __filter_func(self, child: Gtk.FlowBoxChild) -> bool:
+    def __search_filter(self, initial_child: Gtk.FlowBoxChild) -> bool:
+        if not shared.search:
+            return True
+
+        child = initial_child.get_child()
+        search = shared.search.lower()
+
+        if isinstance(child, HypTag):
+            if search in child.name.lower():
+                self.flow_box.unselect_all()
+                self.flow_box.select_child(initial_child)
+                return True
+            return False
+
+        if search in child.path.name.lower():
+            self.flow_box.unselect_all()
+            self.flow_box.select_child(initial_child)
+            return True
+
+        return False
+
+    def __hidden_filter(self, initial_child: Gtk.FlowBoxChild) -> bool:
         if shared.show_hidden:
             return True
 
-        child = child.get_child()
+        child = initial_child.get_child()
 
         if isinstance(child, HypTag):
             return True
@@ -133,10 +154,14 @@ class HypItemsPage(Adw.NavigationPage):
             if child.gfile.query_info(
                 Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, Gio.FileQueryInfoFlags.NONE
             ).get_is_hidden():
+                self.flow_box.unselect_child(initial_child)
                 return False
         except GLib.Error:
             pass
         return True
+
+    def __filter_func(self, child: Gtk.FlowBoxChild) -> bool:
+        return all((self.__search_filter(child), self.__hidden_filter(child)))
 
     def __child_activated(
         self, _flow_box: Gtk.FlowBox, flow_box_child: Gtk.FlowBoxChild

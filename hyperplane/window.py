@@ -39,10 +39,13 @@ class HypWindow(Adw.ApplicationWindow):
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
 
-    path_bar_stack: Gtk.Stack = Gtk.Template.Child()
+    title_stack: Gtk.Stack = Gtk.Template.Child()
+    window_title: Adw.WindowTitle = Gtk.Template.Child()
     path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
     path_bar: Gtk.Entry = Gtk.Template.Child()
-    window_title: Adw.WindowTitle = Gtk.Template.Child()
+    search_entry_clamp: Adw.Clamp = Gtk.Template.Child()
+    search_entry: Gtk.SearchEntry = Gtk.Template.Child()
+    search_button: Gtk.ToggleButton = Gtk.Template.Child()
 
     rename_popover: Gtk.Popover = Gtk.Template.Child()
     rename_label: Gtk.Label = Gtk.Template.Child()
@@ -89,6 +92,14 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("create-window", self.__create_window)
 
         self.path_bar.connect("activate", self.__path_bar_activated)
+
+        self.search_entry.set_key_capture_widget(self)
+        self.search_entry.connect("search-started", self.__show_search_entry)
+        self.search_entry.connect("search-changed", self.__search_changed)
+        self.search_entry.connect("stop-search", self.__hide_search_entry)
+        self.search_entry.connect("activate", self.__search_activate)
+        self.search_button.connect("clicked", self.__search_button_clicked)
+        self.searched_page = self.get_visible_page()
 
     def send_toast(self, message: str) -> None:
         """Displays a toast with the given message in the window."""
@@ -154,6 +165,9 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
     def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
+        self.__hide_search_entry()
+        view.get_visible_page().flow_box.invalidate_filter()
+
         title = view.get_visible_page().get_title()
         if page := self.tab_view.get_page(view.get_parent()):
             page.set_title(title)
@@ -202,13 +216,58 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.send_toast(_("Unable to find path"))
 
+    def __toggle_search_entry(self, *_args: Any) -> None:
+        if self.title_stack.get_visible_child() != self.search_entry_clamp:
+            self.__show_search_entry()
+            return
+
+        self.__hide_search_entry()
+
+    def __show_search_entry(self, *_args: Any) -> None:
+        self.search_button.set_active(True)
+        if self.title_stack.get_visible_child() == self.search_entry_clamp:
+            return
+
+        self.searched_page = self.get_visible_page()
+
+        self.title_stack.set_visible_child(self.search_entry_clamp)
+        self.set_focus(self.search_entry)
+
+    def __hide_search_entry(self, *_args: Any) -> None:
+        self.search_button.set_active(False)
+        if self.title_stack.get_visible_child() != self.search_entry_clamp:
+            return
+
+        self.title_stack.set_visible_child(self.window_title)
+        self.search_entry.set_text("")
+        shared.search = ""
+        self.searched_page.flow_box.invalidate_filter()
+
+        try:
+            self.set_focus(self.get_visible_page().flow_box.get_selected_children()[0])
+        except IndexError:
+            pass
+
+    def __search_activate(self, *_args: Any) -> None:
+        try:
+            self.get_visible_page().flow_box.get_selected_children()[0].activate()
+        except IndexError:
+            pass
+
+    def __search_changed(self, entry: Gtk.SearchEntry) -> None:
+        shared.search = entry.get_text().strip()
+        self.searched_page.flow_box.invalidate_filter()
+
+    def __search_button_clicked(self, *_args: Any) -> None:
+        self.__toggle_search_entry()
+
     def __show_path_bar(self, *_args: Any) -> None:
         if (page := self.get_visible_page()).path:
             self.path_bar.set_text(str(page.path) + sep)
         elif page.tags:
             self.path_bar.set_text("//" + "//".join(page.tags) + "//")
 
-        self.path_bar_stack.set_visible_child(self.path_bar_clamp)
+        self.title_stack.set_visible_child(self.path_bar_clamp)
         self.set_focus(self.path_bar)
         self.path_bar.select_region(-1, -1)
 
@@ -217,7 +276,7 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
     def __hide_path_bar(self, *_args: Any) -> None:
-        self.path_bar_stack.set_visible_child(self.window_title)
+        self.title_stack.set_visible_child(self.window_title)
         try:
             self.set_focus(self.get_visible_page().flow_box.get_selected_children()[0])
         except IndexError:
@@ -228,7 +287,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.path_bar_connection = None
 
     def __toggle_path_bar(self, *_args: Any) -> None:
-        if self.path_bar_stack.get_visible_child() == self.window_title:
+        if self.title_stack.get_visible_child() != self.path_bar_clamp:
             self.__show_path_bar()
             return
 
