@@ -102,13 +102,16 @@ class HypWindow(Adw.ApplicationWindow):
         self.search_button.connect("clicked", self.__toggle_search_entry)
         self.searched_page = self.get_visible_page()
 
-    def send_toast(self, message: str) -> None:
-        """Displays a toast with the given message in the window."""
+    def send_toast(self, message: str, undo: bool = False) -> None:
+        """Displays a toast with the given message and optionally an undo button in the window."""
         toast = Adw.Toast.new(message)
         toast.set_priority(Adw.ToastPriority.HIGH)
         toast.set_use_markup(False)
-
+        if undo:
+            toast.set_button_label(_("Undo"))
         self.toast_overlay.add_toast(toast)
+
+        return toast
 
     def new_tab(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
         """Open a new path with the given path or tag."""

@@ -20,6 +20,7 @@
 import shutil
 import sys
 from pathlib import Path
+from time import time
 from typing import Any, Callable, Iterable, Optional
 
 import gi
@@ -34,6 +35,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
+from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag import HypTag
 from hyperplane.utils.validate_name import validate_name
@@ -43,7 +45,8 @@ from hyperplane.window import HypWindow
 class HypApplication(Adw.Application):
     """The main application singleton class."""
 
-    cut_page: bool = False
+    cut_page: Optional[HypItemsPage] = None
+    undo_queue: dict = {}
 
     def __init__(self):
         super().__init__(
@@ -68,16 +71,16 @@ class HypApplication(Adw.Application):
         self.create_action("preferences", self.__on_preferences_action)
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
-        self.create_action("open", self.__open, ("Return",))
-        self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
-        self.create_action(
-            "open-new-window", self.__open_new_window, ("<shift>Return",)
-        )
+        self.create_action("undo", self.__undo, ("<primary>z",))
+        # TODO: keyboard shortcuts for these that don't disrupt other operations
+        self.create_action("open", self.__open)
+        self.create_action("open-new-tab", self.__open_new_tab)
+        self.create_action("open-new-window", self.__open_new_window)
         self.create_action("new-folder", self.__new_folder, ("<primary><shift>n",))
         self.create_action("copy", self.__copy, ("<primary>c",))
         self.create_action("cut", self.__cut, ("<primary>x",))
         self.create_action("paste", self.__paste, ("<primary>v",))
-        self.create_action("select-all", self.__select_all, ("<primary>a",))
+        self.create_action("select-all", self.__select_all)
         self.create_action("rename", self.__rename, ("F2",))
         self.create_action("trash", self.__trash, ("Delete",))
 
@@ -152,6 +155,49 @@ class HypApplication(Adw.Application):
     def __on_preferences_action(self, *_args: Any) -> None:
         """Callback for the app.preferences action."""
         print("app.preferences action activated")
+
+    def __undo(self, *_args: Any) -> None:
+        if not self.undo_queue:
+            return
+
+        index = tuple(self.undo_queue.keys())[-1]
+        item = self.undo_queue[index]
+
+        # TODO: Lookup the pages with the paths and update those
+        match item[0]:
+            case "copy":
+                for path in item[1]:
+                    if path.is_dir():
+                        shutil.rmtree(path, ignore_errors=True)
+                    else:
+                        path.unlink(missing_ok=True)
+                item[2].update()
+                if (page := self.get_active_window().get_visible_page()) != item[2]:
+                    page.update()
+            case "cut":
+                for paths in item[1]:
+                    if paths[1].exists():
+                        shutil.move(paths[1], paths[0])
+                item[2].update()
+                item[3].update()
+                if (page := self.get_active_window().get_visible_page()) not in (
+                    item[2],
+                    item[3],
+                ):
+                    page.update()
+            case "rename":
+                try:
+                    item[1].set_display_name(item[2])
+                except GLib.Error:
+                    pass
+                else:
+                    item[3].update()
+                    if (page := self.get_active_window().get_visible_page()) != item[3]:
+                        page.update()
+
+        if isinstance(index, Adw.Toast):
+            index.dismiss()
+        self.undo_queue.popitem()
 
     def __open(self, *_args: Any) -> None:
         children = (
@@ -301,8 +347,11 @@ class HypApplication(Adw.Application):
 
     def __paste(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
+        paths = []
 
         def __callback(clipboard, result) -> None:
+            nonlocal paths
+
             try:
                 text = clipboard.read_text_finish(result)
             except GLib.Error:
@@ -336,6 +385,8 @@ class HypApplication(Adw.Application):
                         FileExistsError,
                     ):
                         continue
+                    else:
+                        paths.append((src, dst))
 
                 else:
                     if src.is_dir():
@@ -343,16 +394,23 @@ class HypApplication(Adw.Application):
                             shutil.copytree(src, dst)
                         except FileExistsError:
                             continue
+                        else:
+                            paths.append(dst)
                     elif src.is_file():
                         try:
                             shutil.copyfile(src, dst)
                         except (OSError, shutil.Error, shutil.SameFileError):
                             continue
+                        else:
+                            paths.append(dst)
 
-            self.get_active_window().get_visible_page().update()
+            (page := self.get_active_window().get_visible_page()).update()
 
             if self.cut_page:
+                self.undo_queue[time()] = ("cut", paths, page, self.cut_page)
                 self.cut_page.update()
+            else:
+                self.undo_queue[time()] = ("copy", paths, page)
             self.cut_page = None
 
         clipboard.read_text_async(None, __callback)
@@ -393,10 +451,13 @@ class HypApplication(Adw.Application):
 
         def rename(*_args: Any) -> None:
             try:
-                child.gfile.set_display_name(entry.get_text().strip())
+                old_name = child.path.name
+                new_file = child.gfile.set_display_name(entry.get_text().strip())
             except GLib.Error:
                 pass
-            self.get_active_window().get_visible_page().update()
+            else:
+                (page := self.get_active_window().get_visible_page()).update()
+                self.undo_queue[time()] = ("rename", new_file, old_name, page)
             popover.popdown()
 
         def set_incative(*_args: Any) -> None:
