@@ -26,7 +26,7 @@ from gi.repository import Adw, Gdk, Gio, Gtk
 from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
-from hyperplane.list_model import HypListModel
+from hyperplane.utils.iterplane import iterplane
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
@@ -40,11 +40,11 @@ class HypItemsPage(Adw.NavigationPage):
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
-    item_filter = HypItemFilter
+    item_filter: HypItemFilter
     filter_list: Gtk.FilterListModel
     sorter: Gtk.CustomSorter
     sort_list: Gtk.SortListModel
-    plane_list: HypListModel
+    dir_list: Gtk.FlattenListModel | Gtk.DirectoryList
     factory: Gtk.SignalListItemFactory
 
     def __init__(
@@ -76,21 +76,9 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
-        self.plane_list = HypListModel(
-            ",".join(
-                (
-                    Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                    Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                    Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                    Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
-                    Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-                )
-            ),
-            Gio.File.new_for_path(str(self.path)) if self.path else None,
-            self.tags or None,
-        )
+        self.dir_list = self.__get_list(self.path, self.tags)
         self.item_filter = HypItemFilter()
-        self.filter_list = Gtk.FilterListModel.new(self.plane_list, self.item_filter)
+        self.filter_list = Gtk.FilterListModel.new(self.dir_list, self.item_filter)
 
         self.sorter = Gtk.CustomSorter.new(self.__sort_func)
         self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
@@ -106,15 +94,40 @@ class HypItemsPage(Adw.NavigationPage):
         self.factory.connect("teardown", self.__teardown)
         self.grid_view.connect("activate", self.activate)
 
-        self.plane_list.connect("items-changed", self.__items_changed)
-        self.__items_changed(self.plane_list)
+        self.dir_list.connect("items-changed", self.__items_changed)
+        self.__items_changed(self.dir_list)
+
+    def __get_list(
+        self, path: Optional[Path] = None, tags: Optional[list[str]] = None
+    ) -> Gtk.FlattenListModel | Gtk.DirectoryList:
+        attrs = ",".join(
+            (
+                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
+                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+            )
+        )
+        if path:
+            return Gtk.DirectoryList.new(attrs, Gio.File.new_for_path(str(path)))
+
+        list_store = Gio.ListStore.new(Gtk.DirectoryList)
+        for plane_path in iterplane(tags):
+            list_store.append(
+                Gtk.DirectoryList.new(attrs, Gio.File.new_for_path(str(plane_path)))
+            )
+
+        return Gtk.FlattenListModel.new(list_store)
 
     # TODO: Make this more efficient with removed and added?
     # TODO: Make this less prone to showing up during initial population
-    def __items_changed(self, plane_list: HypListModel, *_args: Any) -> None:
-        if self.get_child() != self.scrolled_window and plane_list.get_n_items():
+    def __items_changed(
+        self, dir_list: Gtk.FlattenListModel | Gtk.DirectoryList, *_args: Any
+    ) -> None:
+        if self.get_child() != self.scrolled_window and dir_list.get_n_items():
             self.set_child(self.scrolled_window)
-        if self.get_child() != self.empty_folder and not plane_list.get_n_items():
+        if self.get_child() != self.empty_folder and not dir_list.get_n_items():
             self.set_child(self.empty_folder)
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
