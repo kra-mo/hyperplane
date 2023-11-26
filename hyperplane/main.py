@@ -355,7 +355,7 @@ class HypApplication(Adw.Application):
         entry.connect("entry-activated", create_folder)
         entry.connect("changed", set_incative)
 
-        dialog.present()
+        dialog.choose()
 
     def __copy(self, *_args: Any) -> None:
         self.cut_page = None
@@ -399,7 +399,10 @@ class HypApplication(Adw.Application):
                     )
                 else:
                     dst = page.path
-                src = Path(Gio.File.new_for_uri(line).get_path())
+                try:
+                    src = Path(Gio.File.new_for_uri(line).get_path())
+                except TypeError:  # If the value being pasted isn't a pathlike
+                    continue
                 if not src.exists():
                     continue
 
