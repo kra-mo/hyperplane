@@ -27,13 +27,6 @@ def iterplane(filter_tags: Iterable[str]) -> Generator:
     if not filter_tags:
         return
 
-    # TODO: Decide what happens with this
-    """
-    for tag in shared.tags:
-        if tag not in filter_tags:
-            yield tag
-    """
-
     tags = {tag: tag in filter_tags for tag in shared.tags}
 
     yield from __walk(shared.home, tags)
@@ -45,25 +38,6 @@ def __walk(node: Path, tags: dict[str, bool]) -> Generator:
 
     if not sum(tags.values()):
         yield node
-
-        # TODO: Decide what happens with this
-        """
-        for child in node.iterdir():
-            if child.is_dir():
-                # TODO: This is probably not optimal
-                if (
-                    tuple(
-                        tag
-                        for tag in shared.tags
-                        if tag
-                        in (relative_parts := child.relative_to(shared.home).parts)
-                    )
-                    != relative_parts
-                ):
-                    yield child
-            else:
-                yield child
-        """
 
     # TODO: Use Path.walk in Python 3.12
     for child in node.iterdir():

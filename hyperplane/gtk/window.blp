@@ -3,78 +3,111 @@ using Adw 1;
 
 template $HypWindow : Adw.ApplicationWindow {
   title: _("Hyperplane");
-  content: Adw.ToastOverlay toast_overlay {
-    Adw.ToolbarView toolbar_view {
-      top-bar-style: raised;
-
-      [top]
-      Adw.HeaderBar header_bar {
-        [start]
-        Button {
-          icon-name: "go-previous-symbolic";
-          action-name: "win.back";
-          tooltip-text: _("Back");
-        }
-        [start]
-        Button {
-          icon-name: "go-home-symbolic";
-          action-name: "win.home";
-          tooltip-text: _("Home");
-        }
-        [title]
-        Stack title_stack {
-          transition-type: crossfade;
-          transition-duration: 100;
-
-          Adw.WindowTitle window_title {
-            title: bind template.title;
+  content: 
+  Adw.ToastOverlay toast_overlay {
+    Adw.OverlaySplitView {
+      sidebar: Adw.NavigationPage {
+        title: _("Categories");
+        child: 
+        Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {
           }
 
-          Adw.Clamp path_bar_clamp {
-            Entry path_bar {
-              hexpand: true;
+          ScrolledWindow {
+            ListBox sidebar {
+              selection-mode: none;
+              Label home_label {
+                halign: start;
+                margin-start: 6;
+                margin-end: 6;
+                label: _("Home");
+              }
 
-              ShortcutController {
-                Shortcut {
-                  trigger: "Escape";
-                  action: "action(win.hide-path-bar)";
+              styles [
+                "navigation-sidebar",
+              ]
+            }
+          }
+        }
+
+        ;
+      }
+
+      ;
+      content: 
+      Adw.ToolbarView toolbar_view {
+        top-bar-style: raised;
+
+        [top]
+        Adw.HeaderBar header_bar {
+          [start]
+          Button {
+            icon-name: "go-previous-symbolic";
+            action-name: "win.back";
+            tooltip-text: _("Back");
+          }
+
+          [title]
+          Stack title_stack {
+            transition-type: crossfade;
+            transition-duration: 100;
+
+            Adw.WindowTitle window_title {
+              title: bind template.title;
+            }
+
+            Adw.Clamp path_bar_clamp {
+              Entry path_bar {
+                hexpand: true;
+
+                ShortcutController {
+                  Shortcut {
+                    trigger: "Escape";
+                    action: "action(win.hide-path-bar)";
+                  }
                 }
+              }
+            }
+
+            Adw.Clamp search_entry_clamp {
+              SearchEntry search_entry {
               }
             }
           }
 
-          Adw.Clamp search_entry_clamp {
-            SearchEntry search_entry {}
+          [end]
+          MenuButton {
+            primary: true;
+            icon-name: "open-menu-symbolic";
+            tooltip-text: _("Menu");
+            menu-model: primary_menu;
           }
 
-        }
-        
-        [end]
-        MenuButton {
-          primary: true;
-          icon-name: "open-menu-symbolic";
-          tooltip-text: _("Menu");
-          menu-model: primary_menu;
+          [end]
+          ToggleButton search_button {
+            icon-name: "system-search-symbolic";
+            tooltip-text: _("Search");
+          }
         }
 
-        [end]
-        ToggleButton search_button {
-          icon-name: "system-search-symbolic";
-          tooltip-text: _("Search");
+        [top]
+        Adw.TabBar tab_bar {
+          view: tab_view;
+        }
+
+        Adw.TabView tab_view {
         }
       }
-      [top]
-      Adw.TabBar tab_bar {
-        view: tab_view;
-      }
-      Adw.TabView tab_view {}
+
+      ;
     }
-
   }
+
   ;
 
   styles [
-    "view"
+    "view",
   ]
 }
 
@@ -92,33 +125,34 @@ Popover rename_popover {
 
     Label rename_label {
       styles [
-        "title-2"
+        "title-2",
       ]
     }
 
     Adw.PreferencesGroup {
-        Adw.EntryRow rename_entry {
-          title: _("Name");
+      Adw.EntryRow rename_entry {
+        title: _("Name");
+      }
 
-        }
-        Revealer rename_revealer {
-          margin-start: 6;
-          margin-end: 6;
-          margin-top: 12;
+      Revealer rename_revealer {
+        margin-start: 6;
+        margin-end: 6;
+        margin-top: 12;
 
-          Label rename_revealer_label {
-            wrap: true;
-          }
+        Label rename_revealer_label {
+          wrap: true;
         }
-        Button rename_button {
-          margin-top: 12;
-          label: _("Rename");
+      }
 
-            styles [
-                "suggested-action",
-                "pill",
-            ]
-        }
+      Button rename_button {
+        margin-top: 12;
+        label: _("Rename");
+
+        styles [
+          "suggested-action",
+          "pill",
+        ]
+      }
     }
   }
 }

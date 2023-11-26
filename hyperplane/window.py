@@ -38,6 +38,8 @@ class HypWindow(Adw.ApplicationWindow):
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
+    sidebar: Gtk.ListBox = Gtk.Template.Child()
+    home_label: Gtk.Label = Gtk.Template.Child()
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
     window_title: Adw.WindowTitle = Gtk.Template.Child()
@@ -63,6 +65,8 @@ class HypWindow(Adw.ApplicationWindow):
             self.add_css_class("devel")
 
         self.tab_view.connect("page-attached", self.__page_attached)
+
+        # Create actions
 
         navigation_view = HypNavigationBin(initial_path=shared.home)
         self.tab_view.append(navigation_view).set_title(
@@ -90,6 +94,10 @@ class HypWindow(Adw.ApplicationWindow):
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
 
+        # Connect signals
+
+        self.sidebar.connect("row-activated", self.__row_activated)
+
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
 
@@ -101,6 +109,17 @@ class HypWindow(Adw.ApplicationWindow):
         self.search_entry.connect("activate", self.__search_activate)
         self.search_button.connect("clicked", self.__toggle_search_entry)
         self.searched_page = self.get_visible_page()
+
+        # Build sidebar
+        for tag in shared.tags:
+            self.sidebar.append(
+                Gtk.Label(
+                    label=tag,
+                    halign=Gtk.Align.START,
+                    margin_start=6,
+                    margin_end=6,
+                )
+            )
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
@@ -152,6 +171,19 @@ class HypWindow(Adw.ApplicationWindow):
         self.add_action(action)
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
+
+    def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
+        nav_bin = self.tab_view.get_selected_page().get_child()
+
+        if row.get_child() == self.home_label:
+            if self.get_visible_page().path != shared.home:
+                nav_bin.new_page(shared.home)
+            return
+
+        if (tag := row.get_child().get_label()) in (nav_bin).tags:
+            return
+
+        nav_bin.new_page(tag=tag)
 
     def __tab_changed(self, *_args: Any) -> None:
         if not self.tab_view.get_selected_page():

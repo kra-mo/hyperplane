@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
 from typing import Optional
 
 from gi.repository import Gio, GLib, Gtk
@@ -26,6 +27,22 @@ from hyperplane import shared
 
 class HypItemFilter(Gtk.Filter):
     __gtype_name__ = "HypItemFilter"
+
+    def __tag_filter(self, file_info: Gio.FileInfo) -> bool:
+        path = Path(file_info.get_attribute_object("standard::file").get_path())
+        if not path.is_dir:
+            return False
+        if (
+            tuple(
+                tag
+                for tag in shared.tags
+                if tag in (relative_parts := path.relative_to(shared.home).parts)
+            )
+            != relative_parts
+        ):
+            return True
+
+        return False
 
     def __search_filter(self, file_info: Gio.FileInfo) -> bool:
         if not shared.search:
@@ -38,7 +55,7 @@ class HypItemFilter(Gtk.Filter):
 
         return False
 
-    def __hidden_filter(self, file_info: Gtk.ListItem) -> bool:
+    def __hidden_filter(self, file_info: Gio.FileInfo) -> bool:
         if shared.show_hidden:
             return True
 
@@ -53,4 +70,10 @@ class HypItemFilter(Gtk.Filter):
         if not file_info:
             return False
 
-        return all((self.__search_filter(file_info), self.__hidden_filter(file_info)))
+        return all(
+            (
+                self.__search_filter(file_info),
+                self.__hidden_filter(file_info),
+                self.__tag_filter(file_info),
+            )
+        )
