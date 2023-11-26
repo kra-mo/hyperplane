@@ -50,6 +50,7 @@ hyperplane_sources = [
   'thumbnail.py',
   'tag.py',
   'postmaster_general.py',
+  'item_filter.py',
   configure_file(
     input: 'shared.py.in',
     output: 'shared.py',

@@ -21,12 +21,11 @@ from locale import strcoll
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
-from hyperplane.tag import HypTag
-from hyperplane.utils.iterplane import iterplane
+from hyperplane.item_filter import HypItemFilter
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
@@ -40,6 +39,12 @@ class HypItemsPage(Adw.NavigationPage):
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
+    item_filter = HypItemFilter
+    filter_list: Gtk.FilterListModel
+    sorter: Gtk.CustomSorter
+    sort_list: Gtk.SortListModel
+    directory_list: Gtk.DirectoryList
+    factory: Gtk.SignalListItemFactory
 
     def __init__(
         self,
@@ -61,8 +66,6 @@ class HypItemsPage(Adw.NavigationPage):
         elif self.tags:
             self.set_title(" + ".join(self.tags))
 
-        self.update()
-
         self.right_click_menu.set_parent(self)
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         gesture_click.connect("pressed", self.__right_click)
@@ -72,18 +75,28 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
-        if self.path:  # TODO: remove condition
+        if self.path:  # TODO: Remove condition
             self.directory_list = Gtk.DirectoryList.new(
                 ",".join(
                     (
                         Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
                         Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                         Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                        Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
+                        Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
                     )
                 ),
                 Gio.File.new_for_path(str(self.path)),
             )
-            self.multi_selection = Gtk.MultiSelection.new(self.directory_list)
+            self.item_filter = HypItemFilter()
+            self.filter_list = Gtk.FilterListModel.new(
+                self.directory_list, self.item_filter
+            )
+
+            self.sorter = Gtk.CustomSorter.new(self.__sort_func)
+            self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
+
+            self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
             self.factory = Gtk.SignalListItemFactory()
             self.grid_view.set_model(self.multi_selection)
             self.grid_view.set_factory(self.factory)
@@ -92,7 +105,18 @@ class HypItemsPage(Adw.NavigationPage):
             self.factory.connect("bind", self.__bind)
             self.factory.connect("unbind", self.__unbind)
             self.factory.connect("teardown", self.__teardown)
-            self.grid_view.connect("activate", self.__activate)
+            self.grid_view.connect("activate", self.activate)
+
+            self.directory_list.connect("items-changed", self.__items_changed)
+            self.__items_changed(self.directory_list)
+
+    # TODO: Make this more efficient with removed and added?
+    # TODO: Make this less prone to showing up during initial population
+    def __items_changed(self, dir_list: Gtk.DirectoryList, *_args: Any) -> None:
+        if self.get_child() != self.scrolled_window and dir_list.get_n_items():
+            self.set_child(self.scrolled_window)
+        if self.get_child() != self.empty_folder and not dir_list.get_n_items():
+            self.set_child(self.empty_folder)
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.set_child(HypItem(item))
@@ -113,120 +137,45 @@ class HypItemsPage(Adw.NavigationPage):
     def __teardown(self, *args) -> None:
         return
 
-    def update(self) -> None:
-        """Updates the visible items in the view."""
-
-        if self.get_child() != self.scrolled_window:
-            self.set_child(self.scrolled_window)
-
-        # TODO: post-flowbox
-        # self.flow_box.remove_all()
-        if self.path:
-            if self.path == shared.home:
-                for item in self.path.iterdir():
-                    if item.name not in shared.tags:
-                        # TODO: post-flowbox
-                        # self.flow_box.append(HypItem(item))
-                        pass
-                for tag in shared.tags:
-                    # TODO: post-flowbox
-                    # self.flow_box.append(HypTag(tag))
-                    pass
-                return
-
-            for item in self.path.iterdir():
-                # TODO: post-flowbox
-                # self.flow_box.append(HypItem(item))
-                pass
-
-            if "item" not in vars():
-                self.set_child(self.empty_folder)
-
-        elif self.tags:
-            for item in iterplane(self.tags):
-                if isinstance(item, Path):
-                    # TODO: post-flowbox
-                    # self.flow_box.append(HypItem(item))
-                    pass
-                elif isinstance(item, str):
-                    # TODO: post-flowbox
-                    # self.flow_box.append(HypTag(item))
-                    pass
-
-            if "item" not in vars():
-                self.set_child(self.empty_filter)
-
     def __toggle_hidden(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        # self.flow_box.invalidate_filter()
-        pass
-
-    def __sort_func(self, child1: Gtk.FlowBoxChild, child2: Gtk.FlowBoxChild) -> int:
-        child1 = child1.get_child()
-        child2 = child2.get_child()
-
-        if isinstance(child1, HypItem):
-            if isinstance(child2, HypItem):
-                return strcoll(child1.path.name, child2.path.name)
-            return 1
-        if isinstance(child2, HypItem):
-            return -1
-        return strcoll(child1.name, child2.name)
-
-    def __search_filter(self, initial_child: Gtk.FlowBoxChild) -> bool:
-        if not shared.search:
-            return True
-
-        child = initial_child.get_child()
-        search = shared.search.lower()
-
-        if isinstance(child, HypTag):
-            if search in child.name.lower():
-                # TODO: post-flowbox
-                # self.flow_box.unselect_all()
-                # self.flow_box.select_child(initial_child)
-                return True
-            return False
-
-        if search in child.path.name.lower():
-            # TODO: post-flowbox
-            # self.flow_box.unselect_all()
-            # self.flow_box.select_child(initial_child)
-            return True
-
-        return False
-
-    def __hidden_filter(self, initial_child: Gtk.FlowBoxChild) -> bool:
         if shared.show_hidden:
-            return True
+            self.item_filter.changed(Gtk.FilterChange.LESS_STRICT)
+        else:
+            self.item_filter.changed(Gtk.FilterChange.MORE_STRICT)
 
-        child = initial_child.get_child()
+    def __sort_func(
+        self,
+        file_info1: Optional[Gio.FileInfo] = None,
+        file_info2: Optional[Gio.FileInfo] = None,
+        _user_data: Optional[Any] = None,
+    ) -> int:
+        if (not file_info1) or (not file_info2):
+            return 0
 
-        if isinstance(child, HypTag):
-            return True
+        name1 = file_info1.get_display_name()
+        name2 = file_info2.get_display_name()
 
+        if name1.startswith("."):
+            if not name2.startswith("."):
+                return 1
+
+        if name2.startswith("."):
+            return -1
+
+        return strcoll(name1, name2)
+
+    def activate(self, _grid_view: Gtk.GridView, pos: int) -> None:
+        """Activates an item at the given position."""
         try:
-            if child.gfile.query_info(
-                Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, Gio.FileQueryInfoFlags.NONE
-            ).get_is_hidden():
-                # TODO: post-flowbox
-                # self.flow_box.unselect_child(initial_child)
-                return False
-        except GLib.Error:
-            pass
-        return True
-
-    def __filter_func(self, child: Gtk.FlowBoxChild) -> bool:
-        return all((self.__search_filter(child), self.__hidden_filter(child)))
-
-    def __activate(self, _grid_view: Gtk.GridView, pos: int) -> None:
-        path = Path(
-            (
-                gfile := self.multi_selection.get_item(pos).get_attribute_object(
-                    "standard::file"
-                )
-            ).get_path()
-        )
+            path = Path(
+                (
+                    gfile := self.multi_selection.get_item(pos).get_attribute_object(
+                        "standard::file"
+                    )
+                ).get_path()
+            )
+        except AttributeError:
+            return
 
         if path.is_file():
             Gio.AppInfo.launch_default_for_uri(gfile.get_uri())

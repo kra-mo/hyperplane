@@ -170,8 +170,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
         self.__hide_search_entry()
-        # TODO: post-flowbox
-        # view.get_visible_page().flow_box.invalidate_filter()
+        view.get_visible_page().item_filter.changed(Gtk.FilterChange.LESS_STRICT)
 
         title = view.get_visible_page().get_title()
         if page := self.tab_view.get_page(view.get_parent()):
@@ -233,27 +232,8 @@ class HypWindow(Adw.ApplicationWindow):
                 self.search_button.set_active(False)
                 self.search_entry.set_text("")
                 shared.search = ""
-                # TODO: post-flowbox
-                # self.searched_page.flow_box.invalidate_filter()
-
-                try:
-                    # TODO: post-flowbox
-                    # self.set_focus(
-                    #     self.get_visible_page().flow_box.get_selected_children()[0]
-                    # )
-                    pass
-                except IndexError:
-                    pass
+                self.searched_page.item_filter.changed(Gtk.FilterChange.LESS_STRICT)
             case self.path_bar_clamp:
-                try:
-                    # TODO: post-flowbox
-                    # self.set_focus(
-                    #     self.get_visible_page().flow_box.get_selected_children()[0]
-                    # )
-                    pass
-                except IndexError:
-                    pass
-
                 if self.path_bar_connection:
                     self.path_bar.disconnect(self.path_bar_connection)
                     self.path_bar_connection = None
@@ -276,6 +256,10 @@ class HypWindow(Adw.ApplicationWindow):
                 self.path_bar_connection = self.path_bar.connect(
                     "notify::has-focus", self.__path_bar_focus
                 )
+            case self.window_title:
+                # HACK: Keep track of the last focused item and scroll to that instead
+                self.set_focus(grid_view := self.get_visible_page().grid_view)
+                grid_view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
@@ -288,26 +272,25 @@ class HypWindow(Adw.ApplicationWindow):
         self.__title_stack_set_child(self.search_entry_clamp)
 
     def __hide_search_entry(self, *_args: Any) -> None:
+        if self.title_stack.get_visible_child() != self.search_entry_clamp:
+            return
+
         self.__title_stack_set_child(self.window_title)
 
     def __search_activate(self, *_args: Any) -> None:
-        try:
-            # TODO: post-flowbox
-            # self.get_visible_page().flow_box.get_selected_children()[0].activate()
-            pass
-        except IndexError:
-            pass
+        self.get_visible_page().activate(None, 0)
 
     def __search_changed(self, entry: Gtk.SearchEntry) -> None:
         shared.search = entry.get_text().strip()
-        # TODO: post-flowbox
-        # self.searched_page.flow_box.invalidate_filter()
-        pass
+        self.searched_page.item_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def __show_path_bar(self, *_args: Any) -> None:
         self.__title_stack_set_child(self.path_bar_clamp)
 
     def __hide_path_bar(self, *_args: Any) -> None:
+        if self.title_stack.get_visible_child() != self.path_bar_clamp:
+            return
+
         self.__title_stack_set_child(self.window_title)
 
     def __toggle_path_bar(self, *_args: Any) -> None:
