@@ -26,16 +26,17 @@ from gi.repository import Adw, Gdk, Gio, Gtk
 from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
+from hyperplane.list_model import HypListModel
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
 class HypItemsPage(Adw.NavigationPage):
     __gtype_name__ = "HypItemsPage"
 
-    grid_view = Gtk.GdriView = Gtk.Template.Child()
+    scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
+    grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     empty_filter: Adw.StatusPage = Gtk.Template.Child()
-    scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
@@ -43,7 +44,7 @@ class HypItemsPage(Adw.NavigationPage):
     filter_list: Gtk.FilterListModel
     sorter: Gtk.CustomSorter
     sort_list: Gtk.SortListModel
-    directory_list: Gtk.DirectoryList
+    plane_list: HypListModel
     factory: Gtk.SignalListItemFactory
 
     def __init__(
@@ -75,47 +76,45 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
-        if self.path:  # TODO: Remove condition
-            self.directory_list = Gtk.DirectoryList.new(
-                ",".join(
-                    (
-                        Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                        Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                        Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                        Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
-                        Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-                    )
-                ),
-                Gio.File.new_for_path(str(self.path)),
-            )
-            self.item_filter = HypItemFilter()
-            self.filter_list = Gtk.FilterListModel.new(
-                self.directory_list, self.item_filter
-            )
+        self.plane_list = HypListModel(
+            ",".join(
+                (
+                    Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                    Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                    Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                    Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
+                    Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                )
+            ),
+            Gio.File.new_for_path(str(self.path)) if self.path else None,
+            self.tags or None,
+        )
+        self.item_filter = HypItemFilter()
+        self.filter_list = Gtk.FilterListModel.new(self.plane_list, self.item_filter)
 
-            self.sorter = Gtk.CustomSorter.new(self.__sort_func)
-            self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
+        self.sorter = Gtk.CustomSorter.new(self.__sort_func)
+        self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
 
-            self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
-            self.factory = Gtk.SignalListItemFactory()
-            self.grid_view.set_model(self.multi_selection)
-            self.grid_view.set_factory(self.factory)
+        self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
+        self.factory = Gtk.SignalListItemFactory()
+        self.grid_view.set_model(self.multi_selection)
+        self.grid_view.set_factory(self.factory)
 
-            self.factory.connect("setup", self.__setup)
-            self.factory.connect("bind", self.__bind)
-            self.factory.connect("unbind", self.__unbind)
-            self.factory.connect("teardown", self.__teardown)
-            self.grid_view.connect("activate", self.activate)
+        self.factory.connect("setup", self.__setup)
+        self.factory.connect("bind", self.__bind)
+        self.factory.connect("unbind", self.__unbind)
+        self.factory.connect("teardown", self.__teardown)
+        self.grid_view.connect("activate", self.activate)
 
-            self.directory_list.connect("items-changed", self.__items_changed)
-            self.__items_changed(self.directory_list)
+        self.plane_list.connect("items-changed", self.__items_changed)
+        self.__items_changed(self.plane_list)
 
     # TODO: Make this more efficient with removed and added?
     # TODO: Make this less prone to showing up during initial population
-    def __items_changed(self, dir_list: Gtk.DirectoryList, *_args: Any) -> None:
-        if self.get_child() != self.scrolled_window and dir_list.get_n_items():
+    def __items_changed(self, plane_list: HypListModel, *_args: Any) -> None:
+        if self.get_child() != self.scrolled_window and plane_list.get_n_items():
             self.set_child(self.scrolled_window)
-        if self.get_child() != self.empty_folder and not dir_list.get_n_items():
+        if self.get_child() != self.empty_folder and not plane_list.get_n_items():
             self.set_child(self.empty_folder)
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:

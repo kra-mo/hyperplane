@@ -277,8 +277,8 @@ class HypApplication(Adw.Application):
 
     # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
     def __reload(self, *_args: Any) -> None:
-        self.get_active_window().get_visible_page().directory_list.set_monitored(False)
-        self.get_active_window().get_visible_page().directory_list.set_monitored(True)
+        self.get_active_window().get_visible_page().plane_list.set_monitored(False)
+        self.get_active_window().get_visible_page().plane_list.set_monitored(True)
 
     def __new_folder(self, *_args: Any) -> None:
         if not (path := (page := self.get_active_window().get_visible_page()).path):
