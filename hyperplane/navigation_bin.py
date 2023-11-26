@@ -37,7 +37,7 @@ class HypNavigationBin(Adw.Bin):
         self,
         initial_path: Optional[Path] = None,
         initial_tags: Optional[Iterable[str]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.view = Adw.NavigationView()
@@ -59,18 +59,17 @@ class HypNavigationBin(Adw.Bin):
     ) -> None:
         """Push a new page with the given path or tag to the navigation stack."""
         if path:
+            self.tags = []
             self.view.push(HypItemsPage(path))
         elif tag:
             self.tags.append(tag)
-            self.view.push(HypItemsPage(tags=self.tags))
+            self.view.push(HypItemsPage(tags=self.tags.copy()))
         elif tags:
             self.tags = list(tags)
-            self.view.push(HypItemsPage(tags=self.tags))
+            self.view.push(HypItemsPage(tags=self.tags.copy()))
 
-    def __popped(self, _obj: Any, page) -> None:
-        if not page.tags:
-            return
-        try:
-            self.tags.pop()
-        except IndexError:
-            pass
+    def __popped(self, *_args: Any) -> None:
+        if tags := self.view.get_visible_page().tags:
+            self.tags = tags.copy()
+        else:
+            self.tags = []
