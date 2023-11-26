@@ -277,10 +277,19 @@ class HypApplication(Adw.Application):
 
     # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
     def __reload(self, *_args: Any) -> None:
-        # TODO: This is not right like this
-        # self.get_active_window().get_visible_page().dirs_list.set_monitored(False)
-        # self.get_active_window().get_visible_page().dirs_list.set_monitored(True)
-        pass
+        dir_list = self.get_active_window().get_visible_page().dir_list
+        if isinstance(dir_list, Gtk.DirectoryList):
+            dir_list.set_monitored(False)
+            dir_list.set_monitored(True)
+            return
+
+        if isinstance(dir_list, Gtk.FlattenListModel):
+            model = dir_list.get_model()
+            index = 0
+            while item := model.get_item(index):
+                item.set_monitored(False)
+                item.set_monitored(True)
+                index += 1
 
     def __new_folder(self, *_args: Any) -> None:
         if not (path := (page := self.get_active_window().get_visible_page()).path):
