@@ -46,7 +46,7 @@
 }
 
 .hyperplane-grid-view {
-    padding: 12px;
+    padding: 15px;
     border-spacing: 12px;
 }
 
@@ -62,7 +62,7 @@ rubberband {
 .file-extension {
     padding: 2px 5px;
     font-weight: 700;
-    border-radius: 3px;
+    border-radius: 4px;
     font-size: small;
 }
 

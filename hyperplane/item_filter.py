@@ -29,6 +29,9 @@ class HypItemFilter(Gtk.Filter):
     __gtype_name__ = "HypItemFilter"
 
     def __tag_filter(self, file_info: Gio.FileInfo) -> bool:
+        if not shared.tags:
+            return True
+
         path = Path(file_info.get_attribute_object("standard::file").get_path())
         if not path.is_dir:
             return False

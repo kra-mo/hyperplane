@@ -2,31 +2,69 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypWindow : Adw.ApplicationWindow {
-  title: _("Hyperplane");
   content: 
   Adw.ToastOverlay toast_overlay {
     Adw.OverlaySplitView {
+      sidebar-width-fraction: .2;
       sidebar: Adw.NavigationPage {
-        title: _("Categories");
+        title: _("Hyperplane");
         child: 
         Adw.ToolbarView {
           [top]
           Adw.HeaderBar {
+            [end]
+            MenuButton {
+              primary: true;
+              icon-name: "open-menu-symbolic";
+              tooltip-text: _("Menu");
+              menu-model: primary_menu;
+            }
           }
 
           ScrolledWindow {
-            ListBox sidebar {
-              selection-mode: none;
-              Label home_label {
-                halign: start;
+            Box {
+              orientation: vertical;
+
+              ListBox sidebar {
+                selection-mode: none;
+                Box sidebar_home {
+                  spacing: 12;
+                  margin-start: 6;
+                  margin-end: 6;
+                  Image {
+                    icon-name: "user-home-symbolic";
+                  }
+                  Label {
+                    label: _("Home");
+                  }
+                }
+
+                styles [
+                  "navigation-sidebar",
+                ]
+              }
+              Separator {
                 margin-start: 6;
                 margin-end: 6;
-                label: _("Home");
               }
+              ListBox new_tag_box {
+                selection-mode: none;
+                Box {
+                  spacing: 12;
+                  margin-start: 6;
+                  margin-end: 6;
+                  Image {
+                    icon-name: "list-add-symbolic";
+                  }
+                  Label {
+                    label: _("New Category");
+                  }
+                }
 
-              styles [
-                "navigation-sidebar",
-              ]
+                styles [
+                  "navigation-sidebar",
+                ]
+              }
             }
           }
         }
@@ -74,14 +112,6 @@ template $HypWindow : Adw.ApplicationWindow {
               SearchEntry search_entry {
               }
             }
-          }
-
-          [end]
-          MenuButton {
-            primary: true;
-            icon-name: "open-menu-symbolic";
-            tooltip-text: _("Menu");
-            menu-model: primary_menu;
           }
 
           [end]

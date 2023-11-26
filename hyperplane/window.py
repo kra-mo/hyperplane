@@ -39,7 +39,8 @@ class HypWindow(Adw.ApplicationWindow):
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     sidebar: Gtk.ListBox = Gtk.Template.Child()
-    home_label: Gtk.Label = Gtk.Template.Child()
+    sidebar_home: Gtk.Box = Gtk.Template.Child()
+    new_tag_box: Gtk.ListBox = Gtk.Template.Child()
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
     window_title: Adw.WindowTitle = Gtk.Template.Child()
@@ -57,6 +58,7 @@ class HypWindow(Adw.ApplicationWindow):
     rename_button: Gtk.Button = Gtk.Template.Child()
 
     path_bar_connection: int
+    sidebar_items: set
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -97,6 +99,7 @@ class HypWindow(Adw.ApplicationWindow):
         # Connect signals
 
         self.sidebar.connect("row-activated", self.__row_activated)
+        self.new_tag_box.connect("row-activated", self.__new_tag)
 
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
@@ -111,15 +114,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.searched_page = self.get_visible_page()
 
         # Build sidebar
-        for tag in shared.tags:
-            self.sidebar.append(
-                Gtk.Label(
-                    label=tag,
-                    halign=Gtk.Align.START,
-                    margin_start=6,
-                    margin_end=6,
-                )
-            )
+
+        self.sidebar_items = set()
+        self.__update_tags()
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
@@ -172,15 +169,70 @@ class HypWindow(Adw.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
+    def __update_tags(self) -> None:
+        for item in self.sidebar_items:
+            self.sidebar.remove(item.get_parent())
+
+        self.sidebar_items = set()
+
+        for tag in shared.tags:
+            box = Gtk.Box(spacing=12, margin_start=6, margin_end=6)
+            box.append(Gtk.Image(icon_name="user-bookmarks-symbolic"))
+            box.append(Gtk.Label(label=tag))
+            self.sidebar_items.add(box)
+            self.sidebar.insert(box, 1)
+
+    def __new_tag(self, *_args: Any) -> None:
+        dialog = Adw.MessageDialog.new(self, _("New Category"))
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("add", _("Add"))
+
+        dialog.set_default_response("add")
+        dialog.set_response_appearance("add", Adw.ResponseAppearance.SUGGESTED)
+
+        (preferences_group := Adw.PreferencesGroup(width_request=360)).add(
+            entry := Adw.EntryRow(title=_("Name"))
+        )
+        dialog.set_extra_child(preferences_group)
+
+        def add_tag(*_args) -> None:
+            dialog.close()
+
+            if (text := entry.get_text().strip()) in shared.tags:
+                # TODO: Use a revealer and insensitivity here instead of a toast
+                self.send_toast(_('A category named "{}" already exists').format(text))
+                return
+
+            # TODO: Present this to the user
+            if (not text) or ("/" in text) or text in (".", ".."):
+                return
+
+            shared.tags += (text,)
+
+            # TODO: Maybe append?
+            (shared.home / ".hyperplane").write_text(
+                "\n".join(shared.tags), encoding="utf-8"
+            )
+            self.__update_tags()
+
+        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
+            if response == "add":
+                add_tag()
+
+        entry.connect("entry-activated", add_tag)
+        dialog.connect("response", handle_response)
+        dialog.choose()
+
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
 
-        if row.get_child() == self.home_label:
+        if row.get_child() == self.sidebar_home:
             if self.get_visible_page().path != shared.home:
                 nav_bin.new_page(shared.home)
             return
 
-        if (tag := row.get_child().get_label()) in (nav_bin).tags:
+        if (tag := row.get_child().get_last_child().get_label()) in (nav_bin).tags:
             return
 
         nav_bin.new_page(tag=tag)

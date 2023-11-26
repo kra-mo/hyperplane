@@ -89,10 +89,31 @@ class HypItem(Adw.Bin):
             self.thumbnail.dir_thumbnails.set_spacing(12)
             self.thumbnail.dir_thumbnails.set_margin_start(10)
             self.thumbnail.dir_thumbnails.set_margin_top(6)
-        else:
+        elif zoom_level < 4:
             self.thumbnail.dir_thumbnails.set_spacing(6)
             self.thumbnail.dir_thumbnails.set_margin_start(6)
             self.thumbnail.dir_thumbnails.set_margin_top(6)
+        elif zoom_level < 5:
+            self.thumbnail.dir_thumbnails.set_spacing(9)
+            self.thumbnail.dir_thumbnails.set_margin_start(8)
+            self.thumbnail.dir_thumbnails.set_margin_top(8)
+        else:
+            self.thumbnail.dir_thumbnails.set_spacing(9)
+            self.thumbnail.dir_thumbnails.set_margin_start(7)
+            self.thumbnail.dir_thumbnails.set_margin_top(7)
+
+        if zoom_level < 4:
+            self.thumbnail.dir_thumbnail_1.set_size_request(32, 32)
+            self.thumbnail.dir_thumbnail_2.set_size_request(32, 32)
+            self.thumbnail.dir_thumbnail_3.set_size_request(32, 32)
+        elif zoom_level < 5:
+            self.thumbnail.dir_thumbnail_1.set_size_request(42, 42)
+            self.thumbnail.dir_thumbnail_2.set_size_request(42, 42)
+            self.thumbnail.dir_thumbnail_3.set_size_request(42, 42)
+        else:
+            self.thumbnail.dir_thumbnail_1.set_size_request(56, 56)
+            self.thumbnail.dir_thumbnail_2.set_size_request(56, 56)
+            self.thumbnail.dir_thumbnail_3.set_size_request(56, 56)
 
         if zoom_level < 2:
             self.thumbnail.icon.set_pixel_size(20)
