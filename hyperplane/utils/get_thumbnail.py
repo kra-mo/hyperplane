@@ -73,7 +73,13 @@ def __generate_thumbnail(gfile, content_type, callback, *args) -> None:
     if not factory.can_thumbnail(uri, content_type, mtime):
         return
 
-    if not (thumbnail := factory.generate_thumbnail(uri, content_type)):
+    try:
+        thumbnail = factory.generate_thumbnail(uri, content_type)
+    except GLib.Error as error:
+        print(f"Cannot thumbnail: {error}")
+        return
+
+    if not thumbnail:
         return
 
     factory.save_thumbnail(thumbnail, uri, mtime)

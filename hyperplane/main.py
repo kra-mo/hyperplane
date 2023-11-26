@@ -34,10 +34,8 @@ gi.require_version("GnomeDesktop", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
-from hyperplane.item import HypItem
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
-from hyperplane.tag import HypTag
 from hyperplane.utils.restore_file import restore_file
 from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
@@ -73,7 +71,7 @@ class HypApplication(Adw.Application):
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
         self.create_action("undo", self.__undo, ("<primary>z",))
-        # TODO: keyboard shortcuts for these that don't disrupt other operations
+        # TODO: Keyboard shortcuts for these that don't disrupt other operations
         self.create_action("open", self.__open)
         self.create_action("open-new-tab", self.__open_new_tab)
         self.create_action("open-new-window", self.__open_new_window)
@@ -175,104 +173,112 @@ class HypApplication(Adw.Application):
                         shutil.rmtree(trash_item, ignore_errors=True)
                     else:
                         trash_item.unlink(missing_ok=True)
-                item[2].update()
-                if (page := self.get_active_window().get_visible_page()) != item[2]:
-                    page.update()
             case "cut":
                 for paths in item[1]:
                     if paths[1].exists():
                         shutil.move(paths[1], paths[0])
-                item[2].update()
-                item[3].update()
-                if (page := self.get_active_window().get_visible_page()) not in (
-                    item[2],
-                    item[3],
-                ):
-                    page.update()
             case "rename":
                 try:
                     item[1].set_display_name(item[2])
                 except GLib.Error:
                     pass
-                else:
-                    item[3].update()
-                    if (page := self.get_active_window().get_visible_page()) != item[3]:
-                        page.update()
             case "trash":
                 for trash_item in item[1]:
                     restore_file(*trash_item)
-                item[2].update()
-                if (page := self.get_active_window().get_visible_page()) != item[2]:
-                    page.update()
 
         if isinstance(index, Adw.Toast):
             index.dismiss()
         self.undo_queue.popitem()
 
+    def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
+        """Get a list of GFiles corresponding to positions in the ListModel."""
+        paths = []
+        multi_selection = self.get_active_window().get_visible_page().multi_selection
+
+        for position in positions:
+            paths.append(
+                multi_selection.get_item(position).get_attribute_object(
+                    "standard::file"
+                )
+            )
+
+        return paths
+
+    def get_paths_from_positions(self, positions: list[int]) -> list[Path]:
+        """Get a list of file paths corresponding to positions in the ListModel."""
+        paths = []
+        multi_selection = self.get_active_window().get_visible_page().multi_selection
+
+        for position in positions:
+            paths.append(
+                Path(
+                    (
+                        multi_selection.get_item(position).get_attribute_object(
+                            "standard::file"
+                        )
+                    ).get_path()
+                )
+            )
+
+        return paths
+
+    def get_selected_items(self) -> list[int]:
+        """Gets the list of positions for selected items in the currently active window."""
+        bitset = (
+            self.get_active_window().get_visible_page().multi_selection.get_selection()
+        )
+        not_empty, bitset_iter, position = Gtk.BitsetIter.init_first(bitset)
+
+        if not not_empty:
+            return []
+
+        positions = [position]
+
+        while True:
+            next_val, pos = bitset_iter.next()
+            if not next_val:
+                break
+            positions.append(pos)
+
+        return positions
+
     def __open(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
-
-        children = (
-            self.get_active_window().get_visible_page().flow_box.get_selected_children()
-        )
-
-        if len(children) > 1:
+        if len(positions := self.get_selected_items()) > 1:
             # TODO: Maybe switch to newly opened tab like Nautilus?
-            self.__open_new_tab()
+            self.__open_new_tab(None, None, positions)
             return
 
-        try:
-            child = children[0]
-        except IndexError:
-            return
+        self.get_active_window().get_visible_page().activate(None, positions[0])
 
-        child.activate()
+    def __open_new_tab(
+        self, _obj: Any, _parameter: Any, positions: Optional[list[int]] = None
+    ) -> None:
+        if not positions:
+            positions = self.get_selected_items()
 
-    def __open_new_tab(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
+        paths = self.get_paths_from_positions(positions)
 
-        children = (
-            self.get_active_window().get_visible_page().flow_box.get_selected_children()
-        )
-
-        for child in children:
-            child = child.get_child()
-            if isinstance(child, HypItem):
-                self.get_active_window().new_tab(child.path)
-                return
-            if isinstance(child, HypTag):
-                self.get_active_window().new_tab(tag=child.name)
+        for path in paths:
+            if not path.is_dir():
+                continue
+            self.get_active_window().new_tab(path)
 
     def __open_new_window(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
+        paths = self.get_paths_from_positions(self.get_selected_items())
 
-        children = (
-            self.get_active_window().get_visible_page().flow_box.get_selected_children()
-        )
-
-        for child in children:
-            child = child.get_child()
-            new_bin = None
-            if isinstance(child, HypItem):
-                new_bin = HypNavigationBin(child.path)
-            elif isinstance(child, HypTag):
-                nav_bin = (
-                    self.get_active_window().tab_view.get_selected_page().get_child()
-                )
-                new_bin = HypNavigationBin(initial_tags=nav_bin.tags + [child.name])
-
-            if not new_bin:
-                return
+        for path in paths:
+            if not path.is_dir():
+                continue
+            new_bin = HypNavigationBin(path)
 
             win = self.do_activate()
             win.tab_view.close_page(win.tab_view.get_selected_page())
             win.tab_view.append(new_bin)
 
+    # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
     def __reload(self, *_args: Any) -> None:
-        self.get_active_window().get_visible_page().update()
+        self.get_active_window().get_visible_page().directory_list.set_monitored(False)
+        self.get_active_window().get_visible_page().directory_list.set_monitored(True)
 
     def __new_folder(self, *_args: Any) -> None:
         if not (path := (page := self.get_active_window().get_visible_page()).path):
@@ -304,7 +310,7 @@ class HypApplication(Adw.Application):
         dialog.set_response_enabled("create", False)
         can_create = False
 
-        def set_incative(*_args: Any) -> None:
+        def set_incative(popover: Gtk.Popover, *_args: Any) -> None:
             nonlocal can_create
             nonlocal path
 
@@ -328,7 +334,6 @@ class HypApplication(Adw.Application):
                 return
 
             Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
-            self.get_active_window().get_visible_page().update()
             dialog.close()
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
@@ -342,23 +347,15 @@ class HypApplication(Adw.Application):
         dialog.present()
 
     def __copy(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
-
         self.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
 
         uris = ""
 
-        for child in (
-            self.get_active_window().get_visible_page().flow_box.get_selected_children()
-        ):
-            child = child.get_child()
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
 
-            if isinstance(child, HypItem):
-                uris += child.gfile.get_uri() + "\n"
-            elif isinstance(child, HypTag):
-                uris += "hyperplane://" + child.name + "\n"
+        for gfile in gfiles:
+            uris += gfile.get_uri() + "\n"
 
         if uris:
             clipboard.set(uris.strip())
@@ -380,10 +377,10 @@ class HypApplication(Adw.Application):
                 self.cut_page = None
                 return
 
+            page = self.get_active_window().get_visible_page()
             for line in text.split("\n"):
                 if line.startswith("hyperplane://"):
                     continue
-                page = self.get_active_window().get_visible_page()
                 if page.tags:
                     dst = Path(
                         shared.home,
@@ -430,13 +427,10 @@ class HypApplication(Adw.Application):
                         else:
                             paths.append(dst)
 
-            (page := self.get_active_window().get_visible_page()).update()
-
             if self.cut_page:
-                self.undo_queue[time()] = ("cut", paths, page, self.cut_page)
-                self.cut_page.update()
+                self.undo_queue[time()] = ("cut", paths)
             else:
-                self.undo_queue[time()] = ("copy", paths, page)
+                self.undo_queue[time()] = ("copy", paths)
             self.cut_page = None
 
         clipboard.read_text_async(None, __callback)
@@ -445,30 +439,35 @@ class HypApplication(Adw.Application):
         self.get_active_window().get_visible_page().multi_selection.select_all()
 
     def __rename(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
-
-        if not isinstance(
-            child := (
-                (flow_box := self.get_active_window().get_visible_page().flow_box)
-                .get_selected_children()[0]
-                .get_child()
-            ),
-            HypItem,
-        ):
+        # TODO: Maybe make it stop iteration on first item?
+        try:
+            position = self.get_selected_items()[0]
+        except IndexError:
             return
+        # TODO: Get edit name from gfile
+        gfile = self.get_gfiles_from_positions([position])[0]
+        path = Path(gfile.get_path())
 
-        flow_box.unselect_all()
-        flow_box.select_child(child.get_parent())
+        multi_selection = self.get_active_window().get_visible_page().multi_selection
+        multi_selection.select_item(position, True)
 
-        (popover := self.get_active_window().rename_popover).unparent()
-        popover.set_parent(child)
-        if child.path.is_dir():
+        children = (
+            self.get_active_window().get_visible_page().grid_view.observe_children()
+        )
+
+        # TODO: This may be slow
+        index = 0
+        while item := children.get_item(index):
+            if item.get_first_child().gfile == gfile:
+                (popover := self.get_active_window().rename_popover).set_parent(item)
+                break
+            index += 1
+
+        if path.is_dir():
             self.get_active_window().rename_label.set_label(_("Rename Folder"))
         else:
             self.get_active_window().rename_label.set_label(_("Rename File"))
 
-        path = child.path
         entry = self.get_active_window().rename_entry
         entry.set_text(path.name)
 
@@ -478,15 +477,14 @@ class HypApplication(Adw.Application):
         can_rename = True
 
         def rename(*_args: Any) -> None:
+            popover.popdown()
             try:
-                old_name = child.path.name
-                new_file = child.gfile.set_display_name(entry.get_text().strip())
+                old_name = path.name
+                new_file = gfile.set_display_name(entry.get_text().strip())
             except GLib.Error:
                 pass
             else:
-                (page := self.get_active_window().get_visible_page()).update()
-                self.undo_queue[time()] = ("rename", new_file, old_name, page)
-            popover.popdown()
+                self.undo_queue[time()] = ("rename", new_file, old_name)
 
         def set_incative(*_args: Any) -> None:
             nonlocal can_rename
@@ -509,7 +507,11 @@ class HypApplication(Adw.Application):
             if message:
                 revealer_label.set_label(message)
 
+        def unparent(popover):
+            popover.unparent()
+
         popover.connect("notify::visible", set_incative)
+        popover.connect("closed", unparent)
         entry.connect("changed", set_incative)
         entry.connect("entry-activated", rename)
         button.connect("clicked", rename)
@@ -518,41 +520,34 @@ class HypApplication(Adw.Application):
         entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
     def __trash(self, *_args: Any) -> None:
-        # TODO: post-flowbox
-        return
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
 
         files = []
         n = 0
-        for child in (
-            items_page := self.get_active_window().get_visible_page()
-        ).flow_box.get_selected_children():
-            child = child.get_child()
-
-            if not isinstance(child, HypItem):
-                continue
-
+        for gfile in gfiles:
             try:
-                child.gfile.trash()
+                gfile.trash()
             except GLib.Error:
                 pass
             else:
-                files.append((child.gfile.get_path(), int(time())))
+                files.append((gfile.get_path(), int(time())))
                 n += 1
 
         if not n:
             return
 
-        items_page.update()
-
         if n > 1:
             message = _("{} files moved to trash").format(n)
         elif n:
             message = _("{} moved to trash").format(
-                '"' + child.path.name + '"'  # pylint: disable=undefined-loop-variable
+                # TODO: Use the GFileInfo's display name maybe?
+                '"'
+                + Path(gfile.get_path()).name  # pylint: disable=undefined-loop-variable
+                + '"'
             )
 
         toast = self.get_active_window().send_toast(message, undo=True)
-        self.undo_queue[toast] = ("trash", files, items_page)
+        self.undo_queue[toast] = ("trash", files)
         toast.connect("button-clicked", self.__undo)
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
