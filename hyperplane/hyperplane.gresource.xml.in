@@ -6,6 +6,7 @@
     <file preprocess="xml-stripblanks">gtk/items-page.ui</file>
     <file preprocess="xml-stripblanks">gtk/item.ui</file>
     <file preprocess="xml-stripblanks">gtk/thumbnail.ui</file>
+    <file preprocess="xml-stripblanks">gtk/tag-row.ui</file>
     <file alias="style.css">gtk/style.css</file>
     <file alias="style-dark.css">gtk/style-dark.css</file>
     <file preprocess="xml-stripblanks">assets/folder-closed.svg</file>

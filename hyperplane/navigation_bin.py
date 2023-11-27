@@ -62,6 +62,8 @@ class HypNavigationBin(Adw.Bin):
             self.tags = []
             self.view.push(HypItemsPage(path))
         elif tag:
+            if tag in self.tags:
+                return
             self.tags.append(tag)
             self.view.push(HypItemsPage(tags=self.tags.copy()))
         elif tags:

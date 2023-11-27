@@ -26,6 +26,7 @@ from gi.repository import Adw, Gio, Gtk
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
+from hyperplane.tag_row import HypTagRow
 
 # This is to avoid a circular import in item.py
 from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
@@ -57,6 +58,9 @@ class HypWindow(Adw.ApplicationWindow):
     rename_revealer: Gtk.Revealer = Gtk.Template.Child()
     rename_revealer_label: Gtk.Label = Gtk.Template.Child()
     rename_button: Gtk.Button = Gtk.Template.Child()
+
+    right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
+    tag_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     path_bar_connection: int
     sidebar_items: set
@@ -114,6 +118,10 @@ class HypWindow(Adw.ApplicationWindow):
 
         shared.postmaster.connect("tags-changed", self.__update_tags)
 
+        self.right_click_menu.connect("closed", self.__set_actions)
+
+        self.__set_actions()
+
         # Set up search
 
         self.searched_page = self.get_visible_page()
@@ -143,9 +151,7 @@ class HypWindow(Adw.ApplicationWindow):
                 navigation_view.view.get_visible_page().get_title()
             )
         elif tag:
-            navigation_view = HypNavigationBin(
-                initial_tags=self.tab_view.get_selected_page().get_child().tags + [tag]
-            )
+            navigation_view = HypNavigationBin(initial_tags=[tag])
             self.tab_view.append(navigation_view).set_title(
                 navigation_view.view.get_visible_page().get_title()
             )
@@ -175,6 +181,32 @@ class HypWindow(Adw.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
+    def set_menu_items(self, menu_items: Iterable[str]) -> None:
+        """Disables all right-click menu items not in `menu_items`."""
+        actions = {
+            "rename",
+            "copy",
+            "cut",
+            "paste",
+            "trash",
+            "new-folder",
+            "select-all",
+            "open",
+            "open-new-tab",
+            "open-new-window",
+        }
+
+        for action in actions.difference(menu_items):
+            try:
+                shared.app.lookup_action(action).set_enabled(False)
+            except AttributeError:
+                pass
+        for action in menu_items:
+            try:
+                shared.app.lookup_action(action).set_enabled(True)
+            except AttributeError:
+                pass
+
     def __update_tags(self, *_args: Any) -> None:
         for item in self.sidebar_items:
             self.sidebar.remove(item.get_parent())
@@ -182,11 +214,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.sidebar_items = set()
 
         for tag in shared.tags:
-            box = Gtk.Box(spacing=12, margin_start=6, margin_end=6)
-            box.append(Gtk.Image(icon_name="user-bookmarks-symbolic"))
-            box.append(Gtk.Label(label=tag))
-            self.sidebar_items.add(box)
-            self.sidebar.insert(box, 1)
+            self.sidebar_items.add(row := HypTagRow(tag, "user-bookmarks-symbolic"))
+            self.sidebar.insert(row, 1)
 
     def __new_tag(self, *_args: Any) -> None:
         dialog = Adw.MessageDialog.new(self, _("New Category"))
@@ -232,10 +261,7 @@ class HypWindow(Adw.ApplicationWindow):
                 nav_bin.new_page(shared.home)
             return
 
-        if (tag := row.get_child().get_last_child().get_label()) in (nav_bin).tags:
-            return
-
-        nav_bin.new_page(tag=tag)
+        nav_bin.new_page(tag=row.get_child().tag)
 
     def __tab_changed(self, *_args: Any) -> None:
         if not self.tab_view.get_selected_page():
@@ -420,3 +446,19 @@ class HypWindow(Adw.ApplicationWindow):
         # Close the initial Home tab
         win.tab_view.close_page(win.tab_view.get_selected_page())
         return win.tab_view
+
+    def __set_actions(self, *_args: Any) -> None:
+        self.set_menu_items(
+            {
+                "rename",
+                "copy",
+                "cut",
+                "paste",
+                "trash",
+                "new-folder",
+                "select-all",
+                "open",
+                "open-new-tab",
+                "open-new-window",
+            }
+        )

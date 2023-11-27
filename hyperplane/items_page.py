@@ -37,7 +37,6 @@ class HypItemsPage(Adw.NavigationPage):
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     empty_filter: Adw.StatusPage = Gtk.Template.Child()
-    right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
     item_filter: HypItemFilter
@@ -67,12 +66,9 @@ class HypItemsPage(Adw.NavigationPage):
         elif self.tags:
             self.set_title(" + ".join(self.tags))
 
-        self.right_click_menu.set_parent(self)
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
-        self.right_click_menu.connect("closed", self.__set_actions)
-        self.__set_actions()
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
@@ -194,50 +190,10 @@ class HypItemsPage(Adw.NavigationPage):
         elif path.is_dir():
             self.get_root().tab_view.get_selected_page().get_child().new_page(path)
 
-    def set_menu_items(self, menu_items: Iterable[str]) -> None:
-        """Disables all right-clickc menu items not in `menu_items`."""
-        actions = {
-            "rename",
-            "copy",
-            "cut",
-            "paste",
-            "trash",
-            "new-folder",
-            "select-all",
-            "open",
-            "open-new-tab",
-            "open-new-window",
-        }
-
-        for action in actions.difference(menu_items):
-            try:
-                shared.app.lookup_action(action).set_enabled(False)
-            except AttributeError:
-                pass
-        for action in menu_items:
-            try:
-                shared.app.lookup_action(action).set_enabled(True)
-            except AttributeError:
-                pass
-
-    def __set_actions(self, *_args: Any) -> None:
-        self.set_menu_items(
-            {
-                "rename",
-                "copy",
-                "cut",
-                "paste",
-                "trash",
-                "new-folder",
-                "select-all",
-                "open",
-                "open-new-tab",
-                "open-new-window",
-            }
-        )
-
     def __right_click(self, _gesture, _n, x, y) -> None:
+        self.get_root().right_click_menu.unparent()
+        self.get_root().right_click_menu.set_parent(self)
         rectangle = Gdk.Rectangle()
         rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
-        self.right_click_menu.set_pointing_to(rectangle)
-        self.right_click_menu.popup()
+        self.get_root().right_click_menu.set_pointing_to(rectangle)
+        self.get_root().right_click_menu.popup()
