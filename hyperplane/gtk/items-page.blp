@@ -13,12 +13,6 @@ template $HypItemsPage : Adw.NavigationPage {
   }
 }
 
-PopoverMenu right_click_menu {
-  halign: start;
-  menu-model: right_click;
-  has-arrow: false;
-}
-
 Adw.StatusPage empty_folder {
   title: _("Folder is Empty");
   icon-name: "folder-symbolic";
@@ -27,66 +21,4 @@ Adw.StatusPage empty_folder {
 Adw.StatusPage empty_filter {
   title: _("No Items");
   icon-name: "view-grid-symbolic";
-}
-
-menu right_click {
-  section {
-    item {
-      label: _("New Folder…");
-      action: "app.new-folder";
-      hidden-when: "action-disabled";
-    }
-    submenu {
-      label: _("Open");
-      item {
-        label: _("Open");
-        action: "app.open";
-        hidden-when: "action-disabled";
-      }
-      item {
-        label: _("Open In New Tab");
-        action: "app.open-new-tab";
-        hidden-when: "action-disabled";
-      }
-      item {
-        label: _("Open In New Window");
-        action: "app.open-new-window";
-        hidden-when: "action-disabled";
-      }
-    }
-  }
-  section {
-    item {
-      label: _("Copy");
-      action: "app.copy";
-      hidden-when: "action-disabled";
-    }
-    item {
-      label: _("Cut");
-      action: "app.cut";
-      hidden-when: "action-disabled";
-    }
-    item {
-      label: _("Paste");
-      action: "app.paste";
-      hidden-when: "action-disabled";
-    }
-    item {
-      label: _("Select All");
-      action: "app.select-all";
-      hidden-when: "action-disabled";
-    }
-  }
-  section {
-    item {
-      label: _("Rename…");
-      action: "app.rename";
-      hidden-when: "action-disabled";
-    }
-    item {
-      label: _("Move to Trash");
-      action: "app.trash";
-      hidden-when: "action-disabled";
-    }
-  }
 }

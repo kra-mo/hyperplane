@@ -133,7 +133,7 @@ class HypItem(Adw.Bin):
             menu_items.add("open-new-tab")
             menu_items.add("open-new-window")
 
-        self.get_root().get_visible_page().set_menu_items(menu_items)
+        self.get_root().set_menu_items(menu_items)
 
     def __middle_click(self, *_args: Any) -> None:
         # TODO: Open multiple items if multiple are selected

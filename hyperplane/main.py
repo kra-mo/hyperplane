@@ -37,6 +37,7 @@ from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.utils.restore_file import restore_file
+from hyperplane.utils.tags import remove_tags
 from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
 
@@ -46,8 +47,9 @@ class HypApplication(Adw.Application):
 
     cut_page: Optional[HypItemsPage] = None
     undo_queue: dict = {}
+    right_clicked_tag: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
@@ -82,6 +84,12 @@ class HypApplication(Adw.Application):
         self.create_action("select-all", self.__select_all)
         self.create_action("rename", self.__rename, ("F2",))
         self.create_action("trash", self.__trash, ("Delete",))
+
+        # TODO: This is tedious, maybe use GTK Expressions?
+        self.create_action("open-tag", self.__open_tag)
+        self.create_action("open-new-tab-tag", self.__open_new_tab_tag)
+        self.create_action("open-new-window-tag", self.__open_new_window_tag)
+        self.create_action("remove-tag", self.__remove_tag)
 
         show_hidden_action = Gio.SimpleAction.new_stateful(
             "show-hidden", None, shared.state_schema.get_value("show-hidden")
@@ -274,6 +282,24 @@ class HypApplication(Adw.Application):
             win = self.do_activate()
             win.tab_view.close_page(win.tab_view.get_selected_page())
             win.tab_view.append(new_bin)
+
+    def __open_tag(self, *_args: Any) -> None:
+        # TODO: This is ugly
+        self.get_active_window().tab_view.get_selected_page().get_child().new_page(
+            tag=self.right_clicked_tag
+        )
+
+    def __open_new_tab_tag(self, *_args: Any) -> None:
+        self.get_active_window().new_tab(tag=self.right_clicked_tag)
+
+    def __open_new_window_tag(self, *_args: Any) -> None:
+        new_bin = HypNavigationBin(initial_tags=[self.right_clicked_tag])
+        win = self.do_activate()
+        win.tab_view.close_page(win.tab_view.get_selected_page())
+        win.tab_view.append(new_bin)
+
+    def __remove_tag(self, *_args: Any) -> None:
+        remove_tags(self.right_clicked_tag)
 
     # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
     def __reload(self, *_args: Any) -> None:

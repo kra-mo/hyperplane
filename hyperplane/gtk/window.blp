@@ -200,3 +200,89 @@ menu primary_menu {
     item (_("_About Hyperplane"), "app.about")
   }
 }
+
+PopoverMenu right_click_menu {
+  halign: start;
+  menu-model: right_click;
+  has-arrow: false;
+}
+
+PopoverMenu tag_right_click_menu {
+  halign: start;
+  menu-model: tag_right_click;
+  has-arrow: false;
+}
+
+
+menu right_click {
+  section {
+    item {
+      label: _("New Folder…");
+      action: "app.new-folder";
+      hidden-when: "action-disabled";
+    }
+    submenu {
+      label: _("Open");
+      item {
+        label: _("Open");
+        action: "app.open";
+        hidden-when: "action-disabled";
+      }
+      item {
+        label: _("Open In New Tab");
+        action: "app.open-new-tab";
+        hidden-when: "action-disabled";
+      }
+      item {
+        label: _("Open In New Window");
+        action: "app.open-new-window";
+        hidden-when: "action-disabled";
+      }
+    }
+  }
+  section {
+    item {
+      label: _("Copy");
+      action: "app.copy";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Cut");
+      action: "app.cut";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Paste");
+      action: "app.paste";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Select All");
+      action: "app.select-all";
+      hidden-when: "action-disabled";
+    }
+  }
+  section {
+    item {
+      label: _("Rename…");
+      action: "app.rename";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Move to Trash");
+      action: "app.trash";
+      hidden-when: "action-disabled";
+    }
+  }
+}
+
+menu tag_right_click {
+  section {
+    item (_("Open"), "app.open-tag")
+    item (_("Open In New Tab"), "app.open-new-tab-tag")
+    item (_("Open In New Window"), "app.open-new-window-tag")
+  }
+  section {
+    item (_("Remove Category"), "app.remove-tag")
+  }
+}
