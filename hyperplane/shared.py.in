@@ -38,10 +38,10 @@ cache_dir = Path(GLib.get_user_cache_dir())
 home = data_dir / "hyperplane" / "home"
 show_hidden = state_schema.get_boolean("show-hidden")
 
-tags = ()
+tags = set()
 
 if (path := home / ".hyperplane").is_file():
-    tags = tuple(path.read_text(encoding="utf-8").strip().split("\n"))
+    tags = set(path.read_text(encoding="utf-8").strip().split("\n"))
 
 del path
 
