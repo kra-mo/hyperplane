@@ -18,11 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GnomeDesktop, GObject, Gtk
 
 from hyperplane import shared
+from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
@@ -31,20 +32,33 @@ class HypItem(Adw.Bin):
 
     clamp: Adw.Clamp = Gtk.Template.Child()
     box: Gtk.Box = Gtk.Template.Child()
-    thumbnail: Gtk.Overlay = Gtk.Template.Child()
     label: Gtk.Label = Gtk.Template.Child()
 
-    gfile = Gio.File
+    thumbnail: Gtk.Overlay = Gtk.Template.Child()
+    icon: Gtk.Image = Gtk.Template.Child()
+    extension_label: Gtk.Label = Gtk.Template.Child()
+    picture: Gtk.Picture = Gtk.Template.Child()
+    play_button: Gtk.Box = Gtk.Template.Child()
+
+    dir_thumbnails: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_1: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_2: Gtk.Box = Gtk.Template.Child()
+    dir_thumbnail_3: Gtk.Box = Gtk.Template.Child()
+
+    item: Gtk.ListItem
+    file_info: Gio.FileInfo
+
     path: Path
+    gfile: Gio.File
     content_type: str
+    color: str
+    thumbnail_path: str
 
-    # TODO: Remove path property
-    def __init__(self, item: Gtk.ListItem, **kwargs: Any) -> None:
+    _gicon: str
+    _name: str
+
+    def __init__(self, item, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.__setup(item)
-
-    def __setup(self, item: Gtk.ListItem) -> None:
-        """Set up permanent properties."""
         self.item = item
         self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         shared.postmaster.connect("zoom", self.__zoom)
@@ -57,18 +71,203 @@ class HypItem(Adw.Bin):
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
 
-    def bind(self, gfile, icon, content_type, thumbnail_path) -> None:
-        """Set up widget with file attributes."""
-        self.gfile = gfile
-        self.path = Path(gfile.get_path())
-        self.label.set_label(self.path.name if self.path.is_dir() else self.path.stem)
-        self.__build_thumbnail(icon, content_type, thumbnail_path)
+    def bind(self) -> None:
+        """Build the icon after the object has been bound."""
+        self.file_info = self.item.get_item()
 
-    def __build_thumbnail(self, icon, content_type, thumbnail_path) -> None:
-        self.thumbnail.set_item(self)
-        self.thumbnail.build_icon(icon)
-        self.content_type = content_type
-        self.thumbnail.build_thumbnail(thumbnail_path)
+        self.gfile = self.file_info.get_attribute_object("standard::file")
+        self.gicon = self.file_info.get_symbolic_icon()
+        self.content_type = self.file_info.get_content_type()
+        self.color = get_color_for_content_type(self.content_type)
+        self.name = self.file_info.get_display_name()
+        self.thumbnail_path = self.file_info.get_attribute_byte_string(
+            Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
+        )
+
+        shared.drawing += 1
+        if self.get_mapped():
+            self.__build()
+            return
+
+        GLib.timeout_add(shared.drawing * 2, self.__build)
+
+    def unbind(self) -> None:
+        """Cleanup after the object has been unbound from its item."""
+        # TODO: Do I need this? Do I need something else?
+        self.dir_thumbnail_1.set_visible(False)
+        self.dir_thumbnail_2.set_visible(False)
+        self.dir_thumbnail_3.set_visible(False)
+
+        self.picture.set_content_fit(Gtk.ContentFit.COVER)
+
+    def __build(self) -> None:
+        shared.drawing -= 1
+        self.path = Path(self.gfile.get_path())
+
+        self.play_button.set_visible(False)
+
+        if self.path.is_dir():
+            self.__build_dir_thumbnail()
+            return
+
+        self.__build_file_thumbnail()
+
+    def __file_thumb_done(self, failed: bool) -> None:
+        self.icon.set_visible(failed)
+        self.picture.set_visible(not failed)
+
+        if failed:
+            self.icon.add_css_class(self.color + "-icon")
+            self.thumbnail.add_css_class(self.color + "-background")
+            self.extension_label.add_css_class(self.color + "-extension-thumb")
+            return
+
+        self.thumbnail.add_css_class("gray-background")
+        self.extension_label.add_css_class(self.color + "-extension")
+
+    def __build_file_thumbnail(self) -> None:
+        if self.path.is_file() and (suffix := self.path.suffix):
+            self.extension_label.set_label(suffix[1:].upper())
+            self.extension_label.set_visible(True)
+        else:
+            self.extension_label.set_visible(False)
+
+        if self.thumbnail_path:
+            self.__thumb_callback(
+                None, Gdk.Texture.new_from_filename(self.thumbnail_path)
+            )
+            return
+
+        GLib.Thread.new(
+            None,
+            self.__generate_thumbnail,
+            self.gfile,
+            self.content_type,
+            self.__thumb_callback,
+        )
+
+    def __build_dir_thumbnail(self) -> None:
+        self.extension_label.set_visible(False)
+        self.picture.set_visible(True)
+        self.icon.set_visible(False)
+
+        self.picture.set_content_fit(Gtk.ContentFit.FILL)
+        self.picture.set_paintable(shared.closed_folder_texture)
+        self.thumbnail.add_css_class(self.color + "-background")
+
+        # Return if folder has no children or they can't be listed
+        try:
+            if not any(self.path.iterdir()):
+                return
+        except PermissionError:
+            return
+
+        self.picture.set_paintable(shared.open_folder_texture)
+
+        index = 0
+        for path in self.path.iterdir():
+            if index == 3:
+                break
+
+            match index:
+                case 0:
+                    thumbnail = self.dir_thumbnail_1
+                    thumbnail.set_visible(True)
+                case 1:
+                    thumbnail = self.dir_thumbnail_2
+                    thumbnail.set_visible(True)
+                case 2:
+                    thumbnail = self.dir_thumbnail_3
+                    thumbnail.set_visible(True)
+
+            index += 1
+
+            gfile = Gio.File.new_for_path(str(path))
+            gfile.query_info_async(
+                ",".join(
+                    (
+                        Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                        Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                        Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                    )
+                ),
+                Gio.FileQueryInfoFlags.NONE,
+                GLib.PRIORITY_DEFAULT,
+                None,
+                self.__dir_query_callback,
+                thumbnail,
+            )
+
+    def __dir_thumb_callback(
+        self,
+        _gfile: Optional[Gio.File] = None,
+        texture: Optional[Gdk.Texture] = None,
+        thumbnail: Optional[Gtk.Overlay] = None,
+        failed: Optional[bool] = False,
+    ) -> None:
+        if failed:
+            return
+
+        picture = Gtk.Picture.new_for_paintable(texture)
+        picture.set_content_fit(Gtk.ContentFit.COVER)
+        thumbnail.get_child().set_visible(False)
+        thumbnail.add_overlay(picture)
+
+    def __dir_query_callback(
+        self, gfile: Gio.File, result: Gio.Task, thumbnail: Gtk.Overlay
+    ) -> None:
+        try:
+            file_info = gfile.query_info_finish(result)
+        except GLib.Error:
+            return
+
+        if icon := file_info.get_symbolic_icon():
+            thumbnail.get_child().set_from_gicon(icon)
+
+        if Path(gfile.get_path()).is_dir():
+            thumbnail.add_css_class("light-blue-background")
+            thumbnail.get_child().add_css_class("white-icon")
+            return
+
+        thumbnail.add_css_class("white-background")
+        if not (content_type := file_info.get_content_type()):
+            return
+
+        color = get_color_for_content_type(content_type)
+        thumbnail.get_child().add_css_class(color + "-icon-light-only")
+
+        if thumbnail_path := file_info.get_attribute_byte_string(
+            Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
+        ):
+            picture = Gtk.Picture.new_for_filename(thumbnail_path)
+            picture.set_content_fit(Gtk.ContentFit.COVER)
+            thumbnail.get_child().set_visible(False)
+            thumbnail.add_overlay(picture)
+            return
+
+        GLib.Thread.new(
+            None,
+            self.__generate_thumbnail,
+            gfile,
+            content_type,
+            self.__dir_thumb_callback,
+            thumbnail,
+        )
+
+    def __thumb_callback(
+        self,
+        _gfile: Optional[Gio.File] = None,
+        texture: Optional[Gdk.Texture] = None,
+        failed: Optional[bool] = False,
+    ) -> None:
+        self.__file_thumb_done(failed)
+
+        self.picture.set_paintable(texture)
+
+        if self.content_type.split("/")[0] not in ("video", "audio"):
+            return
+
+        self.play_button.set_visible(True)
 
     def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
@@ -86,41 +285,41 @@ class HypItem(Adw.Bin):
                 self.thumbnail.set_size_request(40 * zoom_level, 32 * zoom_level)
 
         if zoom_level < 3:
-            self.thumbnail.dir_thumbnails.set_spacing(12)
-            self.thumbnail.dir_thumbnails.set_margin_start(10)
-            self.thumbnail.dir_thumbnails.set_margin_top(6)
+            self.dir_thumbnails.set_spacing(12)
+            self.dir_thumbnails.set_margin_start(10)
+            self.dir_thumbnails.set_margin_top(6)
         elif zoom_level < 4:
-            self.thumbnail.dir_thumbnails.set_spacing(6)
-            self.thumbnail.dir_thumbnails.set_margin_start(6)
-            self.thumbnail.dir_thumbnails.set_margin_top(6)
+            self.dir_thumbnails.set_spacing(6)
+            self.dir_thumbnails.set_margin_start(6)
+            self.dir_thumbnails.set_margin_top(6)
         elif zoom_level < 5:
-            self.thumbnail.dir_thumbnails.set_spacing(9)
-            self.thumbnail.dir_thumbnails.set_margin_start(8)
-            self.thumbnail.dir_thumbnails.set_margin_top(8)
+            self.dir_thumbnails.set_spacing(9)
+            self.dir_thumbnails.set_margin_start(8)
+            self.dir_thumbnails.set_margin_top(8)
         else:
-            self.thumbnail.dir_thumbnails.set_spacing(9)
-            self.thumbnail.dir_thumbnails.set_margin_start(7)
-            self.thumbnail.dir_thumbnails.set_margin_top(7)
+            self.dir_thumbnails.set_spacing(9)
+            self.dir_thumbnails.set_margin_start(7)
+            self.dir_thumbnails.set_margin_top(7)
 
         if zoom_level < 4:
-            self.thumbnail.dir_thumbnail_1.set_size_request(32, 32)
-            self.thumbnail.dir_thumbnail_2.set_size_request(32, 32)
-            self.thumbnail.dir_thumbnail_3.set_size_request(32, 32)
+            self.dir_thumbnail_1.set_size_request(32, 32)
+            self.dir_thumbnail_2.set_size_request(32, 32)
+            self.dir_thumbnail_3.set_size_request(32, 32)
         elif zoom_level < 5:
-            self.thumbnail.dir_thumbnail_1.set_size_request(42, 42)
-            self.thumbnail.dir_thumbnail_2.set_size_request(42, 42)
-            self.thumbnail.dir_thumbnail_3.set_size_request(42, 42)
+            self.dir_thumbnail_1.set_size_request(42, 42)
+            self.dir_thumbnail_2.set_size_request(42, 42)
+            self.dir_thumbnail_3.set_size_request(42, 42)
         else:
-            self.thumbnail.dir_thumbnail_1.set_size_request(56, 56)
-            self.thumbnail.dir_thumbnail_2.set_size_request(56, 56)
-            self.thumbnail.dir_thumbnail_3.set_size_request(56, 56)
+            self.dir_thumbnail_1.set_size_request(56, 56)
+            self.dir_thumbnail_2.set_size_request(56, 56)
+            self.dir_thumbnail_3.set_size_request(56, 56)
 
         if zoom_level < 2:
-            self.thumbnail.icon.set_pixel_size(20)
-            self.thumbnail.icon.set_icon_size(Gtk.IconSize.INHERIT)
+            self.icon.set_pixel_size(20)
+            self.icon.set_icon_size(Gtk.IconSize.INHERIT)
         else:
-            self.thumbnail.icon.set_pixel_size(-1)
-            self.thumbnail.icon.set_icon_size(Gtk.IconSize.LARGE)
+            self.icon.set_pixel_size(-1)
+            self.icon.set_icon_size(Gtk.IconSize.LARGE)
 
     def __right_click(self, *_args: Any) -> None:
         if not (
@@ -142,3 +341,44 @@ class HypItem(Adw.Bin):
         )
 
         self.get_root().new_tab(path=self.path)
+
+    def __generate_thumbnail(
+        self, gfile: Gio.File, content_type: str, callback: Callable, *args: Any
+    ) -> None:
+        factory = GnomeDesktop.DesktopThumbnailFactory()
+        uri = gfile.get_uri()
+        mtime = Path(gfile.get_path()).stat().st_mtime
+
+        if not factory.can_thumbnail(uri, content_type, mtime):
+            callback(failed=True)
+            return
+
+        try:
+            thumbnail = factory.generate_thumbnail(uri, content_type)
+        except GLib.Error as error:
+            print(f"Cannot thumbnail: {error}")
+            callback(failed=True)
+            return
+
+        if not thumbnail:
+            callback(failed=True)
+            return
+
+        factory.save_thumbnail(thumbnail, uri, mtime)
+        callback(gfile, Gdk.Texture.new_for_pixbuf(thumbnail), *args)
+
+    @GObject.Property(type=str)
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def set_name(self, name: str) -> None:
+        self._name = name
+
+    @GObject.Property(type=Gio.Icon)
+    def gicon(self) -> Gio.Icon:
+        return self._gicon
+
+    @gicon.setter
+    def set_gicon(self, gicon: Gio.Icon) -> None:
+        self._gicon = gicon

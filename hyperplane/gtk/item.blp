@@ -2,22 +2,118 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypItem : Adw.Bin {
-    Adw.Clamp clamp {
+  Adw.Clamp clamp {
+    Box box {
+      orientation: vertical;
 
-        Box box {
-            orientation: vertical;
+      Overlay thumbnail {
+        overflow: hidden;
+        halign: center;
 
-            $HypThumb thumbnail {}
+        [overlay]
+        Box dir_thumbnails {
+          halign: start;
+          valign: start;
+          margin-end: 6;
 
-            Label label {
-                margin-top: 12;
-                justify: center;
-                wrap: true;
-                wrap-mode: word_char;
-                ellipsize: middle;
-                lines: 3;
-                label: "⋯";
+          Overlay dir_thumbnail_1 {
+            overflow: hidden;
+            visible: false;
+
+            Image {
             }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
+
+          Overlay dir_thumbnail_2 {
+            overflow: hidden;
+            visible: false;
+
+            Image {
+            }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
+
+          Overlay dir_thumbnail_3 {
+            overflow: hidden;
+            visible: false;
+
+            Image {
+            }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
         }
+
+        [overlay]
+        Picture picture {
+          content-fit: cover;
+
+          styles [
+            "thumbnail-picture",
+          ]
+        }
+
+        [overlay]
+        Box play_button {
+          halign: center;
+          valign: center;
+          visible: false;
+
+          Image {
+            icon-name: 'media-playback-start-symbolic';
+            margin-start: 9;
+            margin-end: 9;
+            margin-top: 9;
+            margin-bottom: 9;
+          }
+
+          styles [
+            "osd",
+            "circular-box",
+          ]
+        }
+
+        [overlay]
+        Label extension_label {
+          valign: end;
+          halign: end;
+          margin-bottom: 5;
+          margin-end: 5;
+          margin-start: 5;
+          ellipsize: end;
+
+          styles [
+            "file-extension",
+          ]
+        }
+
+        Image icon {
+          gicon: bind template.gicon;
+        }
+
+        styles [
+          "item-thumbnail",
+        ]
+      }
+
+      Label label {
+        margin-top: 12;
+        justify: center;
+        wrap: true;
+        wrap-mode: word_char;
+        ellipsize: middle;
+        lines: 3;
+        label: bind template.name;
+      }
     }
+  }
 }

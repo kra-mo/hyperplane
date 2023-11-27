@@ -27,9 +27,6 @@ from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag_row import HypTagRow
-
-# This is to avoid a circular import in item.py
-from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
 from hyperplane.utils.tags import add_tags
 
 
@@ -213,7 +210,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.sidebar_items = set()
 
-        for tag in shared.tags:
+        for tag in reversed(shared.tags):
             self.sidebar_items.add(row := HypTagRow(tag, "user-bookmarks-symbolic"))
             self.sidebar.insert(row, 1)
 

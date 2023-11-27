@@ -27,7 +27,7 @@ def add_tags(*tags: str) -> None:
     Assumes that tags passed as arguments are valid.
     """
     for tag in tags:
-        shared.tags.add(tag)
+        shared.tags.append(tag)
     update_tags()
 
 

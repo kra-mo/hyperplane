@@ -19,7 +19,7 @@
 
 from locale import strcoll
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from gi.repository import Adw, Gdk, Gio, Gtk
 
@@ -87,7 +87,6 @@ class HypItemsPage(Adw.NavigationPage):
         self.factory.connect("setup", self.__setup)
         self.factory.connect("bind", self.__bind)
         self.factory.connect("unbind", self.__unbind)
-        self.factory.connect("teardown", self.__teardown)
         self.grid_view.connect("activate", self.activate)
 
         self.dir_list.connect("items-changed", self.__items_changed)
@@ -130,20 +129,10 @@ class HypItemsPage(Adw.NavigationPage):
         item.set_child(HypItem(item))
 
     def __bind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        item.get_child().bind(
-            item.get_item().get_attribute_object("standard::file"),
-            item.get_item().get_symbolic_icon(),
-            item.get_item().get_content_type(),
-            item.get_item().get_attribute_byte_string(
-                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
-            ),
-        )
+        item.get_child().bind()
 
-    def __unbind(self, *args) -> None:
-        return
-
-    def __teardown(self, *args) -> None:
-        return
+    def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
+        item.get_child().unbind()
 
     def __toggle_hidden(self, *_args: Any) -> None:
         if shared.show_hidden:

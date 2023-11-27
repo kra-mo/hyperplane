@@ -19,7 +19,7 @@
 
 from pathlib import Path
 
-from gi.repository import Gio, GLib
+from gi.repository import Gdk, Gio, GLib
 
 from hyperplane.postmaster_general import HypPostmasterGeneral
 
@@ -38,14 +38,24 @@ cache_dir = Path(GLib.get_user_cache_dir())
 home = data_dir / "hyperplane" / "home"
 show_hidden = state_schema.get_boolean("show-hidden")
 
-tags = set()
+tags = []
 
 if (path := home / ".hyperplane").is_file():
-    tags = set(path.read_text(encoding="utf-8").strip().split("\n"))
+    tags = list(path.read_text(encoding="utf-8").strip().split("\n"))
 
 del path
 
 app = None  # pylint: disable=invalid-name
-search = ""
+search = ""  # pylint: disable=invalid-name
 
 postmaster = HypPostmasterGeneral()
+
+closed_folder_texture = texture = Gdk.Texture.new_from_resource(
+    PREFIX + "/assets/folder-closed.svg"
+)
+open_folder_texture = texture = Gdk.Texture.new_from_resource(
+    PREFIX + "/assets/folder-open.svg"
+)
+
+# The number of items currently queued to be drawn
+drawing = 0
