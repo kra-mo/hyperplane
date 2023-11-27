@@ -54,8 +54,8 @@ rubberband {
     border-radius: 6px;
 }
 
+/* Darken thumbnails so pure white images don't look weird */
 .thumbnail-picture {
-    /* Darken thumbnails so pure white images don't look weird */
     filter: brightness(.97);
 }
 
@@ -68,4 +68,13 @@ rubberband {
 
 .circular-box {
     border-radius: 50%;
+}
+
+/* For flat header bars that don't look weird */
+navigation-view dimming {
+    opacity: 0;
+}
+
+navigation-view shadow {
+	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
 }
