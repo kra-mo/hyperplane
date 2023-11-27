@@ -29,6 +29,7 @@ from hyperplane.navigation_bin import HypNavigationBin
 
 # This is to avoid a circular import in item.py
 from hyperplane.thumbnail import HypThumb  # pylint: disable=unused-import
+from hyperplane.utils.tags import add_tags
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
@@ -105,13 +106,18 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("create-window", self.__create_window)
 
         self.path_bar.connect("activate", self.__path_bar_activated)
-        self.search_entry.set_key_capture_widget(self)
         self.search_entry.connect("search-started", self.__show_search_entry)
         self.search_entry.connect("search-changed", self.__search_changed)
         self.search_entry.connect("stop-search", self.__hide_search_entry)
         self.search_entry.connect("activate", self.__search_activate)
         self.search_button.connect("clicked", self.__toggle_search_entry)
+
+        shared.postmaster.connect("tags-changed", self.__update_tags)
+
+        # Set up search
+
         self.searched_page = self.get_visible_page()
+        self.search_entry.set_key_capture_widget(self)
 
         # Build sidebar
 
@@ -169,7 +175,7 @@ class HypWindow(Adw.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
-    def __update_tags(self) -> None:
+    def __update_tags(self, *_args: Any) -> None:
         for item in self.sidebar_items:
             self.sidebar.remove(item.get_parent())
 
@@ -196,7 +202,7 @@ class HypWindow(Adw.ApplicationWindow):
         )
         dialog.set_extra_child(preferences_group)
 
-        def add_tag(*_args) -> None:
+        def add_tag(*_args: Any) -> None:
             dialog.close()
 
             if (text := entry.get_text().strip()) in shared.tags:
@@ -208,13 +214,7 @@ class HypWindow(Adw.ApplicationWindow):
             if (not text) or ("/" in text) or text in (".", ".."):
                 return
 
-            shared.tags += (text,)
-
-            # TODO: Maybe append?
-            (shared.home / ".hyperplane").write_text(
-                "\n".join(shared.tags), encoding="utf-8"
-            )
-            self.__update_tags()
+            add_tags(text)
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "add":

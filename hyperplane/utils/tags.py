@@ -1,4 +1,4 @@
-# postmaster_general.py
+# tags.py
 #
 # Copyright 2023 kramo
 #
@@ -17,20 +17,29 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from gi.repository import GObject
+from hyperplane import shared
 
 
-class HypPostmasterGeneral(GObject.Object):
-    __gtype_name__ = "HypPostmasterGeneral"
+def add_tags(*tags: str) -> None:
+    """
+    Adds new tags and updates the list of tags.
 
-    @GObject.Signal(name="zoom")
-    def zoom(self, zoom_level: int) -> None:
-        pass
+    Assumes that tags passed as arguments are valid.
+    """
+    for tag in tags:
+        shared.tags.add(tag)
+    update_tags()
 
-    @GObject.Signal(name="toggle-hidden")
-    def show_hidden(self) -> None:
-        pass
 
-    @GObject.Signal(name="tags-changed")
-    def tags_changed(self) -> None:
-        pass
+def remove_tags(*tags: str) -> None:
+    """Removes tags and updates the list of tags."""
+    for tag in tags:
+        if tag in shared.tags:
+            shared.tags.remove(tag)
+    update_tags()
+
+
+def update_tags() -> None:
+    """Updates the list of tags."""
+    (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
+    shared.postmaster.emit("tags-changed")
