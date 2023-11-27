@@ -240,7 +240,7 @@ class HypWindow(Adw.ApplicationWindow):
                 return
 
             # TODO: Present this to the user
-            if (not text) or ("/" in text) or text in (".", ".."):
+            if (not text) or ("/" in text) or ("\n" in text) or (text in (".", "..")):
                 return
 
             add_tags(text)
