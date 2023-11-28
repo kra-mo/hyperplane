@@ -1,6 +1,33 @@
 using Gtk 4.0;
 using Adw 1;
 
+// This needs to be up top because of the custom attributes
+menu primary_menu {
+    section {
+    label: _("Icon Size");
+    display-hint: "inline-buttons";
+
+    item {
+      custom: "zoom-out";
+    }
+
+    item {
+      custom: "zoom-in";
+    }
+  }
+  section {
+    item (_("_Reload"), "app.reload")
+  }
+  section {
+    item (_("Show _Hidden Files"), "app.show-hidden")
+  }
+  section {
+    item (_("Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
+    item (_("_About Hyperplane"), "app.about")
+  }
+}
+
 template $HypWindow : Adw.ApplicationWindow {
   content: 
   Adw.ToastOverlay toast_overlay {
@@ -17,7 +44,32 @@ template $HypWindow : Adw.ApplicationWindow {
               primary: true;
               icon-name: "open-menu-symbolic";
               tooltip-text: _("Menu");
-              menu-model: primary_menu;
+              popover: 
+              PopoverMenu {
+                menu-model: primary_menu;
+
+                [zoom-out]
+                Button {
+                  icon-name: "zoom-out-symbolic";
+                  action-name: "win.zoom-out";
+                  tooltip-text: _("Zoom Out");
+
+                  styles [
+                    "flat",
+                  ]
+                }
+
+                [zoom-in]
+                Button {
+                  icon-name: "zoom-in-symbolic";
+                  action-name: "win.zoom-in";
+                  tooltip-text: _("Zoom In");
+
+                  styles [
+                    "flat",
+                  ]
+                }
+              };
             }
           }
 
@@ -186,20 +238,6 @@ Popover rename_popover {
   }
 }
 
-menu primary_menu {
-  section {
-    item (_("_Reload"), "app.reload")
-  }
-  section {
-    item (_("Show _Hidden Files"), "app.show-hidden")
-  }
-  section {
-    item (_("Preferences"), "app.preferences")
-    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
-    item (_("_About Hyperplane"), "app.about")
-  }
-}
-
 PopoverMenu right_click_menu {
   halign: start;
   menu-model: right_click;
@@ -211,7 +249,6 @@ PopoverMenu tag_right_click_menu {
   menu-model: tag_right_click;
   has-arrow: false;
 }
-
 
 menu right_click {
   section {
