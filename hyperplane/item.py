@@ -136,9 +136,7 @@ class HypItem(Adw.Bin):
             self.extension_label.set_visible(False)
 
         if self.thumbnail_path:
-            self.__thumb_callback(
-                None, Gdk.Texture.new_from_filename(self.thumbnail_path)
-            )
+            self.__thumb_callback(Gdk.Texture.new_from_filename(self.thumbnail_path))
             return
 
         GLib.Thread.new(
