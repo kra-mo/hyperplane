@@ -386,16 +386,12 @@ class HypApplication(Adw.Application):
     def __copy(self, *_args: Any) -> None:
         self.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
+        if not (items := self.get_gfiles_from_positions(self.get_selected_items())):
+            return
 
-        uris = ""
+        provider = Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_array(items))
 
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-
-        for gfile in gfiles:
-            uris += gfile.get_uri() + "\n"
-
-        if uris:
-            clipboard.set(uris.strip())
+        clipboard.set_content(provider)
 
     def __cut(self, *args: Any) -> None:
         self.__copy(*args)
@@ -405,19 +401,20 @@ class HypApplication(Adw.Application):
         clipboard = Gdk.Display.get_default().get_clipboard()
         paths = []
 
+        if not clipboard.get_formats().contain_gtype(Gdk.FileList):
+            return
+
         def __callback(clipboard, result) -> None:
             nonlocal paths
 
             try:
-                text = clipboard.read_text_finish(result)
+                file_list = clipboard.read_value_finish(result)
             except GLib.Error:
                 self.cut_page = None
                 return
 
             page = self.get_active_window().get_visible_page()
-            for line in text.split("\n"):
-                if line.startswith("hyperplane://"):
-                    continue
+            for gfile in file_list:
                 if page.tags:
                     dst = Path(
                         shared.home,
@@ -426,7 +423,7 @@ class HypApplication(Adw.Application):
                 else:
                     dst = page.path
                 try:
-                    src = Path(Gio.File.new_for_uri(line).get_path())
+                    src = Path(gfile.get_path())
                 except TypeError:  # If the value being pasted isn't a pathlike
                     continue
                 if not src.exists():
@@ -473,7 +470,9 @@ class HypApplication(Adw.Application):
                 self.undo_queue[time()] = ("copy", paths)
             self.cut_page = None
 
-        clipboard.read_text_async(None, __callback)
+        clipboard.read_value_async(
+            Gdk.FileList, GLib.PRIORITY_DEFAULT, None, __callback
+        )
 
     def __select_all(self, *_args: Any) -> None:
         self.get_active_window().get_visible_page().multi_selection.select_all()

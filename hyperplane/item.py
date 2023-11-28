@@ -18,12 +18,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, GnomeDesktop, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
+from hyperplane.utils.thumbnail import generate_thumbnail
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
@@ -85,6 +86,8 @@ class HypItem(Adw.Bin):
         )
 
         shared.drawing += 1
+        # TODO: This seems to only prioritize directories.
+        # What's up with that? Does it still work for them?
         if self.get_mapped():
             self.__build()
             return
@@ -101,16 +104,16 @@ class HypItem(Adw.Bin):
         self.picture.set_content_fit(Gtk.ContentFit.COVER)
 
     def __build(self) -> None:
-        shared.drawing -= 1
         self.path = Path(self.gfile.get_path())
 
         self.play_button.set_visible(False)
 
         if self.path.is_dir():
             self.__build_dir_thumbnail()
-            return
+        else:
+            self.__build_file_thumbnail()
 
-        self.__build_file_thumbnail()
+        shared.drawing -= 1
 
     def __file_thumb_done(self, failed: bool) -> None:
         self.icon.set_visible(failed)
@@ -140,7 +143,7 @@ class HypItem(Adw.Bin):
 
         GLib.Thread.new(
             None,
-            self.__generate_thumbnail,
+            generate_thumbnail,
             self.gfile,
             self.content_type,
             self.__thumb_callback,
@@ -200,7 +203,6 @@ class HypItem(Adw.Bin):
 
     def __dir_thumb_callback(
         self,
-        _gfile: Optional[Gio.File] = None,
         texture: Optional[Gdk.Texture] = None,
         thumbnail: Optional[Gtk.Overlay] = None,
         failed: Optional[bool] = False,
@@ -247,7 +249,7 @@ class HypItem(Adw.Bin):
 
         GLib.Thread.new(
             None,
-            self.__generate_thumbnail,
+            generate_thumbnail,
             gfile,
             content_type,
             self.__dir_thumb_callback,
@@ -256,10 +258,12 @@ class HypItem(Adw.Bin):
 
     def __thumb_callback(
         self,
-        _gfile: Optional[Gio.File] = None,
         texture: Optional[Gdk.Texture] = None,
         failed: Optional[bool] = False,
     ) -> None:
+        if failed:
+            GLib.idle_add(self.__file_thumb_done, failed)
+            return
         self.__file_thumb_done(failed)
 
         self.picture.set_paintable(texture)
@@ -341,31 +345,6 @@ class HypItem(Adw.Bin):
         )
 
         self.get_root().new_tab(path=self.path)
-
-    def __generate_thumbnail(
-        self, gfile: Gio.File, content_type: str, callback: Callable, *args: Any
-    ) -> None:
-        factory = GnomeDesktop.DesktopThumbnailFactory()
-        uri = gfile.get_uri()
-        mtime = Path(gfile.get_path()).stat().st_mtime
-
-        if not factory.can_thumbnail(uri, content_type, mtime):
-            callback(failed=True)
-            return
-
-        try:
-            thumbnail = factory.generate_thumbnail(uri, content_type)
-        except GLib.Error as error:
-            print(f"Cannot thumbnail: {error}")
-            callback(failed=True)
-            return
-
-        if not thumbnail:
-            callback(failed=True)
-            return
-
-        factory.save_thumbnail(thumbnail, uri, mtime)
-        callback(gfile, Gdk.Texture.new_for_pixbuf(thumbnail), *args)
 
     @GObject.Property(type=str)
     def name(self) -> str:
