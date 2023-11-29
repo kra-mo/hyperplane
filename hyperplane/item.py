@@ -56,7 +56,7 @@ class HypItem(Adw.Bin):
     thumbnail_path: str
 
     _gicon: str
-    _name: str
+    _display_name: str
 
     def __init__(self, item, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -81,7 +81,7 @@ class HypItem(Adw.Bin):
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_content_type(self.content_type)
         display_name = self.file_info.get_display_name()
-        self.name = (
+        self.display_name = (
             Path(display_name).stem
             if self.content_type != "inode/directory"  # TODO: Should I do it like this?
             else display_name
@@ -350,12 +350,12 @@ class HypItem(Adw.Bin):
         self.get_root().new_tab(path=self.path)
 
     @GObject.Property(type=str)
-    def name(self) -> str:
-        return self._name
+    def display_name(self) -> str:
+        return self._display_name
 
-    @name.setter
+    @display_name.setter
     def set_name(self, name: str) -> None:
-        self._name = name
+        self._display_name = name
 
     @GObject.Property(type=Gio.Icon)
     def gicon(self) -> Gio.Icon:
