@@ -80,7 +80,12 @@ class HypItem(Adw.Bin):
         self.gicon = self.file_info.get_symbolic_icon()
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_content_type(self.content_type)
-        self.name = self.file_info.get_display_name()
+        display_name = self.file_info.get_display_name()
+        self.name = (
+            Path(display_name).stem
+            if self.content_type != "inode/directory"  # TODO: Should I do it like this?
+            else display_name
+        )
         self.thumbnail_path = self.file_info.get_attribute_byte_string(
             Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
         )
