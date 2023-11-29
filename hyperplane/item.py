@@ -127,11 +127,11 @@ class HypItem(Adw.Bin):
         if failed:
             self.icon.add_css_class(self.color + "-icon")
             self.thumbnail.add_css_class(self.color + "-background")
-            self.extension_label.add_css_class(self.color + "-extension-thumb")
+            self.extension_label.add_css_class(self.color + "-extension")
             return
 
         self.thumbnail.add_css_class("gray-background")
-        self.extension_label.add_css_class(self.color + "-extension")
+        self.extension_label.add_css_class(self.color + "-extension-thumb")
 
     def __build_file_thumbnail(self) -> None:
         if self.path.is_file() and (suffix := self.path.suffix):
