@@ -9,13 +9,13 @@
 </div>
 
 > [!WARNING]
-> This project is currently in **ALPHA**. You can try it out at your own risk, but be aware that things **will** break, it **will** have annoyances, **DATA LOSS** may occur and it may kill yout cat.
+> This project is currently in **ALPHA**. You can try it out at your own risk, but be aware that things **will** break, it **will** have annoyances, **DATA LOSS** may occur and it may kill your cat.
 
 I provide builds **strictly for testing**. Please do not use it as your actual file manager, and for the love of god, **DO NOT** give it access to your home directory.
 
 # The project
 
-The problem is that current methods for tagging files are OS-, filesystem- or application-specific and not portable.
+The problem is that current methods for tagging files are OS-, file system- or application-specific and not portable.
 
 The app was primarily built as a proof of concept for a non-hierarchical file manager whose storage can still be conveniently browsed via conventional file managers.
 
