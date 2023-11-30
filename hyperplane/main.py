@@ -17,7 +17,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import shutil
 import sys
 from pathlib import Path
 from time import time
@@ -36,7 +35,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
-from hyperplane.utils.restore_file import restore_file
+from hyperplane.utils.files import copy, move, restore, rm
 from hyperplane.utils.tags import remove_tags
 from hyperplane.utils.validate_name import validate_name
 from hyperplane.window import HypWindow
@@ -178,13 +177,13 @@ class HypApplication(Adw.Application):
             case "copy":
                 for trash_item in item[1]:
                     if trash_item.is_dir():
-                        shutil.rmtree(trash_item, ignore_errors=True)
+                        rm(trash_item)
                     else:
                         trash_item.unlink(missing_ok=True)
             case "cut":
                 for paths in item[1]:
                     if paths[1].exists():
-                        shutil.move(paths[1], paths[0])
+                        move(paths[1], paths[0])
             case "rename":
                 try:
                     item[1].set_display_name(item[2])
@@ -192,7 +191,7 @@ class HypApplication(Adw.Application):
                     pass
             case "trash":
                 for trash_item in item[1]:
-                    restore_file(*trash_item)
+                    restore(*trash_item)
 
         if isinstance(index, Adw.Toast):
             index.dismiss()
@@ -433,36 +432,29 @@ class HypApplication(Adw.Application):
 
                 if self.cut_page:
                     try:
-                        shutil.move(src, dst.parent)
-                    except (
-                        OSError,
-                        IsADirectoryError,
-                        NotADirectoryError,
-                        FileExistsError,
-                    ):
+                        move(src, dst)
+                    except FileExistsError:
+                        self.get_active_window().send_toast(
+                            _("A folder with that name already exists.")
+                            if src.is_dir()
+                            else _("A file with that name already exists.")
+                        )
                         continue
                     else:
                         paths.append((src, dst))
 
                 else:
-                    if src.is_dir():
-                        try:
-                            shutil.copytree(src, dst)
-                        except FileExistsError:
-                            self.get_active_window().send_toast(
-                                _("A folder with that name already exists.")
-                            )
-                            continue
-                        else:
-                            paths.append(dst)
-                    elif src.is_file():
-                        # TODO: Ask before replacing
-                        try:
-                            shutil.copyfile(src, dst)
-                        except (OSError, shutil.Error, shutil.SameFileError):
-                            continue
-                        else:
-                            paths.append(dst)
+                    try:
+                        copy(src, dst)
+                    except FileExistsError:
+                        self.get_active_window().send_toast(
+                            _("A folder with that name already exists.")
+                            if src.is_dir()
+                            else _("A file with that name already exists.")
+                        )
+                        continue
+                    else:
+                        paths.append(dst)
 
             if self.cut_page:
                 self.undo_queue[time()] = ("cut", paths)
