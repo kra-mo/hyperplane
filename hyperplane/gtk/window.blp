@@ -253,24 +253,24 @@ menu right_click {
   section {
     item {
       label: _("New Folder…");
-      action: "app.new-folder";
+      action: "win.new-folder";
       hidden-when: "action-disabled";
     }
     submenu {
       label: _("Open");
       item {
         label: _("Open");
-        action: "app.open";
+        action: "win.open";
         hidden-when: "action-disabled";
       }
       item {
         label: _("Open In New Tab");
-        action: "app.open-new-tab";
+        action: "win.open-new-tab";
         hidden-when: "action-disabled";
       }
       item {
         label: _("Open In New Window");
-        action: "app.open-new-window";
+        action: "win.open-new-window";
         hidden-when: "action-disabled";
       }
     }
@@ -278,34 +278,34 @@ menu right_click {
   section {
     item {
       label: _("Copy");
-      action: "app.copy";
+      action: "win.copy";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Cut");
-      action: "app.cut";
+      action: "win.cut";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Paste");
-      action: "app.paste";
+      action: "win.paste";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Select All");
-      action: "app.select-all";
+      action: "win.select-all";
       hidden-when: "action-disabled";
     }
   }
   section {
     item {
       label: _("Rename…");
-      action: "app.rename";
+      action: "win.rename";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Move to Trash");
-      action: "app.trash";
+      action: "win.trash";
       hidden-when: "action-disabled";
     }
   }
@@ -313,11 +313,11 @@ menu right_click {
 
 menu tag_right_click {
   section {
-    item (_("Open"), "app.open-tag")
-    item (_("Open In New Tab"), "app.open-new-tab-tag")
-    item (_("Open In New Window"), "app.open-new-window-tag")
+    item (_("Open"), "win.open-tag")
+    item (_("Open In New Tab"), "win.open-new-tab-tag")
+    item (_("Open In New Window"), "win.open-new-window-tag")
   }
   section {
-    item (_("Remove Category"), "app.remove-tag")
+    item (_("Remove Category"), "win.remove-tag")
   }
 }

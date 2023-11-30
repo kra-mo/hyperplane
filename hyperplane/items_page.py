@@ -36,7 +36,6 @@ class HypItemsPage(Adw.NavigationPage):
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
-    empty_filter: Adw.StatusPage = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
     item_filter: HypItemFilter
@@ -117,9 +116,7 @@ class HypItemsPage(Adw.NavigationPage):
 
     # TODO: Make this more efficient with removed and added?
     # TODO: Make this less prone to showing up during initial population
-    def __items_changed(
-        self, filter_list: Gtk.FilterListModel, *_args: Any
-    ) -> None:
+    def __items_changed(self, filter_list: Gtk.FilterListModel, *_args: Any) -> None:
         if self.get_child() != self.scrolled_window and filter_list.get_n_items():
             self.set_child(self.scrolled_window)
         if self.get_child() != self.empty_folder and not filter_list.get_n_items():
