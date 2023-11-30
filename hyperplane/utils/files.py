@@ -37,16 +37,16 @@ def copy(src: PathLike, dst: PathLike) -> None:
     FileExistsError will be raised.
     """
 
-    if Path(src).is_dir():
-        if dst.is_dir():
-            raise FileExistsError
+    if Path(dst).exists():
+        raise FileExistsError
 
+    if not (parent := Path(dst).parent).is_dir():
+        parent.mkdir(parents=True)
+
+    if Path(src).is_dir():
         # Gio doesn't support recursive copies
         GLib.Thread.new(None, shutil.copytree, src, Path(dst))
         return
-
-    if Path(dst).is_file():
-        raise FileExistsError
 
     Gio.File.new_for_path(str(src)).copy_async(
         Gio.File.new_for_path(str(dst)),
@@ -66,6 +66,9 @@ def move(src: PathLike, dst: PathLike) -> None:
     """
     if Path(dst).exists():
         raise FileExistsError
+
+    if not (parent := Path(dst).parent).is_dir():
+        parent.mkdir(parents=True)
 
     # Gio doesn't seem to work with trashed items
     GLib.Thread.new(None, shutil.move, src, dst)
