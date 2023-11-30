@@ -53,6 +53,11 @@ class HypApplication(Adw.Application):
             application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
+
+        # Create home
+        shared.home.mkdir(parents=True, exist_ok=True)
+        (shared.home / ".hyperplane").touch(exist_ok=True)
+
         shared.app = self
 
         new_window = GLib.OptionEntry()

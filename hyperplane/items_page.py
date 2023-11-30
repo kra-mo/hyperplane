@@ -89,7 +89,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.factory.connect("unbind", self.__unbind)
         self.grid_view.connect("activate", self.activate)
 
-        self.dir_list.connect("items-changed", self.__items_changed)
+        self.filter_list.connect("items-changed", self.__items_changed)
         self.__items_changed(self.dir_list)
 
     def __get_list(
@@ -118,11 +118,11 @@ class HypItemsPage(Adw.NavigationPage):
     # TODO: Make this more efficient with removed and added?
     # TODO: Make this less prone to showing up during initial population
     def __items_changed(
-        self, dir_list: Gtk.FlattenListModel | Gtk.DirectoryList, *_args: Any
+        self, filter_list: Gtk.FilterListModel, *_args: Any
     ) -> None:
-        if self.get_child() != self.scrolled_window and dir_list.get_n_items():
+        if self.get_child() != self.scrolled_window and filter_list.get_n_items():
             self.set_child(self.scrolled_window)
-        if self.get_child() != self.empty_folder and not dir_list.get_n_items():
+        if self.get_child() != self.empty_folder and not filter_list.get_n_items():
             self.set_child(self.empty_folder)
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
