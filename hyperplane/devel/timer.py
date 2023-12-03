@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from time import time
+from time import perf_counter
 from typing import Callable
 
 
@@ -25,9 +25,9 @@ def timer(func: Callable) -> Callable:
     """Print the time it took to execute a function."""
 
     def wrapper(*args, **kwargs):
-        start = time()
+        start = perf_counter()
         retval = func(*args, **kwargs)
-        end = time()
+        end = perf_counter()
 
         print(round(end - start, 3))
 
