@@ -29,7 +29,7 @@ from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.files import copy, get_copy_path, move, restore, rm
-from hyperplane.utils.tags import add_tags, remove_tags
+from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.utils.validate_name import validate_name
 
 
@@ -127,6 +127,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("open-tag", self.__open_tag)
         self.create_action("open-new-tab-tag", self.__open_new_tab_tag)
         self.create_action("open-new-window-tag", self.__open_new_window_tag)
+        self.create_action("move-tag-up", self.__move_tag_up)
+        self.create_action("move-tag-down", self.__move_tag_down)
         self.create_action("remove-tag", self.__remove_tag)
 
         # Connect signals
@@ -642,8 +644,15 @@ class HypWindow(Adw.ApplicationWindow):
         win.tab_view.close_page(win.tab_view.get_selected_page())
         win.tab_view.append(new_bin)
 
+    def __move_tag_up(self, *_args: Any)-> None:
+        move_tag(self.right_clicked_tag, up=True)
+
+    def __move_tag_down(self, *_args: Any)-> None:
+        move_tag(self.right_clicked_tag, up=False)
+
     def __remove_tag(self, *_args: Any) -> None:
         remove_tags(self.right_clicked_tag)
+        self.send_toast(_("{} removed").format(f'"{self.right_clicked_tag}"'))
 
     # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
     def __reload(self, *_args: Any) -> None:
@@ -935,11 +944,9 @@ class HypWindow(Adw.ApplicationWindow):
         if n > 1:
             message = _("{} files moved to trash").format(n)
         elif n:
+            # TODO: Use the GFileInfo's display name maybe
             message = _("{} moved to trash").format(
-                # TODO: Use the GFileInfo's display name maybe?
-                '"'
-                + Path(gfile.get_path()).name  # pylint: disable=undefined-loop-variable
-                + '"'
+                f'"{Path(gfile.get_path()).name}"'  # pylint: disable=undefined-loop-variable
             )
 
         toast = self.send_toast(message, undo=True)

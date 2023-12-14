@@ -49,7 +49,15 @@ class HypTagRow(Gtk.Box):
         self.add_controller(middle_click)
 
     def __right_click(self, _gesture, _n, x, y) -> None:
-        self.get_root().get_application().right_clicked_tag = self.tag
+        self.get_root().right_clicked_tag = self.tag
+
+        # Disable move up/down actions if the tag is the first/last in the list
+        self.get_root().lookup_action("move-tag-up").set_enabled(
+            shared.tags[0] != self.tag
+        )
+        self.get_root().lookup_action("move-tag-down").set_enabled(
+            shared.tags[-1] != self.tag
+        )
 
         self.get_root().tag_right_click_menu.unparent()
         self.get_root().tag_right_click_menu.set_parent(self)

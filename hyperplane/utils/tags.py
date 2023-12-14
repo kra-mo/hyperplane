@@ -43,3 +43,36 @@ def update_tags() -> None:
     """Updates the list of tags."""
     (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
     shared.postmaster.emit("tags-changed")
+
+
+def move_tag(tag: str, up: bool) -> None:
+    """Moves a tag up or down by one in the list of tags."""
+
+    # Moving up
+
+    if up:
+        if shared.tags[0] == tag:
+            return
+
+        index = shared.tags.index(tag)
+
+        shared.tags[index], shared.tags[index - 1] = (
+            shared.tags[index - 1],
+            shared.tags[index],
+        )
+        update_tags()
+        return
+
+    # Moving down
+
+    if shared.tags[-1] == tag:
+        return
+
+    index = shared.tags.index(tag)
+
+    shared.tags[index], shared.tags[index + 1] = (
+        shared.tags[index + 1],
+        shared.tags[index],
+    )
+
+    update_tags()

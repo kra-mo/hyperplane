@@ -328,6 +328,16 @@ menu tag_right_click {
     item (_("Open In New Window"), "win.open-new-window-tag")
   }
   section {
+    item {
+      label: _("Move Up");
+      action: "win.move-tag-up";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Move Down");
+      action: "win.move-tag-down";
+      hidden-when: "action-disabled";
+    }
     item (_("Remove Category"), "win.remove-tag")
   }
 }

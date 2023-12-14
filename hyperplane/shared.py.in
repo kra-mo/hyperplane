@@ -41,7 +41,9 @@ show_hidden = state_schema.get_boolean("show-hidden")
 tags = []
 
 if (path := home / ".hyperplane").is_file():
-    tags = list(filter(path.read_text(encoding="utf-8").strip().split("\n"), ""))
+    tags = list(
+        tag for tag in path.read_text(encoding="utf-8").strip().split("\n") if tag
+    )
 
 del path
 
