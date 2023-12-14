@@ -137,3 +137,18 @@ def rm(path: PathLike) -> None:
     """
 
     GLib.Thread.new(None, shutil.rmtree, path, True)
+
+
+def get_copy_path(path: PathLike) -> Path:
+    """Returns the path that should be used if `dst` already exists for a paste operation."""
+
+    # "File (copy)"
+    if not (copy_path := Path(f'{str(path)} ({_("copy")})')).exists():
+        return copy_path
+
+    # "File (copy n)"
+    n = 2
+    while True:
+        if not (copy_path := Path(f'{str(path)} ({_("copy")} {n})')).exists():
+            return copy_path
+        n += 1

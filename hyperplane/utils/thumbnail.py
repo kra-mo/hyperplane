@@ -37,7 +37,11 @@ def generate_thumbnail(
     """
     factory = GnomeDesktop.DesktopThumbnailFactory()
     uri = gfile.get_uri()
-    mtime = Path(gfile.get_path()).stat().st_mtime
+
+    try:
+        mtime = Path(gfile.get_path()).stat().st_mtime
+    except FileNotFoundError:
+        return
 
     if not factory.can_thumbnail(uri, content_type, mtime):
         callback(failed=True)

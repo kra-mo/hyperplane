@@ -28,7 +28,7 @@ from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import copy, move, restore, rm
+from hyperplane.utils.files import copy, get_copy_path, move, restore, rm
 from hyperplane.utils.tags import add_tags, remove_tags
 from hyperplane.utils.validate_name import validate_name
 
@@ -797,14 +797,10 @@ class HypWindow(Adw.ApplicationWindow):
                     try:
                         copy(src, dst)
                     except FileExistsError:
-                        self.send_toast(
-                            _("A folder with that name already exists.")
-                            if src.is_dir()
-                            else _("A file with that name already exists.")
-                        )
-                        continue
-                    else:
-                        paths.append(dst)
+                        dst = get_copy_path(dst)
+                        copy(src, dst)
+
+                    paths.append(dst)
 
             if self.cut_page:
                 self.undo_queue[time()] = ("cut", paths)
