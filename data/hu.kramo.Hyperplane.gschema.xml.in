@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="hyperplane">
 	<schema id="@APP_ID@" path="@PREFIX@/">
+		<key name="folders-before-files" type="b">
+			<default>true</default>
+		</key>
 	</schema>
 	<schema id="@APP_ID@.State" path="@PREFIX@/State/">
 		<key name="width" type="i">

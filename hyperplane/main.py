@@ -33,6 +33,7 @@ gi.require_version("XdpGtk4", "1.0")
 from gi.repository import Adw, Gio, GLib
 
 from hyperplane import shared
+from hyperplane.preferences import HypPreferencesWindow
 from hyperplane.window import HypWindow
 
 
@@ -135,8 +136,8 @@ class HypApplication(Adw.Application):
         about.present()
 
     def __on_preferences_action(self, *_args: Any) -> None:
-        """Callback for the app.preferences action."""
-        print("app.preferences action activated")
+        prefs = HypPreferencesWindow()
+        prefs.present()
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
         value = not action.get_property("state").get_boolean()

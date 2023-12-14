@@ -1,0 +1,15 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HypPreferencesWindow : Adw.PreferencesWindow {
+
+  Adw.PreferencesPage {
+    Adw.PreferencesGroup {
+      title: _("General");
+
+      Adw.SwitchRow folders_switch_row {
+        title: _("Sort Folders Before Files");
+      }
+    }
+  }
+}

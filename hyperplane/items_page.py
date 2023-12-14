@@ -17,7 +17,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from locale import strcoll
 from pathlib import Path
 from typing import Any, Optional
 
@@ -26,6 +25,7 @@ from gi.repository import Adw, Gdk, Gio, Gtk
 from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
+from hyperplane.item_sorter import HypItemSorter
 from hyperplane.utils.iterplane import iterplane
 
 
@@ -40,6 +40,7 @@ class HypItemsPage(Adw.NavigationPage):
     multi_selection: Gtk.MultiSelection
     item_filter: HypItemFilter
     filter_list: Gtk.FilterListModel
+    sorter: HypItemSorter
     sorter: Gtk.CustomSorter
     sort_list: Gtk.SortListModel
     dir_list: Gtk.FlattenListModel | Gtk.DirectoryList
@@ -75,7 +76,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.item_filter = HypItemFilter()
         self.filter_list = Gtk.FilterListModel.new(self.dir_list, self.item_filter)
 
-        self.sorter = Gtk.CustomSorter.new(self.__sort_func)
+        self.sorter = HypItemSorter()
         self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
 
         self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
@@ -136,27 +137,6 @@ class HypItemsPage(Adw.NavigationPage):
             self.item_filter.changed(Gtk.FilterChange.LESS_STRICT)
         else:
             self.item_filter.changed(Gtk.FilterChange.MORE_STRICT)
-
-    def __sort_func(
-        self,
-        file_info1: Optional[Gio.FileInfo] = None,
-        file_info2: Optional[Gio.FileInfo] = None,
-        _user_data: Optional[Any] = None,
-    ) -> int:
-        if (not file_info1) or (not file_info2):
-            return 0
-
-        name1 = file_info1.get_display_name()
-        name2 = file_info2.get_display_name()
-
-        if name1.startswith("."):
-            if not name2.startswith("."):
-                return 1
-
-        if name2.startswith("."):
-            return -1
-
-        return strcoll(name1, name2)
 
     def activate(self, _grid_view: Gtk.GridView, pos: int) -> None:
         """Activates an item at the given position."""
