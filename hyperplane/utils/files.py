@@ -90,10 +90,12 @@ def restore(path: str, t: int) -> None:
         Gio.FileAttributeInfoFlags.NONE,
     )
 
-    while info := files.next_file():
-        orig_path = info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH)
-        del_date = info.get_deletion_date()
-        uri = info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+    while file_info := files.next_file():
+        orig_path = file_info.get_attribute_byte_string(
+            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+        )
+        del_date = file_info.get_deletion_date()
+        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
 
         if not orig_path == path:
             continue

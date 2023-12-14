@@ -8,16 +8,132 @@ ShortcutsWindow help_overlay {
     max-height: 10;
 
     ShortcutsGroup {
-      title: C_("shortcut window", "General");
+      title: _("Navigation");
 
       ShortcutsShortcut {
-        title: C_("shortcut window", "Show Shortcuts");
+        title: _("Go to Home Folder");
+        action-name: "win.home";
+      }
+
+      ShortcutsShortcut {
+        title: _("Toggle Location Bar");
+        action-name: "win.toggle-path-bar";
+      }
+    }
+
+    ShortcutsGroup {
+      title: _("Editing");
+    
+      ShortcutsShortcut {
+        title: _("Create Folder");
+        action-name: "win.new-folder";
+      }
+
+      ShortcutsShortcut {
+        title: _("Rename");
+        action-name: "win.rename";
+      }
+
+      ShortcutsShortcut {
+        title: _("Move to Trash");
+        action-name: "win.trash";
+      }
+
+      ShortcutsShortcut {
+        title: _("Cut");
+        action-name: "win.cut";
+      }
+
+      ShortcutsShortcut {
+        title: _("Copy");
+        action-name: "win.copy";
+      }
+
+      ShortcutsShortcut {
+        title: _("Paste");
+        action-name: "win.paste";
+      }
+
+      ShortcutsShortcut {
+        title: _("Select All");
+        action-name: "win.select-all";
+      }
+    }
+
+    ShortcutsGroup {
+      title: _("View");
+    
+      ShortcutsShortcut {
+        title: _("Zoom In");
+        accelerator: "<primary>plus";
+      }
+
+      ShortcutsShortcut {
+        title: _("Zoom Out");
+        accelerator: "<primary>minus";
+      }
+
+      ShortcutsShortcut {
+        title: _("Reset Zoom");
+        accelerator: "<primary>0";
+      }
+
+      ShortcutsShortcut {
+        title: _("Refresh View");
+        action-name: "win.reload";
+      }
+      
+      ShortcutsShortcut {
+        title: _("Show/Hide Hidden Files");
+        action-name: "app.show-hidden";
+      }
+    }
+
+    ShortcutsGroup {
+      title: _("General");
+
+      ShortcutsShortcut {
+        title: _("Close Window or Tab");
+        action-name: "win.close";
+      }
+
+      ShortcutsShortcut {
+        title: _("Preferences");
+        action-name: "app.preferences";
+      }
+
+      ShortcutsShortcut {
+        title: _("Keyboard Shortcuts");
         action-name: "win.show-help-overlay";
       }
 
       ShortcutsShortcut {
-        title: C_("shortcut window", "Quit");
+        title: _("Quit");
         action-name: "app.quit";
+      }
+
+      ShortcutsShortcut {
+        title: _("Undo");
+        action-name: "win.undo";
+      }
+    }
+
+    ShortcutsGroup {
+      title: _("Opening");
+    
+      ShortcutsShortcut {
+        title: _("Open");
+        action-name: "win.open";
+      }
+
+      ShortcutsShortcut {
+        title: _("Open In New Tab");
+        action-name: "win.open-new-tab";
+      }
+
+      ShortcutsShortcut {
+        title: _("Open In New Window");
+        action-name: "win.open-new-window";
       }
     }
   }

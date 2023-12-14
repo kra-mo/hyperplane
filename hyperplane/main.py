@@ -65,7 +65,9 @@ class HypApplication(Adw.Application):
 
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__on_about_action)
-        self.create_action("preferences", self.__on_preferences_action)
+        self.create_action(
+            "preferences", self.__on_preferences_action, ("<primary>comma",)
+        )
 
         show_hidden_action = Gio.SimpleAction.new_stateful(
             "show-hidden", None, shared.state_schema.get_value("show-hidden")

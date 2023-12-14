@@ -103,10 +103,13 @@ class HypWindow(Adw.ApplicationWindow):
             self.__on_zoom_out_action,
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
+        self.create_action(
+            "reset-zoom", self.__reset_zoom, ("<primary>0", "<primary>KP_0")
+        )
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
         self.create_action("undo", self.__undo, ("<primary>z",))
-        self.create_action("open", self.__open, ("Return",))
+        self.create_action("open", self.__open, ("Return", "<primary>o"))
         self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
         self.create_action(
             "open-new-window", self.__open_new_window, ("<shift>Return",)
@@ -116,7 +119,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("copy", self.__copy, ("<primary>c",))
         self.create_action("cut", self.__cut, ("<primary>x",))
         self.create_action("paste", self.__paste, ("<primary>v",))
-        self.create_action("select-all", self.__select_all)
+        self.create_action("select-all", self.__select_all, ("<primary>a",))
         self.create_action("rename", self.__rename, ("F2",))
         self.create_action("trash", self.__trash, ("Delete",))
 
@@ -504,6 +507,10 @@ class HypWindow(Adw.ApplicationWindow):
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level - 1)
+        self.update_zoom()
+
+    def __reset_zoom(self, *_args: Any) -> None:
+        shared.state_schema.reset("zoom-level")
         self.update_zoom()
 
     def __on_close_action(self, *_args: Any) -> None:
