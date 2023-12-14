@@ -4,7 +4,7 @@ Exec=hyperplane --new-window
 Icon=@APP_ID@
 Terminal=false
 Type=Application
-Categories=GTK;
+Categories=GNOME;GTK;System;Core;FileTools;FileManager;
 StartupNotify=true
 Actions=new-window;
 
