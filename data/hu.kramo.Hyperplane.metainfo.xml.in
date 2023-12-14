@@ -8,10 +8,10 @@
 		<description>
 		<p>Hyperplane is a non-hierarchical file manager. It allows you to organize your files by placing them in multiple categories at once while still being able to access these categories from traditional file managers.</p>
 		</description>
-	<url type="homepage">https://github.com/kra-mo/Hyperplane</url>
-	<url type="bugtracker">https://github.com/kra-mo/Hyperplane/issues</url>
+	<url type="homepage">https://github.com/kra-mo/hyperplane</url>
+	<url type="bugtracker">https://github.com/kra-mo/hyperplane/issues</url>
 	<url type="contact">https://www.kramo.hu/about/</url>
-	<url type="vcs-browser">https://github.com/kra-mo/Hyperplane</url>
+	<url type="vcs-browser">https://github.com/kra-mo/hyperplane</url>
 	<developer_name translatable="no">kramo</developer_name>
 	<project_group>GNOME</project_group>
 	<launchable type="desktop-id">@APP_ID@.desktop</launchable>
