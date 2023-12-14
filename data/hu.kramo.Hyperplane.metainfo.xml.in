@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-	<id>@APP_ID@.desktop</id>
+	<id>@APP_ID@</id>
 	<metadata_license>CC0-1.0</metadata_license>
 	<project_license>GPL-3.0-or-later</project_license>
-	<description>
-	  <p>No description</p>
-	</description>
+	<name>Hyperplane</name>
+	<summary>Manage your files like never before!</summary>
+		<description>
+		<p>Hyperplane is a non-hierarchical file manager. It allows you to organize your files by placing them in multiple categories at once while still being able to access these categories from traditional file managers.</p>
+		</description>
+	<url type="homepage">https://github.com/kra-mo/Hyperplane</url>
+	<url type="bugtracker">https://github.com/kra-mo/Hyperplane/issues</url>
+	<url type="contact">https://www.kramo.hu/about/</url>
+	<url type="vcs-browser">https://github.com/kra-mo/Hyperplane</url>
+	<developer_name translatable="no">kramo</developer_name>
+	<project_group>GNOME</project_group>
+	<launchable type="desktop-id">@APP_ID@.desktop</launchable>
+	<translation type="gettext">hyperplane</translation>
+	<supports>
+		<control>pointing</control>
+		<control>keyboard</control>
+		<control>touch</control>
+	</supports>
+	<content_rating type="oars-1.1" />
 </component>
