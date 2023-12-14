@@ -22,7 +22,7 @@ from pathlib import Path
 from time import time
 from typing import Any, Callable, Iterable, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Xdp, XdpGtk4
 
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
@@ -111,6 +111,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action(
             "open-new-window", self.__open_new_window, ("<shift>Return",)
         )
+        self.create_action("open-with", self.__open_with)
         self.create_action("new-folder", self.__new_folder, ("<primary><shift>n",))
         self.create_action("copy", self.__copy, ("<primary>c",))
         self.create_action("cut", self.__cut, ("<primary>x",))
@@ -600,6 +601,16 @@ class HypWindow(Adw.ApplicationWindow):
             win.tab_view.close_page(win.tab_view.get_selected_page())
             win.tab_view.append(new_bin)
 
+    def __open_with(self, *_args: Any) -> None:
+        portal = Xdp.Portal()
+        parent = XdpGtk4.parent_new_gtk(self)
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+        if not gfiles:
+            return
+
+        # TODO: Is there any way to open multiple files?
+        portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
+
     def __open_tag(self, *_args: Any) -> None:
         if isinstance(self.get_focus(), Gtk.Editable):
             return
@@ -945,5 +956,6 @@ class HypWindow(Adw.ApplicationWindow):
                 "open",
                 "open-new-tab",
                 "open-new-window",
+                "open-with",
             }
         )
