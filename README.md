@@ -46,7 +46,7 @@ The project is currently at the MVP stage. Basic features work, but user experie
 
 You can download the latest Flatpak build from the [Actions page](https://github.com/kra-mo/hyperplane/actions).
 
-After installing it, you can place files in `~/.var/app/hu.kramo.Hyperplane.Devel/data/hyperplane/home/` to test the app.
+After installing it, you can place files in `~/.var/app/hu.kramo.Hyperplane.Devel/data/hyperplane/home/` (or just drag and drop them from another file manager) to test the app.
 
 Please report any and all issues you find!
 
