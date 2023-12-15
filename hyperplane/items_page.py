@@ -36,6 +36,8 @@ class HypItemsPage(Adw.NavigationPage):
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
+    empty_trash: Adw.StatusPage = Gtk.Template.Child()
+    no_results: Adw.StatusPage = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
     item_filter: HypItemFilter
@@ -118,8 +120,21 @@ class HypItemsPage(Adw.NavigationPage):
     def __items_changed(self, filter_list: Gtk.FilterListModel, *_args: Any) -> None:
         if self.get_child() != self.scrolled_window and filter_list.get_n_items():
             self.set_child(self.scrolled_window)
-        if self.get_child() != self.empty_folder and not filter_list.get_n_items():
-            self.set_child(self.empty_folder)
+        if (
+            self.get_child() not in (self.empty_folder, self.empty_trash)
+            and not filter_list.get_n_items()
+        ):
+            if (
+                win := self.get_root()
+            ) and win.title_stack.get_visible_child() == win.search_entry_clamp:
+                self.set_child(self.no_results)
+                return
+
+            if self.gfile and self.gfile.get_uri() != "trash:///":
+                self.set_child(self.empty_folder)
+                return
+
+            self.set_child(self.empty_trash)
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.set_child(HypItem(item))
