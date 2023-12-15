@@ -183,9 +183,12 @@ def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
     if path := gfile.get_path():
         return Path(path)
 
-    uri = gfile.query_info(
-        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI, Gio.FileQueryInfoFlags.NONE
-    ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+    try:
+        uri = gfile.query_info(
+            Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI, Gio.FileQueryInfoFlags.NONE
+        ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+    except GLib.Error as error:
+        raise FileNotFoundError from error
 
     if uri and (path := Gio.File.new_for_uri(uri).get_path()):
         return Path(path)
