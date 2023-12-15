@@ -37,6 +37,7 @@ from hyperplane.utils.files import (
     move,
     restore,
     rm,
+    trash_rm,
 )
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.utils.validate_name import validate_name
@@ -1013,55 +1014,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         def delete():
             for gfile in gfiles:
-                # TODO: Make this async (and not horrible)
-                file_info = gfile.query_info(
-                    ",".join(
-                        (
-                            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
-                            Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
-                        )
-                    ),
-                    Gio.FileQueryInfoFlags.NONE,
-                )
-
-                orig_path = file_info.get_attribute_byte_string(
-                    Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
-                )
-
-                try:
-                    rm(
-                        trash_path := get_gfile_path(
-                            Gio.File.new_for_uri(
-                                file_info.get_attribute_string(
-                                    Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
-                                )
-                            )
-                        )
-                    )
-                except FileNotFoundError:
-                    return
-
-                # HACK: Don't just copy-paste comments about not copy-pasting code before copy-pasting code
-                # HACK: Don't just copy-paste code
-                trashinfo = (
-                    Path.home()
-                    / ".local"
-                    / "share"
-                    / "Trash"
-                    / "info"
-                    / (trash_path.name + ".trashinfo")
-                )
-                try:
-                    keyfile = GLib.KeyFile.new()
-                    keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
-                except GLib.Error:
-                    return
-
-                if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
-                    try:
-                        Gio.File.new_for_path(str(trashinfo)).delete()
-                    except GLib.Error:
-                        pass
+                trash_rm(gfile)
 
         match len(gfiles):
             case 0:
@@ -1100,55 +1053,7 @@ class HypWindow(Adw.ApplicationWindow):
         gfiles = self.get_gfiles_from_positions(self.get_selected_items())
 
         for gfile in gfiles:
-            # TODO: Make this async (and not horrible)
-            file_info = gfile.query_info(
-                ",".join(
-                    (
-                        Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
-                        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
-                    )
-                ),
-                Gio.FileQueryInfoFlags.NONE,
-            )
-
-            orig_path = file_info.get_attribute_byte_string(
-                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
-            )
-
-            try:
-                move(
-                    trash_path := get_gfile_path(
-                        Gio.File.new_for_uri(
-                            file_info.get_attribute_string(
-                                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
-                            )
-                        )
-                    ),
-                    orig_path,
-                )
-            except (FileExistsError, FileNotFoundError):
-                return
-
-            # HACK: Don't just copy-paste code
-            trashinfo = (
-                Path.home()
-                / ".local"
-                / "share"
-                / "Trash"
-                / "info"
-                / (trash_path.name + ".trashinfo")
-            )
-            try:
-                keyfile = GLib.KeyFile.new()
-                keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
-            except GLib.Error:
-                return
-
-            if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
-                try:
-                    Gio.File.new_for_path(str(trashinfo)).delete()
-                except GLib.Error:
-                    pass
+            restore(gfile=gfile)
 
     def __set_actions(self, *_args: Any) -> None:
         self.set_menu_items(

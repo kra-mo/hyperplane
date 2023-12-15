@@ -20,6 +20,7 @@
 import shutil
 from os import PathLike
 from pathlib import Path
+from typing import Optional
 from urllib.parse import quote
 
 from gi.repository import Gio, GLib
@@ -75,11 +76,7 @@ def move(src: PathLike, dst: PathLike) -> None:
     GLib.Thread.new(None, shutil.move, src, dst)
 
 
-def restore(path: PathLike, t: int) -> None:
-    """
-    Tries to asynchronously restore a file or directory from the trash
-    deleted from `path` at `t`.
-    """
+def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):
     trash = Gio.File.new_for_uri("trash://")
 
     files = trash.enumerate_children(
@@ -108,32 +105,134 @@ def restore(path: PathLike, t: int) -> None:
         if not GLib.DateTime.new_from_unix_utc(t).equal(del_date):
             continue
 
+        trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
+        return trash_path, orig_path
+
+    raise FileNotFoundError
+
+
+def __remove_trashinfo(trash_path: PathLike, orig_path: PathLike) -> None:
+    trashinfo = (
+        Path.home()
+        / ".local"
+        / "share"
+        / "Trash"
+        / "info"
+        / (trash_path.name + ".trashinfo")
+    )
+
+    try:
+        keyfile = GLib.KeyFile.new()
+        keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
+    except GLib.Error:
+        return
+
+    # Double-check that the file is the right one
+    if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
+        try:
+            Gio.File.new_for_path(str(trashinfo)).delete()
+        except GLib.Error:
+            pass
+
+
+def restore(
+    path: Optional[PathLike] = None,
+    t: Optional[int] = None,
+    gfile: Optional[Gio.File] = None,
+) -> None:
+    """
+    Tries to asynchronously restore a file or directory from the trash
+    either deleted from `path` at `t` or represented by `gfile`.
+    """
+
+    def do_restore(trash_path, orig_path):
         # Move the item in Trash/files back to the original location
         try:
-            move(trash_path := get_gfile_path(Gio.File.new_for_uri(uri)), orig_path)
-        except (FileExistsError, FileNotFoundError):
+            move(trash_path, orig_path)
+        except FileExistsError:
             return
 
-        # Remove the .trashinfo file, double-check that it is the right one
-        trashinfo = (
-            Path.home()
-            / ".local"
-            / "share"
-            / "Trash"
-            / "info"
-            / (trash_path.name + ".trashinfo")
-        )
+        __remove_trashinfo(trash_path, orig_path)
+
+    def query_callback(gfile, result):
         try:
-            keyfile = GLib.KeyFile.new()
-            keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
+            file_info = gfile.query_info_finish(result)
         except GLib.Error:
             return
 
-        if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
-            try:
-                Gio.File.new_for_path(str(trashinfo)).delete()
-            except GLib.Error:
-                pass
+        orig_path = file_info.get_attribute_byte_string(
+            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+        )
+
+        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+
+        try:
+            trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
+        except FileNotFoundError:
+            return
+
+        do_restore(trash_path, orig_path)
+
+    if path and t:
+        try:
+            # Look up the trashed file's path and original path
+            trash_path, orig_path = __trash_lookup(path, t)
+        except FileNotFoundError:
+            return
+
+        do_restore(trash_path, orig_path)
+        return
+
+    if gfile:
+        gfile.query_info_async(
+            ",".join(
+                (
+                    Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
+                    Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                )
+            ),
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            None,
+            query_callback,
+        )
+
+
+def trash_rm(gfile: Gio.File) -> None:
+    """Tries to asynchronously remove a file from the trash."""
+
+    def query_callback(gfile, result):
+        try:
+            file_info = gfile.query_info_finish(result)
+        except GLib.Error:
+            return
+
+        orig_path = file_info.get_attribute_byte_string(
+            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+        )
+
+        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+
+        try:
+            trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
+        except FileNotFoundError:
+            return
+
+        rm(trash_path)
+        __remove_trashinfo(trash_path, orig_path)
+
+    gfile.query_info_async(
+        ",".join(
+            (
+                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+            )
+        ),
+        Gio.FileQueryInfoFlags.NONE,
+        GLib.PRIORITY_DEFAULT,
+        None,
+        query_callback,
+    )
 
 
 def rm(path: PathLike) -> None:
