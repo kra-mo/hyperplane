@@ -17,15 +17,21 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
 from typing import Any, Optional
 
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
-from hyperplane.utils.files import get_gfile_display_name
+from hyperplane.utils.files import (
+    copy,
+    get_copy_path,
+    get_gfile_display_name,
+    get_gfile_path,
+)
 from hyperplane.utils.iterplane import iterplane
 
 
@@ -59,16 +65,24 @@ class HypItemsPage(Adw.NavigationPage):
         self.tags = tags
 
         if self.gfile:
-            if self.gfile.get_path() == str(shared.home):
+            if get_gfile_path(self.gfile) == shared.home:
                 self.set_title(_("Home"))
             else:
                 self.set_title(get_gfile_display_name(self.gfile))
         elif self.tags:
             self.set_title(" + ".join(self.tags))
 
+        # Right click
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
+
+        # Drag and drop
+        # TODO: Accept more actions than just copy
+        # TODO: Provide DragSource (why is it so hard with rubberbanding TwT)
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("drop", self.__drop)
+        self.add_controller(drop_target)
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
@@ -168,3 +182,34 @@ class HypItemsPage(Adw.NavigationPage):
         rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
         self.get_root().right_click_menu.set_pointing_to(rectangle)
         self.get_root().right_click_menu.popup()
+
+    def __drop(self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y):
+        # TODO: this is mostly copy-paste from HypWindow.__paste()
+        for gfile in file_list:
+            if self.tags:
+                dst = Path(
+                    shared.home,
+                    *(tag for tag in shared.tags if tag in self.tags),
+                )
+            else:
+                try:
+                    dst = get_gfile_path(self.gfile)
+                except FileNotFoundError:
+                    continue
+            try:
+                src = get_gfile_path(gfile)
+            except (
+                TypeError,  # If the value being dropped isn't a pathlike
+                FileNotFoundError,
+            ):
+                continue
+            if not src.exists():
+                continue
+
+            dst = dst / src.name
+
+            try:
+                copy(src, dst)
+            except FileExistsError:
+                dst = get_copy_path(dst)
+                copy(src, dst)

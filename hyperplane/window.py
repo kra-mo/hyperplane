@@ -21,7 +21,6 @@ from os import sep
 from pathlib import Path
 from time import time
 from typing import Any, Callable, Iterable, Optional
-from urllib.parse import quote
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Xdp, XdpGtk4
 
@@ -362,7 +361,7 @@ class HypWindow(Adw.ApplicationWindow):
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         if row.get_child() == self.sidebar_home:
-            if self.get_visible_page().gfile.get_path() != str(shared.home):
+            if get_gfile_path(self.get_visible_page().gfile) != shared.home:
                 nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
@@ -428,7 +427,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         if (path := Path(text)).is_dir():
             self.__hide_path_bar()
-            if str(path) == self.get_visible_page().gfile.get_path():
+            if path == get_gfile_path(self.get_visible_page().gfile):
                 return
             nav_bin.new_page(Gio.File.new_for_path(str(path)))
             return

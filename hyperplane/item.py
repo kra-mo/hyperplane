@@ -165,6 +165,9 @@ class HypItem(Adw.Bin):
         except FileNotFoundError:
             return
 
+        if not gfile_path.is_dir():
+            return
+
         # Return if folder has no children or they can't be listed
         # TODO: Use Gio.File.enumerate_children()
         try:
@@ -333,11 +336,14 @@ class HypItem(Adw.Bin):
             self.icon.set_pixel_size(-1)
             self.icon.set_icon_size(Gtk.IconSize.LARGE)
 
-    def __right_click(self, *_args: Any) -> None:
+    def __select_self(self) -> None:
         if not (
             multi_selection := self.get_parent().get_parent().get_model()
         ).is_selected(pos := self.item.get_position()):
             multi_selection.select_item(pos, True)
+
+    def __right_click(self, *_args: Any) -> None:
+        self.__select_self()
 
         menu_items = {"rename", "copy", "cut", "trash", "open"}
         if self.is_dir:
