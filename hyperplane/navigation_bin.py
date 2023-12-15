@@ -17,10 +17,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from gi.repository import Adw
+from gi.repository import Adw, Gio
 
 from hyperplane.items_page import HypItemsPage
 
@@ -35,7 +34,7 @@ class HypNavigationBin(Adw.Bin):
 
     def __init__(
         self,
-        initial_path: Optional[Path] = None,
+        initial_gfile: Optional[Gio.File] = None,
         initial_tags: Optional[Iterable[str]] = None,
         **kwargs: Any,
     ) -> None:
@@ -43,8 +42,8 @@ class HypNavigationBin(Adw.Bin):
         self.view = Adw.NavigationView()
         self.set_child(self.view)
 
-        if initial_path:
-            self.view.push(HypItemsPage(path=initial_path))
+        if initial_gfile:
+            self.view.push(HypItemsPage(gfile=initial_gfile))
         elif initial_tags:
             self.tags = list(initial_tags)
             self.view.push(HypItemsPage(tags=self.tags))
@@ -53,14 +52,14 @@ class HypNavigationBin(Adw.Bin):
 
     def new_page(
         self,
-        path: Optional[Path] = None,
+        gfile: Optional[Gio.File] = None,
         tag: Optional[str] = None,
         tags: Optional[Iterable[str]] = None,
     ) -> None:
         """Push a new page with the given path or tag to the navigation stack."""
-        if path:
+        if gfile:
             self.tags = []
-            self.view.push(HypItemsPage(path))
+            self.view.push(HypItemsPage(gfile=gfile))
         elif tag:
             if tag in self.tags:
                 return

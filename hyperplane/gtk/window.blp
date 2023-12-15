@@ -99,6 +99,28 @@ template $HypWindow : Adw.ApplicationWindow {
                 margin-start: 6;
                 margin-end: 6;
               }
+              ListBox trash_box {
+                selection-mode: none;
+                Box {
+                  spacing: 12;
+                  margin-start: 6;
+                  margin-end: 6;
+                  Image {
+                    icon-name: "user-trash-symbolic";
+                  }
+                  Label {
+                    label: _("Trash");
+                  }
+                }
+
+                styles [
+                  "navigation-sidebar",
+                ]
+              }
+              Separator {
+                margin-start: 6;
+                margin-end: 6;
+              }
               ListBox new_tag_box {
                 selection-mode: none;
                 Box {
@@ -316,6 +338,16 @@ menu right_click {
     item {
       label: _("Move to Trash");
       action: "win.trash";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Delete From Trash…");
+      action: "win.trash-delete";
+      hidden-when: "action-disabled";
+    }
+    item {
+      label: _("Restore From Trash");
+      action: "win.trash-restore";
       hidden-when: "action-disabled";
     }
   }

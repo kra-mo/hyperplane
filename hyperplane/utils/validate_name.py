@@ -20,37 +20,53 @@
 from pathlib import Path
 from typing import Optional
 
+from gi.repository import Gio
+
+from hyperplane.utils.files import get_gfile_path
+
 
 def validate_name(
-    path: Path, name: str, siblings: Optional[bool] = False
+    gfile: Gio.File, name: str, siblings: Optional[bool] = False
 ) -> (bool, Optional[str]):
+    try:
+        path = Path(get_gfile_path(gfile))
+    except FileNotFoundError:
+        # Assume that locations without paths are not writable
+        # TODO: This may be incorrect
+        return False, _("The path is not writable.")
+
+    is_dir = path.is_dir()
+    is_file = (not is_dir) and (path.exists())
+
     # TODO: More elegant (cross-platfrom) way to check for invalid paths
     if name in (".", ".."):
-        if path.is_dir():
+        if is_dir:
             error = _('A folder cannot be called "{}".').format(name)
         else:
             error = _('A file cannot be called "{}".').format(name)
         return False, error
 
     if "/" in name:
-        if path.is_dir():
+        if is_dir:
             error = _('Folder names cannot conrain "{}".').format("/")
         else:
             error = _('File names cannot conrain "{}".').format("/")
         return False, error
 
     new_path = Path(path.parent, name) if siblings else path / name
+    new_is_dir = new_path.is_dir()
+    new_is_file = (not new_is_dir) and (new_path.exists())
 
-    if new_path.is_dir() and path.is_dir() and new_path != path:
+    if new_is_dir and is_dir and new_path != path:
         error = _("A folder with that name already exists.")
         return False, error
 
-    if new_path.is_file() and path.is_file() and new_path != path:
+    if new_is_file and is_file and new_path != path:
         error = _("A file with that name already exists.")
         return False, error
 
     if name[0] == ".":
-        if path.is_dir():
+        if is_dir:
             warning = _("Folders with “.” at the beginning of their name are hidden.")
         else:
             warning = _("Files with “.” at the beginning of their name are hidden.")

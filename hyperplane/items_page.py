@@ -17,7 +17,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
 from typing import Any, Optional
 
 from gi.repository import Adw, Gdk, Gio, Gtk
@@ -26,6 +25,7 @@ from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
+from hyperplane.utils.files import get_gfile_display_name
 from hyperplane.utils.iterplane import iterplane
 
 
@@ -48,21 +48,19 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __init__(
         self,
-        path: Optional[Path] = None,
+        gfile: Optional[Gio.File] = None,
         tags: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.path = path
+        self.gfile = gfile
         self.tags = tags
 
-        if self.path and not self.path.is_dir():
-            return
-
-        if self.path == shared.home:
-            self.set_title(_("Home"))
-        elif self.path:
-            self.set_title(self.path.name)
+        if self.gfile:
+            if self.gfile.get_path() == str(shared.home):
+                self.set_title(_("Home"))
+            else:
+                self.set_title(get_gfile_display_name(self.gfile))
         elif self.tags:
             self.set_title(" + ".join(self.tags))
 
@@ -72,7 +70,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
-        self.dir_list = self.__get_list(self.path, self.tags)
+        self.dir_list = self.__get_list(self.gfile, self.tags)
         self.item_filter = HypItemFilter()
         self.filter_list = Gtk.FilterListModel.new(self.dir_list, self.item_filter)
 
@@ -93,7 +91,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.__items_changed(self.dir_list)
 
     def __get_list(
-        self, path: Optional[Path] = None, tags: Optional[list[str]] = None
+        self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
     ) -> Gtk.FlattenListModel | Gtk.DirectoryList:
         attrs = ",".join(
             (
@@ -104,8 +102,8 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
             )
         )
-        if path:
-            return Gtk.DirectoryList.new(attrs, Gio.File.new_for_path(str(path)))
+        if gfile:
+            return Gtk.DirectoryList.new(attrs, gfile)
 
         list_store = Gio.ListStore.new(Gtk.DirectoryList)
         for plane_path in iterplane(tags):
@@ -140,21 +138,13 @@ class HypItemsPage(Adw.NavigationPage):
 
     def activate(self, _grid_view: Gtk.GridView, pos: int) -> None:
         """Activates an item at the given position."""
-        try:
-            path = Path(
-                (
-                    gfile := self.multi_selection.get_item(pos).get_attribute_object(
-                        "standard::file"
-                    )
-                ).get_path()
-            )
-        except AttributeError:
-            return
+        file_info = self.multi_selection.get_item(pos)
+        gfile = file_info.get_attribute_object("standard::file")
 
-        if path.is_file():
+        if file_info.get_content_type() == "inode/directory":
+            self.get_root().tab_view.get_selected_page().get_child().new_page(gfile)
+        else:
             Gio.AppInfo.launch_default_for_uri(gfile.get_uri())
-        elif path.is_dir():
-            self.get_root().tab_view.get_selected_page().get_child().new_page(path)
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         self.get_root().right_click_menu.unparent()

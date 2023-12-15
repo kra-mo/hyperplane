@@ -32,15 +32,20 @@ class HypItemFilter(Gtk.Filter):
         if not shared.tags:
             return True
 
-        path = Path(file_info.get_attribute_object("standard::file").get_path())
-        if not path.is_dir:
-            return False
+        if file_info.get_content_type() != "inode/directory":
+            return True
+
+        try:
+            relative_parts = Path(
+                Gio.File.new_for_path(str(shared.home)).get_relative_path(
+                    file_info.get_attribute_object("standard::file")
+                )
+            ).parts
+        except TypeError:
+            return True
+
         if (
-            tuple(
-                tag
-                for tag in shared.tags
-                if tag in (relative_parts := path.relative_to(shared.home).parts)
-            )
+            tuple(tag for tag in shared.tags if tag in (relative_parts))
             != relative_parts
         ):
             return True

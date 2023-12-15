@@ -17,10 +17,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
 from typing import Any, Callable
 
 from gi.repository import Gdk, Gio, GLib, GnomeDesktop
+
+from hyperplane.utils.files import get_gfile_path
 
 
 def generate_thumbnail(
@@ -39,7 +40,7 @@ def generate_thumbnail(
     uri = gfile.get_uri()
 
     try:
-        mtime = Path(gfile.get_path()).stat().st_mtime
+        mtime = get_gfile_path(gfile).stat().st_mtime
     except FileNotFoundError:
         return
 

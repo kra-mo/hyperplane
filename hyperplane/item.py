@@ -23,6 +23,7 @@ from typing import Any, Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
+from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 from hyperplane.utils.thumbnail import generate_thumbnail
 
@@ -51,7 +52,9 @@ class HypItem(Adw.Bin):
 
     path: Path
     gfile: Gio.File
+    is_dir: bool
     content_type: str
+    extension: str
     color: str
     thumbnail_path: str
 
@@ -81,11 +84,9 @@ class HypItem(Adw.Bin):
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_content_type(self.content_type)
         display_name = self.file_info.get_display_name()
-        self.display_name = (
-            Path(display_name).stem
-            if self.content_type != "inode/directory"  # TODO: Should I do it like this?
-            else display_name
-        )
+        self.is_dir = self.content_type == "inode/directory"
+        self.display_name = display_name if self.is_dir else Path(display_name).stem
+        self.extension = None if self.is_dir else Path(display_name).suffix[1:].upper()
         self.thumbnail_path = self.file_info.get_attribute_byte_string(
             Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
         )
@@ -109,11 +110,9 @@ class HypItem(Adw.Bin):
         self.picture.set_content_fit(Gtk.ContentFit.COVER)
 
     def __build(self) -> None:
-        self.path = Path(self.gfile.get_path())
-
         self.play_button.set_visible(False)
 
-        if self.path.is_dir():
+        if self.is_dir:
             self.__build_dir_thumbnail()
         else:
             self.__build_file_thumbnail()
@@ -134,8 +133,8 @@ class HypItem(Adw.Bin):
         self.extension_label.add_css_class(self.color + "-extension-thumb")
 
     def __build_file_thumbnail(self) -> None:
-        if self.path.is_file() and (suffix := self.path.suffix):
-            self.extension_label.set_label(suffix[1:].upper())
+        if self.extension:
+            self.extension_label.set_label(self.extension)
             self.extension_label.set_visible(True)
         else:
             self.extension_label.set_visible(False)
@@ -161,9 +160,15 @@ class HypItem(Adw.Bin):
         self.picture.set_paintable(shared.closed_folder_texture)
         self.thumbnail.add_css_class(self.color + "-background")
 
-        # Return if folder has no children or they can't be listed
         try:
-            if not any(self.path.iterdir()):
+            gfile_path = get_gfile_path(self.gfile)
+        except FileNotFoundError:
+            return
+
+        # Return if folder has no children or they can't be listed
+        # TODO: Use Gio.File.enumerate_children()
+        try:
+            if not any(gfile_path.iterdir()):
                 return
         except PermissionError:
             return
@@ -171,7 +176,7 @@ class HypItem(Adw.Bin):
         self.picture.set_paintable(shared.open_folder_texture)
 
         index = 0
-        for path in self.path.iterdir():
+        for path in gfile_path.iterdir():
             if index == 3:
                 break
 
@@ -229,7 +234,7 @@ class HypItem(Adw.Bin):
         if icon := file_info.get_symbolic_icon():
             thumbnail.get_child().set_from_gicon(icon)
 
-        if Path(gfile.get_path()).is_dir():
+        if gfile.query_file_type(Gio.FileQueryInfoFlags.NONE) == Gio.FileType.DIRECTORY:
             thumbnail.add_css_class("light-blue-background")
             thumbnail.get_child().add_css_class("white-icon")
             return
@@ -335,9 +340,13 @@ class HypItem(Adw.Bin):
             multi_selection.select_item(pos, True)
 
         menu_items = {"rename", "copy", "cut", "trash", "open"}
-        if self.path.is_dir():
+        if self.is_dir:
             menu_items.add("open-new-tab")
             menu_items.add("open-new-window")
+        if self.gfile.get_uri().startswith("trash://"):
+            menu_items.remove("trash")
+            menu_items.add("trash-restore")
+            menu_items.add("trash-delete")
 
         self.get_root().set_menu_items(menu_items)
 
@@ -347,7 +356,13 @@ class HypItem(Adw.Bin):
             self.item.get_position(), True
         )
 
-        self.get_root().new_tab(path=self.path)
+        if self.is_dir:
+            self.get_root().new_tab(gfile=self.gfile)
+        else:
+            # TODO: this is ugly
+            self.get_parent().get_parent().get_parent().get_parent().activate(
+                None, self.item.get_position()
+            )
 
     @GObject.Property(type=str)
     def display_name(self) -> str:

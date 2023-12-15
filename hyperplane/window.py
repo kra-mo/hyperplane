@@ -21,6 +21,7 @@ from os import sep
 from pathlib import Path
 from time import time
 from typing import Any, Callable, Iterable, Optional
+from urllib.parse import quote
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Xdp, XdpGtk4
 
@@ -28,7 +29,14 @@ from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import copy, get_copy_path, move, restore, rm
+from hyperplane.utils.files import (
+    copy,
+    get_copy_path,
+    get_gfile_path,
+    move,
+    restore,
+    rm,
+)
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.utils.validate_name import validate_name
 
@@ -43,6 +51,7 @@ class HypWindow(Adw.ApplicationWindow):
     sidebar: Gtk.ListBox = Gtk.Template.Child()
     sidebar_home: Gtk.Box = Gtk.Template.Child()
     new_tag_box: Gtk.ListBox = Gtk.Template.Child()
+    trash_box: Gtk.ListBox = Gtk.Template.Child()
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
     window_title: Adw.WindowTitle = Gtk.Template.Child()
@@ -78,7 +87,9 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Create actions
 
-        navigation_view = HypNavigationBin(initial_path=shared.home)
+        navigation_view = HypNavigationBin(
+            initial_gfile=Gio.File.new_for_path(str(shared.home))
+        )
         self.tab_view.append(navigation_view).set_title(
             title := self.get_visible_page().get_title()
         )
@@ -122,6 +133,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("select-all", self.__select_all, ("<primary>a",))
         self.create_action("rename", self.__rename, ("F2",))
         self.create_action("trash", self.__trash, ("Delete",))
+        self.create_action("trash-delete", self.__trash_delete, ("Delete",))
+        self.create_action("trash-restore", self.__trash_restore)
 
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-tag", self.__open_tag)
@@ -135,6 +148,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.sidebar.connect("row-activated", self.__row_activated)
         self.new_tag_box.connect("row-activated", self.__new_tag)
+        self.trash_box.connect("row-activated", self.__open_trash)
 
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
@@ -173,10 +187,16 @@ class HypWindow(Adw.ApplicationWindow):
 
         return toast
 
-    def new_tab(self, path: Optional[Path] = None, tag: Optional[str] = None) -> None:
+    def new_tab(
+        self, gfile: Optional[Gio.File] = None, tag: Optional[str] = None
+    ) -> None:
         """Open a new path with the given path or tag."""
-        if path and path.is_dir():
-            navigation_view = HypNavigationBin(initial_path=path)
+        if (
+            gfile
+            and gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
+            == Gio.FileType.DIRECTORY
+        ):
+            navigation_view = HypNavigationBin(initial_gfile=gfile)
             self.tab_view.append(navigation_view).set_title(
                 navigation_view.view.get_visible_page().get_title()
             )
@@ -219,6 +239,8 @@ class HypWindow(Adw.ApplicationWindow):
             "cut",
             "paste",
             "trash",
+            "trash-delete",
+            "trash-restore",
             "new-folder",
             "select-all",
             "open",
@@ -227,15 +249,9 @@ class HypWindow(Adw.ApplicationWindow):
         }
 
         for action in actions.difference(menu_items):
-            try:
-                shared.app.lookup_action(action).set_enabled(False)
-            except AttributeError:
-                pass
+            self.lookup_action(action).set_enabled(False)
         for action in menu_items:
-            try:
-                shared.app.lookup_action(action).set_enabled(True)
-            except AttributeError:
-                pass
+            self.lookup_action(action).set_enabled(True)
 
     def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
         """Get a list of GFiles corresponding to positions in the ListModel."""
@@ -257,15 +273,16 @@ class HypWindow(Adw.ApplicationWindow):
         multi_selection = self.get_visible_page().multi_selection
 
         for position in positions:
-            paths.append(
-                Path(
-                    (
-                        multi_selection.get_item(position).get_attribute_object(
-                            "standard::file"
-                        )
-                    ).get_path()
+            try:
+                path = get_gfile_path(
+                    multi_selection.get_item(position).get_attribute_object(
+                        "standard::file"
+                    )
                 )
-            )
+            except FileNotFoundError:
+                continue
+
+            paths.append(path)
 
         return paths
 
@@ -333,12 +350,18 @@ class HypWindow(Adw.ApplicationWindow):
         dialog.connect("response", handle_response)
         dialog.choose()
 
+    def __open_trash(self, *_args: Any) -> None:
+        nav_bin = self.tab_view.get_selected_page().get_child()
+
+        if self.get_visible_page().gfile.get_uri() != "trash:///":
+            nav_bin.new_page(Gio.File.new_for_uri("trash://"))
+
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         if row.get_child() == self.sidebar_home:
-            if self.get_visible_page().path != shared.home:
-                nav_bin.new_page(shared.home)
+            if self.get_visible_page().gfile.get_path() != str(shared.home):
+                nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
         nav_bin.new_page(tag=row.get_child().tag)
@@ -403,9 +426,9 @@ class HypWindow(Adw.ApplicationWindow):
 
         if (path := Path(text)).is_dir():
             self.__hide_path_bar()
-            if path == self.get_visible_page().path:
+            if str(path) == self.get_visible_page().gfile.get_path():
                 return
-            nav_bin.new_page(path)
+            nav_bin.new_page(Gio.File.new_for_path(str(path)))
             return
 
         self.send_toast(_("Unable to find path"))
@@ -435,8 +458,11 @@ class HypWindow(Adw.ApplicationWindow):
 
                 self.set_focus(self.search_entry)
             case self.path_bar_clamp:
-                if (page := self.get_visible_page()).path:
-                    self.path_bar.set_text(str(page.path) + sep)
+                if (page := self.get_visible_page()).gfile:
+                    path = get_gfile_path(page.gfile, uri_fallback=True)
+                    self.path_bar.set_text(
+                        path if isinstance(path, str) else str(path) + sep
+                    )
                 elif page.tags:
                     self.path_bar.set_text("//" + "//".join(page.tags) + "//")
 
@@ -495,7 +521,9 @@ class HypWindow(Adw.ApplicationWindow):
             self.__hide_path_bar()
 
     def __go_home(self, *_args: Any) -> None:
-        self.tab_view.get_selected_page().get_child().new_page(shared.home)
+        self.tab_view.get_selected_page().get_child().new_page(
+            Gio.File.new_for_path(str(shared.home))
+        )
 
     def __on_zoom_in_action(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
@@ -596,7 +624,7 @@ class HypWindow(Adw.ApplicationWindow):
         for path in paths:
             if not path.is_dir():
                 continue
-            self.new_tab(path)
+            self.new_tab(Gio.File.new_for_path(str(path)))
 
     def __open_new_window(self, *_args: Any) -> None:
         paths = self.get_paths_from_positions(self.get_selected_items())
@@ -604,7 +632,7 @@ class HypWindow(Adw.ApplicationWindow):
         for path in paths:
             if not path.is_dir():
                 continue
-            new_bin = HypNavigationBin(path)
+            new_bin = HypNavigationBin(initial_gfile=Gio.File.new_for_path(str(path)))
 
             win = shared.app.do_activate()
             win.tab_view.close_page(win.tab_view.get_selected_page())
@@ -644,10 +672,10 @@ class HypWindow(Adw.ApplicationWindow):
         win.tab_view.close_page(win.tab_view.get_selected_page())
         win.tab_view.append(new_bin)
 
-    def __move_tag_up(self, *_args: Any)-> None:
+    def __move_tag_up(self, *_args: Any) -> None:
         move_tag(self.right_clicked_tag, up=True)
 
-    def __move_tag_down(self, *_args: Any)-> None:
+    def __move_tag_down(self, *_args: Any) -> None:
         move_tag(self.right_clicked_tag, up=False)
 
     def __remove_tag(self, *_args: Any) -> None:
@@ -674,13 +702,16 @@ class HypWindow(Adw.ApplicationWindow):
         if isinstance(self.get_focus(), Gtk.Editable):
             return
 
-        if not (path := (page := self.get_visible_page()).path):
-            if page.tags:
-                path = Path(
-                    shared.home, *(tag for tag in shared.tags if tag in page.tags)
-                )
+        path = None
+
+        if (page := self.get_visible_page()).tags:
+            path = Path(shared.home, *(tag for tag in shared.tags if tag in page.tags))
+
         if not path:
-            return
+            try:
+                path = get_gfile_path(page.gfile)
+            except FileNotFoundError:
+                return
 
         dialog = Adw.MessageDialog.new(self, _("New Folder"))
 
@@ -713,7 +744,7 @@ class HypWindow(Adw.ApplicationWindow):
                 revealer.set_reveal_child(False)
                 return
 
-            can_create, message = validate_name(path, text)
+            can_create, message = validate_name(Gio.File.new_for_path(str(path)), text)
             dialog.set_response_enabled("create", can_create)
             revealer.set_reveal_child(bool(message))
             if message:
@@ -786,10 +817,16 @@ class HypWindow(Adw.ApplicationWindow):
                         *(tag for tag in shared.tags if tag in page.tags),
                     )
                 else:
-                    dst = page.path
+                    try:
+                        dst = get_gfile_path(page.gfile)
+                    except FileNotFoundError:
+                        continue
                 try:
-                    src = Path(gfile.get_path())
-                except TypeError:  # If the value being pasted isn't a pathlike
+                    src = get_gfile_path(gfile)
+                except (
+                    TypeError,  # If the value being pasted isn't a pathlike
+                    FileNotFoundError,
+                ):
                     continue
                 if not src.exists():
                     continue
@@ -845,7 +882,11 @@ class HypWindow(Adw.ApplicationWindow):
             return
         # TODO: Get edit name from gfile
         gfile = self.get_gfiles_from_positions([position])[0]
-        path = Path(gfile.get_path())
+
+        try:
+            path = get_gfile_path(gfile)
+        except FileNotFoundError:
+            return
 
         multi_selection = self.get_visible_page().multi_selection
         multi_selection.select_item(position, True)
@@ -903,7 +944,9 @@ class HypWindow(Adw.ApplicationWindow):
                 revealer.set_reveal_child(False)
                 return
 
-            can_rename, message = validate_name(path, text, True)
+            can_rename, message = validate_name(
+                Gio.File.new_for_path(str(path)), text, True
+            )
             button.set_sensitive(can_rename)
             revealer.set_reveal_child(bool(message))
             if message:
@@ -921,11 +964,15 @@ class HypWindow(Adw.ApplicationWindow):
         popover.popup()
         entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
-    def __trash(self, *_args) -> None:
+    def __trash(self, *args) -> None:
         if isinstance(self.get_focus(), Gtk.Editable):
             return
 
         gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+
+        # When the Delete key is pressed but the user is in the trash
+        if gfiles and gfiles[0].get_uri().startswith("trash://"):
+            self.__trash_delete(*args)
 
         files = []
         n = 0
@@ -935,8 +982,12 @@ class HypWindow(Adw.ApplicationWindow):
             except GLib.Error:
                 pass
             else:
-                files.append((gfile.get_path(), int(time())))
-                n += 1
+                try:
+                    files.append((get_gfile_path(gfile), int(time())))
+                except FileNotFoundError:
+                    continue
+                else:
+                    n += 1
 
         if not n:
             return
@@ -946,12 +997,126 @@ class HypWindow(Adw.ApplicationWindow):
         elif n:
             # TODO: Use the GFileInfo's display name maybe
             message = _("{} moved to trash").format(
-                f'"{Path(gfile.get_path()).name}"'  # pylint: disable=undefined-loop-variable
+                f'"{files[0][0].name}"'  # pylint: disable=undefined-loop-variable
             )
 
         toast = self.send_toast(message, undo=True)
         self.undo_queue[toast] = ("trash", files)
         toast.connect("button-clicked", self.__undo)
+
+    def __trash_delete(self, *_args: Any) -> None:
+        if isinstance(self.get_focus(), Gtk.Editable):
+            return
+
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+
+        for gfile in gfiles:
+            # TODO: Make this async (and not horrible)
+            file_info = gfile.query_info(
+                ",".join(
+                    (
+                        Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
+                        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                    )
+                ),
+                Gio.FileQueryInfoFlags.NONE,
+            )
+
+            orig_path = file_info.get_attribute_byte_string(
+                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+            )
+
+            try:
+                rm(
+                    trash_path := get_gfile_path(
+                        Gio.File.new_for_uri(
+                            file_info.get_attribute_string(
+                                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+                            )
+                        )
+                    )
+                )
+            except FileNotFoundError:
+                return
+
+            # HACK: Don't just copy-paste comments about not copy-pasting code before copy-pasting code
+            # HACK: Don't just copy-paste code
+            trashinfo = (
+                Path.home()
+                / ".local"
+                / "share"
+                / "Trash"
+                / "info"
+                / (trash_path.name + ".trashinfo")
+            )
+            try:
+                keyfile = GLib.KeyFile.new()
+                keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
+            except GLib.Error:
+                return
+
+            if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
+                try:
+                    Gio.File.new_for_path(str(trashinfo)).delete()
+                except GLib.Error:
+                    pass
+
+    def __trash_restore(self, *_args: Any) -> None:
+        if isinstance(self.get_focus(), Gtk.Editable):
+            return
+
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+
+        for gfile in gfiles:
+            # TODO: Make this async (and not horrible)
+            file_info = gfile.query_info(
+                ",".join(
+                    (
+                        Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
+                        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                    )
+                ),
+                Gio.FileQueryInfoFlags.NONE,
+            )
+
+            orig_path = file_info.get_attribute_byte_string(
+                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+            )
+
+            try:
+                move(
+                    trash_path := get_gfile_path(
+                        Gio.File.new_for_uri(
+                            file_info.get_attribute_string(
+                                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+                            )
+                        )
+                    ),
+                    orig_path,
+                )
+            except (FileExistsError, FileNotFoundError):
+                return
+
+            # HACK: Don't just copy-paste code
+            trashinfo = (
+                Path.home()
+                / ".local"
+                / "share"
+                / "Trash"
+                / "info"
+                / (trash_path.name + ".trashinfo")
+            )
+            try:
+                keyfile = GLib.KeyFile.new()
+                keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
+            except GLib.Error:
+                return
+
+            if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
+                try:
+                    Gio.File.new_for_path(str(trashinfo)).delete()
+                except GLib.Error:
+                    pass
 
     def __set_actions(self, *_args: Any) -> None:
         self.set_menu_items(
@@ -961,6 +1126,8 @@ class HypWindow(Adw.ApplicationWindow):
                 "cut",
                 "paste",
                 "trash",
+                "trash-delete",
+                "trash-restore",
                 "new-folder",
                 "select-all",
                 "open",
