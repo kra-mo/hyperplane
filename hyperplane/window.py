@@ -19,27 +19,16 @@
 
 from os import sep
 from pathlib import Path
-from time import time
 from typing import Any, Callable, Iterable, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Xdp, XdpGtk4
+from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import (
-    copy,
-    get_copy_path,
-    get_gfile_display_name,
-    get_gfile_path,
-    move,
-    restore,
-    rm,
-    trash_rm,
-)
+from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
-from hyperplane.utils.validate_name import validate_name
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
@@ -105,37 +94,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
         self.create_action("back", self.__on_back_action)
         self.lookup_action("back").set_enabled(False)
-        self.create_action(
-            "zoom-in",
-            self.__on_zoom_in_action,
-            ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
-        )
-        self.create_action(
-            "zoom-out",
-            self.__on_zoom_out_action,
-            ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
-        )
-        self.create_action(
-            "reset-zoom", self.__reset_zoom, ("<primary>0", "<primary>KP_0")
-        )
-        self.create_action("reload", self.__reload, ("<primary>r", "F5"))
-
-        self.create_action("undo", self.__undo, ("<primary>z",))
-        self.create_action("open", self.__open, ("Return", "<primary>o"))
-        self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
-        self.create_action(
-            "open-new-window", self.__open_new_window, ("<shift>Return",)
-        )
-        self.create_action("open-with", self.__open_with)
-        self.create_action("new-folder", self.__new_folder, ("<primary><shift>n",))
-        self.create_action("copy", self.__copy, ("<primary>c",))
-        self.create_action("cut", self.__cut, ("<primary>x",))
-        self.create_action("paste", self.__paste, ("<primary>v",))
-        self.create_action("select-all", self.__select_all, ("<primary>a",))
-        self.create_action("rename", self.__rename, ("F2",))
-        self.create_action("trash", self.__trash, ("Delete",))
-        self.create_action("trash-delete", self.__trash_delete, ("Delete",))
-        self.create_action("trash-restore", self.__trash_restore)
 
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-tag", self.__open_tag)
@@ -191,21 +149,40 @@ class HypWindow(Adw.ApplicationWindow):
     def new_tab(
         self, gfile: Optional[Gio.File] = None, tag: Optional[str] = None
     ) -> None:
-        """Open a new path with the given path or tag."""
+        """Open a new path with the given file or tag."""
         if (
             gfile
             and gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
             == Gio.FileType.DIRECTORY
         ):
             navigation_view = HypNavigationBin(initial_gfile=gfile)
-            self.tab_view.append(navigation_view).set_title(
-                navigation_view.view.get_visible_page().get_title()
-            )
         elif tag:
             navigation_view = HypNavigationBin(initial_tags=[tag])
-            self.tab_view.append(navigation_view).set_title(
-                navigation_view.view.get_visible_page().get_title()
-            )
+        else:
+            return
+
+        self.tab_view.append(navigation_view).set_title(
+            navigation_view.view.get_visible_page().get_title()
+        )
+
+    def new_window(
+        self, gfile: Optional[Gio.File] = None, tag: Optional[str] = None
+    ) -> None:
+        """Open a new window with the given file or tag."""
+        if (
+            gfile
+            and gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
+            == Gio.FileType.DIRECTORY
+        ):
+            new_bin = HypNavigationBin(initial_gfile=gfile)
+        elif tag:
+            new_bin = HypNavigationBin(initial_tags=[tag])
+        else:
+            return
+
+        win = self.get_application().do_activate()
+        win.tab_view.close_page(win.tab_view.get_selected_page())
+        win.tab_view.append(new_bin)
 
     def get_visible_page(self) -> HypItemsPage:
         """Return the currently visible HypItemsPage."""
@@ -218,7 +195,7 @@ class HypWindow(Adw.ApplicationWindow):
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
     ) -> None:
-        """Add an application action.
+        """Add a window action.
 
         Args:
             name: the name of the action
@@ -250,9 +227,11 @@ class HypWindow(Adw.ApplicationWindow):
         }
 
         for action in actions.difference(menu_items):
-            self.lookup_action(action).set_enabled(False)
+            self.get_visible_page().action_group.lookup_action(action).set_enabled(
+                False
+            )
         for action in menu_items:
-            self.lookup_action(action).set_enabled(True)
+            self.get_visible_page().action_group.lookup_action(action).set_enabled(True)
 
     def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
         """Get a list of GFiles corresponding to positions in the ListModel."""
@@ -529,24 +508,6 @@ class HypWindow(Adw.ApplicationWindow):
             Gio.File.new_for_path(str(shared.home))
         )
 
-    def __on_zoom_in_action(self, *_args: Any) -> None:
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
-        self.update_zoom()
-
-    def __on_zoom_out_action(self, *_args: Any) -> None:
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
-        self.update_zoom()
-
-    def __reset_zoom(self, *_args: Any) -> None:
-        shared.state_schema.reset("zoom-level")
-        self.update_zoom()
-
     def __on_close_action(self, *_args: Any) -> None:
         if self.tab_view.get_n_pages() > 1:
             self.tab_view.close_page(self.tab_view.get_selected_page())
@@ -563,118 +524,17 @@ class HypWindow(Adw.ApplicationWindow):
         win.tab_view.close_page(win.tab_view.get_selected_page())
         return win.tab_view
 
-    def __undo(self, obj: Any, *_args: Any) -> None:
-        # If the focus is in a text field, return
-        # HACK: This should be more elegant
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        if not self.undo_queue:
-            return
-
-        if isinstance(obj, Adw.Toast):
-            index = obj
-        else:
-            index = tuple(self.undo_queue.keys())[-1]
-        item = self.undo_queue[index]
-
-        # TODO: Lookup the pages with the paths and update those
-        match item[0]:
-            case "copy":
-                for trash_item in item[1]:
-                    if trash_item.is_dir():
-                        rm(trash_item)
-                    else:
-                        trash_item.unlink(missing_ok=True)
-            case "cut":
-                for paths in item[1]:
-                    if paths[1].exists():
-                        move(paths[1], paths[0])
-            case "rename":
-                try:
-                    item[1].set_display_name(item[2])
-                except GLib.Error:
-                    pass
-            case "trash":
-                for trash_item in item[1]:
-                    restore(*trash_item)
-
-        if isinstance(index, Adw.Toast):
-            index.dismiss()
-        self.undo_queue.popitem()
-
-    def __open(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        if len(positions := self.get_selected_items()) > 1:
-            # TODO: Maybe switch to newly opened tab like Nautilus?
-            self.__open_new_tab(None, None, positions)
-            return
-
-        self.get_visible_page().activate(None, positions[0])
-
-    def __open_new_tab(
-        self, _obj: Any, _parameter: Any, positions: Optional[list[int]] = None
-    ) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        if not positions:
-            positions = self.get_selected_items()
-
-        paths = self.get_paths_from_positions(positions)
-
-        for path in paths:
-            if not path.is_dir():
-                continue
-            self.new_tab(Gio.File.new_for_path(str(path)))
-
-    def __open_new_window(self, *_args: Any) -> None:
-        paths = self.get_paths_from_positions(self.get_selected_items())
-
-        for path in paths:
-            if not path.is_dir():
-                continue
-            new_bin = HypNavigationBin(initial_gfile=Gio.File.new_for_path(str(path)))
-
-            win = shared.app.do_activate()
-            win.tab_view.close_page(win.tab_view.get_selected_page())
-            win.tab_view.append(new_bin)
-
-    def __open_with(self, *_args: Any) -> None:
-        portal = Xdp.Portal()
-        parent = XdpGtk4.parent_new_gtk(self)
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-        if not gfiles:
-            return
-
-        # TODO: Is there any way to open multiple files?
-        portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
-
     def __open_tag(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
         # TODO: This is ugly
         self.tab_view.get_selected_page().get_child().new_page(
             tag=self.right_clicked_tag
         )
 
     def __open_new_tab_tag(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
         self.new_tab(tag=self.right_clicked_tag)
 
     def __open_new_window_tag(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        new_bin = HypNavigationBin(initial_tags=[self.right_clicked_tag])
-        win = shared.app.do_activate()
-        win.tab_view.close_page(win.tab_view.get_selected_page())
-        win.tab_view.append(new_bin)
+        self.new_window(tag=self.right_clicked_tag)
 
     def __move_tag_up(self, *_args: Any) -> None:
         move_tag(self.right_clicked_tag, up=True)
@@ -685,379 +545,6 @@ class HypWindow(Adw.ApplicationWindow):
     def __remove_tag(self, *_args: Any) -> None:
         remove_tags(self.right_clicked_tag)
         self.send_toast(_("{} removed").format(f'"{self.right_clicked_tag}"'))
-
-    # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
-    def __reload(self, *_args: Any) -> None:
-        dir_list = self.get_visible_page().dir_list
-        if isinstance(dir_list, Gtk.DirectoryList):
-            dir_list.set_monitored(False)
-            dir_list.set_monitored(True)
-            return
-
-        if isinstance(dir_list, Gtk.FlattenListModel):
-            model = dir_list.get_model()
-            index = 0
-            while item := model.get_item(index):
-                item.set_monitored(False)
-                item.set_monitored(True)
-                index += 1
-
-    def __new_folder(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        path = None
-
-        if (page := self.get_visible_page()).tags:
-            path = Path(shared.home, *(tag for tag in shared.tags if tag in page.tags))
-
-        if not path:
-            try:
-                path = get_gfile_path(page.gfile)
-            except FileNotFoundError:
-                return
-
-        dialog = Adw.MessageDialog.new(self, _("New Folder"))
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("create", _("Create"))
-
-        dialog.set_default_response("create")
-        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
-
-        preferences_group = Adw.PreferencesGroup(width_request=360)
-        revealer_label = Gtk.Label(
-            margin_start=6,
-            margin_end=6,
-            margin_top=12,
-        )
-        preferences_group.add(revealer := Gtk.Revealer(child=revealer_label))
-        preferences_group.add(entry := Adw.EntryRow(title=_("Folder name")))
-        dialog.set_extra_child(preferences_group)
-
-        dialog.set_response_enabled("create", False)
-        can_create = False
-
-        def set_incative(*_args: Any) -> None:
-            nonlocal can_create
-            nonlocal path
-
-            if not (text := entry.get_text().strip()):
-                can_create = False
-                dialog.set_response_enabled("create", False)
-                revealer.set_reveal_child(False)
-                return
-
-            can_create, message = validate_name(Gio.File.new_for_path(str(path)), text)
-            dialog.set_response_enabled("create", can_create)
-            revealer.set_reveal_child(bool(message))
-            if message:
-                revealer_label.set_label(message)
-
-        def create_folder(*_args: Any):
-            nonlocal can_create
-            nonlocal path
-
-            if not can_create:
-                return
-
-            Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
-            dialog.close()
-
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "create":
-                create_folder()
-
-        dialog.connect("response", handle_response)
-        entry.connect("entry-activated", create_folder)
-        entry.connect("changed", set_incative)
-
-        dialog.choose()
-
-    def __copy(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        self.cut_page = None
-        clipboard = Gdk.Display.get_default().get_clipboard()
-        if not (items := self.get_gfiles_from_positions(self.get_selected_items())):
-            return
-
-        provider = Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_array(items))
-
-        clipboard.set_content(provider)
-
-    def __cut(self, _obj: Any, *args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        self.__copy(*args)
-        self.cut_page = self.get_visible_page()
-
-    def __paste(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        clipboard = Gdk.Display.get_default().get_clipboard()
-        paths = []
-
-        if not clipboard.get_formats().contain_gtype(Gdk.FileList):
-            return
-
-        def __cb(clipboard, result) -> None:
-            nonlocal paths
-
-            try:
-                file_list = clipboard.read_value_finish(result)
-            except GLib.Error:
-                self.cut_page = None
-                return
-
-            page = self.get_visible_page()
-            for gfile in file_list:
-                if page.tags:
-                    dst = Path(
-                        shared.home,
-                        *(tag for tag in shared.tags if tag in page.tags),
-                    )
-                else:
-                    try:
-                        dst = get_gfile_path(page.gfile)
-                    except FileNotFoundError:
-                        continue
-                try:
-                    src = get_gfile_path(gfile)
-                except (
-                    TypeError,  # If the value being pasted isn't a pathlike
-                    FileNotFoundError,
-                ):
-                    continue
-                if not src.exists():
-                    continue
-
-                dst = dst / src.name
-
-                if self.cut_page:
-                    try:
-                        move(src, dst)
-                    except FileExistsError:
-                        self.send_toast(
-                            _("A folder with that name already exists.")
-                            if src.is_dir()
-                            else _("A file with that name already exists.")
-                        )
-                        continue
-                    else:
-                        paths.append((src, dst))
-
-                else:
-                    try:
-                        copy(src, dst)
-                    except FileExistsError:
-                        dst = get_copy_path(dst)
-                        copy(src, dst)
-
-                    paths.append(dst)
-
-            if self.cut_page:
-                self.undo_queue[time()] = ("cut", paths)
-            else:
-                self.undo_queue[time()] = ("copy", paths)
-            self.cut_page = None
-
-        clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, __cb)
-
-    def __select_all(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        self.get_visible_page().multi_selection.select_all()
-
-    def __rename(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        # TODO: Maybe make it stop iteration on first item?
-        try:
-            position = self.get_selected_items()[0]
-        except IndexError:
-            return
-        # TODO: Get edit name from gfile
-        gfile = self.get_gfiles_from_positions([position])[0]
-
-        try:
-            path = get_gfile_path(gfile)
-        except FileNotFoundError:
-            return
-
-        multi_selection = self.get_visible_page().multi_selection
-        multi_selection.select_item(position, True)
-
-        children = self.get_visible_page().grid_view.observe_children()
-
-        # TODO: This may be slow
-        index = 0
-        while item := children.get_item(index):
-            if item.get_first_child().gfile == gfile:
-                (popover := self.rename_popover).set_parent(item)
-                break
-            index += 1
-
-        if path.is_dir():
-            self.rename_label.set_label(_("Rename Folder"))
-        else:
-            self.rename_label.set_label(_("Rename File"))
-
-        entry = self.rename_entry
-        entry.set_text(path.name)
-
-        button = self.rename_button
-        revealer = self.rename_revealer
-        revealer_label = self.rename_revealer_label
-        can_rename = True
-
-        def rename(obj: Any, *_args: Any) -> None:
-            if isinstance(obj, Gio.SimpleAction) and (
-                not self.get_visible_page().is_focus()
-            ):
-                return
-
-            popover.popdown()
-            try:
-                old_name = path.name
-                new_file = gfile.set_display_name(entry.get_text().strip())
-            except GLib.Error:
-                pass
-            else:
-                self.undo_queue[time()] = ("rename", new_file, old_name)
-
-        def set_incative(*_args: Any) -> None:
-            nonlocal can_rename
-            nonlocal path
-
-            if not popover.is_visible():
-                return
-
-            text = entry.get_text().strip()
-
-            if not text:
-                can_rename = False
-                button.set_sensitive(False)
-                revealer.set_reveal_child(False)
-                return
-
-            can_rename, message = validate_name(
-                Gio.File.new_for_path(str(path)), text, True
-            )
-            button.set_sensitive(can_rename)
-            revealer.set_reveal_child(bool(message))
-            if message:
-                revealer_label.set_label(message)
-
-        def unparent(popover):
-            popover.unparent()
-
-        popover.connect("notify::visible", set_incative)
-        popover.connect("closed", unparent)
-        entry.connect("changed", set_incative)
-        entry.connect("entry-activated", rename)
-        button.connect("clicked", rename)
-
-        popover.popup()
-        entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
-
-    def __trash(self, *args) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-
-        # When the Delete key is pressed but the user is in the trash
-        if gfiles and gfiles[0].get_uri().startswith("trash://"):
-            self.__trash_delete(*args)
-
-        files = []
-        n = 0
-        for gfile in gfiles:
-            try:
-                gfile.trash()
-            except GLib.Error:
-                pass
-            else:
-                try:
-                    files.append((get_gfile_path(gfile), int(time())))
-                except FileNotFoundError:
-                    continue
-                else:
-                    n += 1
-
-        if not n:
-            return
-
-        if n > 1:
-            message = _("{} files moved to trash").format(n)
-        elif n:
-            # TODO: Use the GFileInfo's display name maybe
-            message = _("{} moved to trash").format(
-                f'"{files[0][0].name}"'  # pylint: disable=undefined-loop-variable
-            )
-
-        toast = self.send_toast(message, undo=True)
-        self.undo_queue[toast] = ("trash", files)
-        toast.connect("button-clicked", self.__undo)
-
-    def __trash_delete(self, *args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-
-        # When the Delete key is pressed but the user is not in the trash
-        if gfiles and (not gfiles[0].get_uri().startswith("trash://")):
-            self.__trash_delete(*args)
-
-        def delete():
-            for gfile in gfiles:
-                trash_rm(gfile)
-
-        match len(gfiles):
-            case 0:
-                return
-            case 1:
-                # TODO: Blocking I/O for this? Really?
-                msg = _("Are you sure you want to permanently delete {}?").format(
-                    f'"{get_gfile_display_name(gfiles[0])}"'
-                )
-            case _:
-                # The variable is the number of items to be deleted
-                msg = _(
-                    "Are you sure you want to permanently delete the {} selected items?"
-                ).format(len(gfiles))
-
-        dialog = Adw.MessageDialog.new(self, msg)
-        dialog.set_body(_("If you delete an item, it will be permanently lost."))
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("delete", _("Delete"))
-
-        dialog.set_default_response("delete")
-        dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
-
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "delete":
-                delete()
-
-        dialog.connect("response", handle_response)
-        dialog.present()
-
-    def __trash_restore(self, *_args: Any) -> None:
-        if isinstance(self.get_focus(), Gtk.Editable):
-            return
-
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-
-        for gfile in gfiles:
-            restore(gfile=gfile)
 
     def __set_actions(self, *_args: Any) -> None:
         self.set_menu_items(

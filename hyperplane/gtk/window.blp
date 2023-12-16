@@ -276,7 +276,7 @@ menu right_click {
   section {
     item {
       label: _("New Folder…");
-      action: "win.new-folder";
+      action: "page.new-folder";
       hidden-when: "action-disabled";
     }
     submenu {
@@ -284,24 +284,24 @@ menu right_click {
       section {
         item {
           label: _("Open");
-          action: "win.open";
+          action: "page.open";
           hidden-when: "action-disabled";
         }
         item {
           label: _("Open In New Tab");
-          action: "win.open-new-tab";
+          action: "page.open-new-tab";
           hidden-when: "action-disabled";
         }
         item {
           label: _("Open In New Window");
-          action: "win.open-new-window";
+          action: "page.open-new-window";
           hidden-when: "action-disabled";
         }
       }
       section {
         item {
           label: _("Open With…");
-          action: "win.open-with";
+          action: "page.open-with";
           hidden-when: "action-disabled";
         }
       }
@@ -310,44 +310,44 @@ menu right_click {
   section {
     item {
       label: _("Copy");
-      action: "win.copy";
+      action: "page.copy";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Cut");
-      action: "win.cut";
+      action: "page.cut";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Paste");
-      action: "win.paste";
+      action: "page.paste";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Select All");
-      action: "win.select-all";
+      action: "page.select-all";
       hidden-when: "action-disabled";
     }
   }
   section {
     item {
       label: _("Rename…");
-      action: "win.rename";
+      action: "page.rename";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Move to Trash");
-      action: "win.trash";
+      action: "page.trash";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Delete From Trash…");
-      action: "win.trash-delete";
+      action: "page.trash-delete";
       hidden-when: "action-disabled";
     }
     item {
       label: _("Restore From Trash");
-      action: "win.trash-restore";
+      action: "page.trash-restore";
       hidden-when: "action-disabled";
     }
   }

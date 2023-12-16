@@ -19,7 +19,7 @@
 
 from typing import Any, Iterable, Optional
 
-from gi.repository import Adw, Gio
+from gi.repository import Adw, Gio, GLib
 
 from hyperplane.items_page import HypItemsPage
 
@@ -49,6 +49,7 @@ class HypNavigationBin(Adw.Bin):
             self.view.push(HypItemsPage(tags=self.tags))
 
         self.view.connect("popped", self.__popped)
+        self.view.connect("pushed", self.__pushed)
 
     def new_page(
         self,
@@ -69,7 +70,15 @@ class HypNavigationBin(Adw.Bin):
             self.tags = list(tags)
             self.view.push(HypItemsPage(tags=self.tags.copy()))
 
+    def __pushed(self, *_args: Any) -> None:
+        # HACK: find a proper way of doing this
+        GLib.timeout_add(
+            10, self.get_root().set_focus, self.view.get_visible_page().scrolled_window
+        )
+
     def __popped(self, *_args: Any) -> None:
+        self.get_root().set_focus(self.view.get_visible_page().scrolled_window)
+
         if tags := self.view.get_visible_page().tags:
             self.tags = tags.copy()
         else:
