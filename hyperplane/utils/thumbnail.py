@@ -55,9 +55,29 @@ def generate_thumbnail(
     try:
         thumbnail = factory.generate_thumbnail(uri, content_type)
     except GLib.Error as error:
-        print(f"Cannot thumbnail: {error}")
-        callback(failed=True)
-        return
+        if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
+            print(f"Cannot thumbnail: {error}")
+            callback(failed=True)
+            return
+
+        # If it cannot get a path for the URI, try the target URI
+        # TODO: I cannot currently test thumbnailing. Do I need this?
+        try:
+            target_uri = gfile.query_info(
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                Gio.FileQueryInfoFlags.NONE,
+            ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+
+            if not target_uri:
+                print(f"Cannot thumbnail: {error}")
+                callback(failed=True)
+                return
+
+            thumbnail = factory.generate_thumbnail(target_uri, content_type)
+        except GLib.Error as new_error:
+            print(f"Cannot thumbnail: {new_error}")
+            callback(failed=True)
+            return
 
     if not thumbnail:
         callback(failed=True)
