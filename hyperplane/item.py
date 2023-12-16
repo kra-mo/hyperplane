@@ -212,12 +212,7 @@ class HypItem(Adw.Bin):
                 return
 
             # HACK: I don't know how else to get a GFile for file_info
-            try:
-                child_gfile = gfile.get_child_for_display_name(
-                    file_info.get_display_name()
-                )
-            except GLib.Error:
-                return
+            child_gfile = gfile.get_child(file_info.get_name())
 
             GLib.Thread.new(
                 None,
@@ -245,7 +240,7 @@ class HypItem(Adw.Bin):
                     Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
                     Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                     Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                    Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                    Gio.FILE_ATTRIBUTE_STANDARD_NAME,
                 )
             ),
             Gio.FileQueryInfoFlags.NONE,
