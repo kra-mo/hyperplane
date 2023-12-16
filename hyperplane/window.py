@@ -42,6 +42,7 @@ class HypWindow(Adw.ApplicationWindow):
     sidebar_home: Gtk.Box = Gtk.Template.Child()
     new_tag_box: Gtk.ListBox = Gtk.Template.Child()
     trash_box: Gtk.ListBox = Gtk.Template.Child()
+    trash_icon: Gtk.Image = Gtk.Template.Child()
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
     window_title: Adw.WindowTitle = Gtk.Template.Child()
@@ -134,6 +135,9 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.sidebar_items = set()
         self.__update_tags()
+
+        self.__trash_changed()
+        shared.trash_list.connect("notify::n-items", self.__trash_changed)
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
@@ -563,4 +567,11 @@ class HypWindow(Adw.ApplicationWindow):
                 "open-new-window",
                 "open-with",
             }
+        )
+
+    def __trash_changed(self, *_args: Any) -> None:
+        self.trash_icon.set_from_icon_name(
+            "user-trash-full-symbolic"
+            if shared.trash_list.get_n_items()
+            else "user-trash-symbolic"
         )

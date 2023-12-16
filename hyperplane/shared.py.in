@@ -19,7 +19,7 @@
 
 from pathlib import Path
 
-from gi.repository import Gdk, Gio, GLib
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from hyperplane.postmaster_general import HypPostmasterGeneral
 
@@ -50,6 +50,9 @@ del path
 app = None  # pylint: disable=invalid-name
 search = ""  # pylint: disable=invalid-name
 
+# The number of items currently queued to be drawn
+drawing = 0  # pylint: disable=invalid-name
+
 postmaster = HypPostmasterGeneral()
 
 closed_folder_texture = texture = Gdk.Texture.new_from_resource(
@@ -59,5 +62,4 @@ open_folder_texture = texture = Gdk.Texture.new_from_resource(
     PREFIX + "/assets/folder-open.svg"
 )
 
-# The number of items currently queued to be drawn
-drawing = 0
+trash_list = Gtk.DirectoryList.new(None, Gio.File.new_for_uri("trash://"))
