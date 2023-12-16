@@ -226,7 +226,16 @@ class HypItemsPage(Adw.NavigationPage):
             self.get_root().tab_view.get_selected_page().get_child().new_page(gfile)
             return
 
-        Gio.AppInfo.launch_default_for_uri(gfile.get_uri())
+        Gio.AppInfo.launch_default_for_uri(uri := gfile.get_uri())
+
+        recent_data = Gtk.RecentData()
+        recent_data.display_name = file_info.get_display_name()
+        recent_data.mime_type = file_info.get_content_type()
+        recent_data.app_name = "hyperplane"
+        recent_data.app_exec = r"hyperplane %u"
+
+        # TODO: This doesn't work inside Flatpak, but it seems there's no way to make it work either :(
+        Gtk.RecentManager.get_default().add_full(uri, recent_data)
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         self.get_root().right_click_menu.unparent()

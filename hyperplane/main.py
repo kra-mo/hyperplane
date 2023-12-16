@@ -128,7 +128,7 @@ class HypApplication(Adw.Application):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(
             transient_for=self.get_active_window(),
-            application_name="Hyperplane",
+            application_name=_("Hyperplane"),
             application_icon=shared.APP_ID,
             developer_name="kramo",
             version="0.1.0",

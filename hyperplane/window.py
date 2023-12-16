@@ -40,6 +40,7 @@ class HypWindow(Adw.ApplicationWindow):
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     sidebar: Gtk.ListBox = Gtk.Template.Child()
     sidebar_home: Gtk.Box = Gtk.Template.Child()
+    sidebar_recent: Gtk.Box = Gtk.Template.Child()
     new_tag_box: Gtk.ListBox = Gtk.Template.Child()
     trash_box: Gtk.ListBox = Gtk.Template.Child()
     trash_icon: Gtk.Image = Gtk.Template.Child()
@@ -281,7 +282,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         for tag in reversed(shared.tags):
             self.sidebar_items.add(row := HypTagRow(tag, "user-bookmarks-symbolic"))
-            self.sidebar.insert(row, 1)
+            self.sidebar.insert(row, 2)
 
     def __new_tag(self, *_args: Any) -> None:
         dialog = Adw.MessageDialog.new(self, _("New Category"))
@@ -323,16 +324,22 @@ class HypWindow(Adw.ApplicationWindow):
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         gfile = self.get_visible_page().gfile
-        if not gfile or gfile.get_uri() != "trash:///":
+        if (not gfile) or (gfile.get_uri() != "trash:///"):
             nav_bin.new_page(Gio.File.new_for_uri("trash://"))
 
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
 
-        if row.get_child() == self.sidebar_home:
+        if (child := row.get_child()) == self.sidebar_home:
             gfile = self.get_visible_page().gfile
-            if not gfile or gfile.get_path() != str(shared.home):
+            if (not gfile) or (gfile.get_path() != str(shared.home)):
                 nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
+            return
+
+        if child == self.sidebar_recent:
+            gfile = self.get_visible_page().gfile
+            if (not gfile) or (gfile.get_uri() != "recent:///"):
+                nav_bin.new_page(Gio.File.new_for_uri("recent://"))
             return
 
         nav_bin.new_page(tag=row.get_child().tag)

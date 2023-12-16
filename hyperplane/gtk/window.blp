@@ -79,6 +79,17 @@ template $HypWindow : Adw.ApplicationWindow {
 
               ListBox sidebar {
                 selection-mode: none;
+                Box sidebar_recent {
+                  spacing: 12;
+                  margin-start: 6;
+                  margin-end: 6;
+                  Image {
+                    icon-name: "document-open-recent-symbolic";
+                  }
+                  Label {
+                    label: _("Recent");
+                  }
+                }
                 Box sidebar_home {
                   spacing: 12;
                   margin-start: 6;

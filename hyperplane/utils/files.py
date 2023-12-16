@@ -248,7 +248,6 @@ def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
     if uri_fallback and (gfile_uri := gfile.get_uri()):
         return gfile_uri
 
-    # HACK: Figure something proper out for this
     raise FileNotFoundError
 
 
