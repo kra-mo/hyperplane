@@ -142,7 +142,7 @@ class HypApplication(Adw.Application):
         prefs.present()
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
-        value = not action.get_property("state").get_boolean()
+        value = not action.props.state.get_boolean()
         action.set_state(GLib.Variant.new_boolean(value))
 
         shared.state_schema.set_boolean("show-hidden", value)

@@ -20,7 +20,7 @@
 from locale import strcoll
 from typing import Optional
 
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
 
@@ -35,6 +35,32 @@ class HypItemSorter(Gtk.Sorter):
     ) -> int:
         if (not file_info1) or (not file_info2):
             return Gtk.Ordering.EQUAL
+
+        # Always sort recent items by date
+        if (
+            file_info1.get_attribute_object("standard::file")
+            .get_uri()
+            .startswith("recent://")
+        ):
+            try:
+                recent_info1 = shared.recent_manager.lookup_item(
+                    file_info1.get_attribute_string(
+                        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+                    )
+                )
+                recent_info2 = shared.recent_manager.lookup_item(
+                    file_info2.get_attribute_string(
+                        Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+                    )
+                )
+            except GLib.Error:
+                pass
+            else:
+                return self.__ordering_from_cmpfunc(
+                    GLib.DateTime.compare(
+                        recent_info2.get_added(), recent_info1.get_added()
+                    )
+                )
 
         if shared.schema.get_boolean("folders-before-files"):
             dir1 = file_info1.get_content_type() == "inode/directory"
@@ -55,12 +81,14 @@ class HypItemSorter(Gtk.Sorter):
         elif name2.startswith("."):
             return Gtk.Ordering.SMALLER
 
+        return self.__ordering_from_cmpfunc(strcoll(name1, name2))
+
+    def __ordering_from_cmpfunc(self, cmpfunc_result: int) -> Gtk.Ordering:
         # HACK: Gtk.Ordering.from_cmpfunc seems to not work
         # gi.repository.GLib.GError: g-invoke-error-quark: Could not locate gtk_ordering_from_cmpfunc: 'gtk_ordering_from_cmpfunc': /usr/lib/x86_64-linux-gnu/libgtk-4.so.1: undefined symbol: gtk_ordering_from_cmpfunc (1)
 
-        coll = strcoll(name1, name2)
-        if coll > 0:
+        if cmpfunc_result > 0:
             return Gtk.Ordering.LARGER
-        if coll < 0:
+        if cmpfunc_result < 0:
             return Gtk.Ordering.SMALLER
         return Gtk.Ordering.EQUAL

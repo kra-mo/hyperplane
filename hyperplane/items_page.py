@@ -163,6 +163,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
                 Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI, # For Recent
             )
         )
         if gfile:
@@ -234,8 +235,7 @@ class HypItemsPage(Adw.NavigationPage):
         recent_data.app_name = "hyperplane"
         recent_data.app_exec = r"hyperplane %u"
 
-        # TODO: This doesn't work inside Flatpak, but it seems there's no way to make it work either :(
-        Gtk.RecentManager.get_default().add_full(uri, recent_data)
+        shared.recent_manager.add_full(uri, recent_data)
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         self.get_root().right_click_menu.unparent()

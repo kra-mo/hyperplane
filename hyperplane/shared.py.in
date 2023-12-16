@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from os import getenv
 from pathlib import Path
 
 from gi.repository import Gdk, Gio, GLib, Gtk
@@ -63,3 +64,15 @@ open_folder_texture = texture = Gdk.Texture.new_from_resource(
 )
 
 trash_list = Gtk.DirectoryList.new(None, Gio.File.new_for_uri("trash://"))
+
+is_flatpak = getenv("FLATPAK_ID") == APP_ID
+
+if (
+    is_flatpak
+    and (path := Path.home() / ".local" / "share" / "recently-used.xbel").is_file()
+):
+    # Use the system-wide RecentManager instead of the application-specific one
+    # so files are visible to GVFS
+    recent_manager = Gtk.RecentManager(filename=str(path))
+else:
+    recent_manager = Gtk.RecentManager.get_default()
