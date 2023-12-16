@@ -396,14 +396,24 @@ class HypWindow(Adw.ApplicationWindow):
             nav_bin.new_page(tags=tags)
             return
 
-        if (path := Path(text)).is_dir():
-            self.__hide_path_bar()
-            if path == get_gfile_path(self.get_visible_page().gfile):
-                return
-            nav_bin.new_page(Gio.File.new_for_path(str(path)))
+        if "://" in text:
+            gfile = Gio.File.new_for_uri(text)
+        else:
+            gfile = Gio.File.new_for_path(text)
+
+        if (
+            not gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
+            == Gio.FileType.DIRECTORY
+        ):
+            self.send_toast(_("Unable to find path"))
             return
 
-        self.send_toast(_("Unable to find path"))
+        self.__hide_path_bar()
+
+        if gfile.get_uri() == self.get_visible_page().gfile.get_uri():
+            return
+
+        nav_bin.new_page(gfile)
 
     def __title_stack_set_child(self, new: Gtk.Widget) -> None:
         old = self.title_stack.get_visible_child()
