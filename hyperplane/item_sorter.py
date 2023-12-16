@@ -58,7 +58,7 @@ class HypItemSorter(Gtk.Sorter):
             else:
                 return self.__ordering_from_cmpfunc(
                     GLib.DateTime.compare(
-                        recent_info2.get_added(), recent_info1.get_added()
+                        recent_info2.get_modified(), recent_info1.get_modified()
                     )
                 )
 

@@ -163,7 +163,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
                 Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI, # For Recent
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
             )
         )
         if gfile:
@@ -227,7 +227,14 @@ class HypItemsPage(Adw.NavigationPage):
             self.get_root().tab_view.get_selected_page().get_child().new_page(gfile)
             return
 
-        Gio.AppInfo.launch_default_for_uri(uri := gfile.get_uri())
+        if not (
+            uri := file_info.get_attribute_string(
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+            )
+        ):
+            uri = gfile.get_uri()
+
+        Gio.AppInfo.launch_default_for_uri(uri)
 
         recent_data = Gtk.RecentData()
         recent_data.display_name = file_info.get_display_name()
