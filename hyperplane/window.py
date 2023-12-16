@@ -804,7 +804,7 @@ class HypWindow(Adw.ApplicationWindow):
         if not clipboard.get_formats().contain_gtype(Gdk.FileList):
             return
 
-        def __callback(clipboard, result) -> None:
+        def __cb(clipboard, result) -> None:
             nonlocal paths
 
             try:
@@ -865,9 +865,7 @@ class HypWindow(Adw.ApplicationWindow):
                 self.undo_queue[time()] = ("copy", paths)
             self.cut_page = None
 
-        clipboard.read_value_async(
-            Gdk.FileList, GLib.PRIORITY_DEFAULT, None, __callback
-        )
+        clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, __cb)
 
     def __select_all(self, *_args: Any) -> None:
         if isinstance(self.get_focus(), Gtk.Editable):

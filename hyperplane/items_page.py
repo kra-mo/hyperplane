@@ -172,8 +172,9 @@ class HypItemsPage(Adw.NavigationPage):
 
         if file_info.get_content_type() == "inode/directory":
             self.get_root().tab_view.get_selected_page().get_child().new_page(gfile)
-        else:
-            Gio.AppInfo.launch_default_for_uri(gfile.get_uri())
+            return
+
+        Gio.AppInfo.launch_default_for_uri(gfile.get_uri())
 
     def __right_click(self, _gesture, _n, x, y) -> None:
         self.get_root().right_click_menu.unparent()

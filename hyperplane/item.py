@@ -140,7 +140,7 @@ class HypItem(Adw.Bin):
             self.extension_label.set_visible(False)
 
         if self.thumbnail_path:
-            self.__thumb_callback(Gdk.Texture.new_from_filename(self.thumbnail_path))
+            self.__thumb_cb(Gdk.Texture.new_from_filename(self.thumbnail_path))
             return
 
         GLib.Thread.new(
@@ -148,40 +148,39 @@ class HypItem(Adw.Bin):
             generate_thumbnail,
             self.gfile,
             self.content_type,
-            self.__thumb_callback,
+            self.__thumb_cb,
         )
 
-    def __build_dir_thumbnail(self) -> None:
-        self.extension_label.set_visible(False)
-        self.picture.set_visible(True)
-        self.icon.set_visible(False)
-
-        self.picture.set_content_fit(Gtk.ContentFit.FILL)
-        self.picture.set_paintable(shared.closed_folder_texture)
-        self.thumbnail.add_css_class(self.color + "-background")
+    def __dir_children_cb(self, gfile: Gio.File, result: Gio.Task) -> None:
+        # TODO: The async nature of this causes flickering. Do I really need it to be async?
+        # If so, how do I fix this?
 
         try:
-            gfile_path = get_gfile_path(self.gfile)
-        except FileNotFoundError:
+            files = gfile.enumerate_children_finish(result)
+        except GLib.Error:
+            self.picture.set_paintable(shared.closed_folder_texture)
             return
 
-        if not gfile_path.is_dir():
-            return
-
-        # Return if folder has no children or they can't be listed
-        # TODO: Use Gio.File.enumerate_children()
-        try:
-            if not any(gfile_path.iterdir()):
+        def next_files_cb(enumerator, result, index):
+            try:
+                files_list = enumerator.next_files_finish(result)
+            except GLib.Error:
+                if not index:
+                    self.picture.set_paintable(shared.closed_folder_texture)
                 return
-        except PermissionError:
-            return
 
-        self.picture.set_paintable(shared.open_folder_texture)
+            try:
+                file_info = files_list[0]
+            except IndexError:
+                if not index:
+                    self.picture.set_paintable(shared.closed_folder_texture)
+                return
 
-        index = 0
-        for path in gfile_path.iterdir():
             if index == 3:
-                break
+                return
+
+            if not (content_type := file_info.get_content_type()):
+                return
 
             match index:
                 case 0:
@@ -195,24 +194,67 @@ class HypItem(Adw.Bin):
                     thumbnail.set_visible(True)
 
             index += 1
+            files.next_files_async(1, GLib.PRIORITY_DEFAULT, None, next_files_cb, index)
 
-            gfile = Gio.File.new_for_path(str(path))
-            gfile.query_info_async(
-                ",".join(
-                    (
-                        Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                        Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                        Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                    )
-                ),
-                Gio.FileQueryInfoFlags.NONE,
-                GLib.PRIORITY_DEFAULT,
+            self.picture.set_paintable(shared.open_folder_texture)
+
+            if icon := file_info.get_symbolic_icon():
+                thumbnail.get_child().set_from_gicon(icon)
+
+            if content_type == "inode/directory":
+                thumbnail.add_css_class("light-blue-background")
+                thumbnail.get_child().add_css_class("white-icon")
+                return
+
+            thumbnail.add_css_class("white-background")
+
+            color = get_color_for_content_type(content_type)
+            thumbnail.get_child().add_css_class(color + "-icon-light-only")
+
+            if thumbnail_path := file_info.get_attribute_byte_string(
+                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
+            ):
+                picture = Gtk.Picture.new_for_filename(thumbnail_path)
+                picture.set_content_fit(Gtk.ContentFit.COVER)
+                thumbnail.get_child().set_visible(False)
+                thumbnail.add_overlay(picture)
+                return
+
+            GLib.Thread.new(
                 None,
-                self.__dir_query_callback,
+                generate_thumbnail,
+                gfile,
+                content_type,
+                self.__dir_thumb_cb,
                 thumbnail,
             )
 
-    def __dir_thumb_callback(
+        # TODO: Could be oprimized if I called next_files with 3 the first time
+        files.next_files_async(1, GLib.PRIORITY_DEFAULT, None, next_files_cb, 0)
+
+    def __build_dir_thumbnail(self) -> None:
+        self.extension_label.set_visible(False)
+        self.picture.set_visible(True)
+        self.icon.set_visible(False)
+
+        self.picture.set_content_fit(Gtk.ContentFit.FILL)
+        self.thumbnail.add_css_class(self.color + "-background")
+
+        self.gfile.enumerate_children_async(
+            ",".join(
+                (
+                    Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                    Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                    Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                )
+            ),
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            None,
+            self.__dir_children_cb,
+        )
+
+    def __dir_thumb_cb(
         self,
         texture: Optional[Gdk.Texture] = None,
         thumbnail: Optional[Gtk.Overlay] = None,
@@ -226,48 +268,7 @@ class HypItem(Adw.Bin):
         thumbnail.get_child().set_visible(False)
         thumbnail.add_overlay(picture)
 
-    def __dir_query_callback(
-        self, gfile: Gio.File, result: Gio.Task, thumbnail: Gtk.Overlay
-    ) -> None:
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.Error:
-            return
-
-        if icon := file_info.get_symbolic_icon():
-            thumbnail.get_child().set_from_gicon(icon)
-
-        if gfile.query_file_type(Gio.FileQueryInfoFlags.NONE) == Gio.FileType.DIRECTORY:
-            thumbnail.add_css_class("light-blue-background")
-            thumbnail.get_child().add_css_class("white-icon")
-            return
-
-        thumbnail.add_css_class("white-background")
-        if not (content_type := file_info.get_content_type()):
-            return
-
-        color = get_color_for_content_type(content_type)
-        thumbnail.get_child().add_css_class(color + "-icon-light-only")
-
-        if thumbnail_path := file_info.get_attribute_byte_string(
-            Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
-        ):
-            picture = Gtk.Picture.new_for_filename(thumbnail_path)
-            picture.set_content_fit(Gtk.ContentFit.COVER)
-            thumbnail.get_child().set_visible(False)
-            thumbnail.add_overlay(picture)
-            return
-
-        GLib.Thread.new(
-            None,
-            generate_thumbnail,
-            gfile,
-            content_type,
-            self.__dir_thumb_callback,
-            thumbnail,
-        )
-
-    def __thumb_callback(
+    def __thumb_cb(
         self,
         texture: Optional[Gdk.Texture] = None,
         failed: Optional[bool] = False,
@@ -357,18 +358,11 @@ class HypItem(Adw.Bin):
         self.get_root().set_menu_items(menu_items)
 
     def __middle_click(self, *_args: Any) -> None:
-        # TODO: Open multiple items if multiple are selected
-        self.get_parent().get_parent().get_model().select_item(
-            self.item.get_position(), True
-        )
+        self.__select_self()
 
-        if self.is_dir:
-            self.get_root().new_tab(gfile=self.gfile)
-        else:
-            # TODO: this is ugly
-            self.get_parent().get_parent().get_parent().get_parent().activate(
-                None, self.item.get_position()
-            )
+        win = self.get_root()
+        for gfile in win.get_gfiles_from_positions(win.get_selected_items()):
+            win.new_tab(gfile)
 
     @GObject.Property(type=str)
     def display_name(self) -> str:

@@ -95,7 +95,7 @@ def restore(
 
         __remove_trashinfo(trash_path, orig_path)
 
-    def query_callback(gfile, result):
+    def query_cb(gfile, result):
         try:
             file_info = gfile.query_info_finish(result)
         except GLib.Error:
@@ -135,7 +135,7 @@ def restore(
             Gio.FileQueryInfoFlags.NONE,
             GLib.PRIORITY_DEFAULT,
             None,
-            query_callback,
+            query_cb,
         )
 
 
@@ -146,7 +146,7 @@ def trash_rm(gfile: Gio.File) -> None:
     Directories are removed recursively.
     """
 
-    def query_callback(gfile, result):
+    def query_cb(gfile, result):
         try:
             file_info = gfile.query_info_finish(result)
         except GLib.Error:
@@ -176,7 +176,7 @@ def trash_rm(gfile: Gio.File) -> None:
         Gio.FileQueryInfoFlags.NONE,
         GLib.PRIORITY_DEFAULT,
         None,
-        query_callback,
+        query_cb,
     )
 
 
