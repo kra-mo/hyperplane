@@ -400,31 +400,26 @@ class HypItemsPage(Adw.NavigationPage):
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
 
     def __reload(self, *_args: Any) -> None:
-        # TODO: Do I really need this? Nautilus has refresh, but I don't know how they monitor.
-
-        dir_list = self.dir_list
-        if isinstance(dir_list, Gtk.DirectoryList):
-            dir_list.set_monitored(False)
-            dir_list.set_monitored(True)
+        if isinstance(self.dir_list, Gtk.DirectoryList):
+            self.dir_list.set_monitored(False)
+            self.dir_list.set_monitored(True)
             return
 
-        if isinstance(dir_list, Gtk.FlattenListModel):
-            model = dir_list.get_model()
-            index = 0
-            while item := model.get_item(index):
-                item.set_monitored(False)
-                item.set_monitored(True)
-                index += 1
+        # TODO: This works, but it would be best if instead of manually refreshing,
+        # tags would be monitored for changes too. I don't know how I would do that though.
+        if isinstance(self.dir_list, Gtk.FlattenListModel):
+            self.dir_list = self.__get_list(tags=self.tags)
+            self.filter_list.set_model(self.dir_list)
 
     def __new_folder(self, *_args: Any) -> None:
         path = None
 
-        if (page := self).tags:
-            path = Path(shared.home, *(tag for tag in shared.tags if tag in page.tags))
+        if self.tags:
+            path = Path(shared.home, *(tag for tag in shared.tags if tag in self.tags))
 
         if not path:
             try:
-                path = get_gfile_path(page.gfile)
+                path = get_gfile_path(self.gfile)
             except FileNotFoundError:
                 return
 
@@ -521,16 +516,15 @@ class HypItemsPage(Adw.NavigationPage):
                 win.cut_page = None
                 return
 
-            page = self
             for gfile in file_list:
-                if page.tags:
+                if self.tags:
                     dst = Path(
                         shared.home,
-                        *(tag for tag in shared.tags if tag in page.tags),
+                        *(tag for tag in shared.tags if tag in self.tags),
                     )
                 else:
                     try:
-                        dst = get_gfile_path(page.gfile)
+                        dst = get_gfile_path(self.gfile)
                     except FileNotFoundError:
                         continue
                 try:
@@ -594,8 +588,7 @@ class HypItemsPage(Adw.NavigationPage):
         except FileNotFoundError:
             return
 
-        multi_selection = self.multi_selection
-        multi_selection.select_item(position, True)
+        self.multi_selection.select_item(position, True)
 
         children = self.grid_view.observe_children()
 

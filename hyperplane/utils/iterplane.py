@@ -24,6 +24,7 @@ from hyperplane import shared
 
 
 def iterplane(filter_tags: Iterable[str]) -> Generator:
+    """Get the existing paths that contain files tagged `filter_tags`."""
     if not filter_tags:
         return
 
