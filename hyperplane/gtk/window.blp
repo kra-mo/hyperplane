@@ -99,17 +99,17 @@ template $HypWindow : Adw.ApplicationWindow {
                 margin-start: 6;
                 margin-end: 6;
               }
-              ListBox trash_box {
+              ListBox new_tag_box {
                 selection-mode: none;
                 Box {
                   spacing: 12;
                   margin-start: 6;
                   margin-end: 6;
                   Image {
-                    icon-name: "user-trash-symbolic";
+                    icon-name: "bookmark-new";
                   }
                   Label {
-                    label: _("Trash");
+                    label: _("New Category");
                   }
                 }
 
@@ -121,17 +121,17 @@ template $HypWindow : Adw.ApplicationWindow {
                 margin-start: 6;
                 margin-end: 6;
               }
-              ListBox new_tag_box {
+              ListBox trash_box {
                 selection-mode: none;
                 Box {
                   spacing: 12;
                   margin-start: 6;
                   margin-end: 6;
                   Image {
-                    icon-name: "list-add-symbolic";
+                    icon-name: "user-trash-symbolic";
                   }
                   Label {
-                    label: _("New Category");
+                    label: _("Trash");
                   }
                 }
 
