@@ -341,14 +341,16 @@ class HypWindow(Adw.ApplicationWindow):
     def __open_trash(self, *_args: Any) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
 
-        if self.get_visible_page().gfile.get_uri() != "trash:///":
+        gfile = self.get_visible_page().gfile
+        if not gfile or gfile.get_uri() != "trash:///":
             nav_bin.new_page(Gio.File.new_for_uri("trash://"))
 
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         if row.get_child() == self.sidebar_home:
-            if self.get_visible_page().gfile.get_path() != str(shared.home):
+            gfile = self.get_visible_page().gfile
+            if not gfile or gfile.get_path() != str(shared.home):
                 nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
