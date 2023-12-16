@@ -21,8 +21,6 @@ from typing import Any, Callable
 
 from gi.repository import Gdk, Gio, GLib, GnomeDesktop
 
-from hyperplane.utils.files import get_gfile_path
-
 
 def generate_thumbnail(
     gfile: Gio.File, content_type: str, callback: Callable, *args: Any
@@ -40,8 +38,14 @@ def generate_thumbnail(
     uri = gfile.get_uri()
 
     try:
-        mtime = get_gfile_path(gfile).stat().st_mtime
-    except FileNotFoundError:
+        mtime = (
+            gfile.query_info(
+                Gio.FILE_ATTRIBUTE_TIME_MODIFIED, Gio.FileQueryInfoFlags.NONE
+            )
+            .get_modification_date_time()
+            .to_unix()
+        )
+    except AttributeError:
         return
 
     if not factory.can_thumbnail(uri, content_type, mtime):

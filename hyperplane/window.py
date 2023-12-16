@@ -255,25 +255,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         return paths
 
-    def get_paths_from_positions(self, positions: list[int]) -> list[Path]:
-        """Get a list of file paths corresponding to positions in the ListModel."""
-        paths = []
-        multi_selection = self.get_visible_page().multi_selection
-
-        for position in positions:
-            try:
-                path = get_gfile_path(
-                    multi_selection.get_item(position).get_attribute_object(
-                        "standard::file"
-                    )
-                )
-            except FileNotFoundError:
-                continue
-
-            paths.append(path)
-
-        return paths
-
     def get_selected_items(self) -> list[int]:
         """Gets the list of positions for selected items in the grid view."""
         bitset = self.get_visible_page().multi_selection.get_selection()
