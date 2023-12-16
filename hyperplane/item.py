@@ -101,7 +101,7 @@ class HypItem(Adw.Bin):
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
-        pass
+        pass  # TODO: Clean up
 
     def __build(self) -> None:
         self.play_button.set_visible(False)

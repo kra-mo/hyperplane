@@ -30,6 +30,7 @@ class HypNavigationBin(Adw.Bin):
     items_page: HypItemsPage
     view: Adw.NavigationView
 
+    next_pages: list[Adw.NavigationPage]
     tags: list[str] = []
 
     def __init__(
@@ -43,13 +44,16 @@ class HypNavigationBin(Adw.Bin):
         self.set_child(self.view)
 
         if initial_gfile:
-            self.view.push(HypItemsPage(gfile=initial_gfile))
+            self.view.add(HypItemsPage(gfile=initial_gfile))
         elif initial_tags:
             self.tags = list(initial_tags)
-            self.view.push(HypItemsPage(tags=self.tags))
+            self.view.add(HypItemsPage(tags=self.tags))
 
         self.view.connect("popped", self.__popped)
         self.view.connect("pushed", self.__pushed)
+
+        self.next_pages = []
+        self.view.connect("get-next-page", self.__next_page)
 
     def new_page(
         self,
@@ -60,26 +64,54 @@ class HypNavigationBin(Adw.Bin):
         """Push a new page with the given path or tag to the navigation stack."""
         if gfile:
             self.tags = []
-            self.view.push(HypItemsPage(gfile=gfile))
+            page = HypItemsPage(gfile=gfile)
         elif tag:
             if tag in self.tags:
                 return
             self.tags.append(tag)
-            self.view.push(HypItemsPage(tags=self.tags.copy()))
+            page = HypItemsPage(tags=self.tags.copy())
         elif tags:
             self.tags = list(tags)
-            self.view.push(HypItemsPage(tags=self.tags.copy()))
+            page = HypItemsPage(tags=self.tags.copy())
+        else:
+            return
+
+        self.view.add(page)
+        self.view.push(page)
 
     def __pushed(self, *_args: Any) -> None:
-        # HACK: find a proper way of doing this
-        GLib.timeout_add(
-            10, self.get_root().set_focus, self.view.get_visible_page().scrolled_window
-        )
+        page = self.view.get_visible_page()
 
-    def __popped(self, *_args: Any) -> None:
+        # HACK: find a proper way of doing this
+        GLib.timeout_add(10, self.get_root().set_focus, page.scrolled_window)
+
+        if not self.next_pages:
+            return
+
+        if page == self.next_pages[-1]:
+            self.next_pages.pop()
+        else:
+            for next_page in self.next_pages:
+                self.view.remove(next_page)
+
+            self.next_pages = []
+
+    def __popped(
+        self,
+        _view: Adw.NavigationView,
+        page: Adw.NavigationPage,
+    ) -> None:
+        self.next_pages.append(page)
+
         self.get_root().set_focus(self.view.get_visible_page().scrolled_window)
 
         if tags := self.view.get_visible_page().tags:
             self.tags = tags.copy()
         else:
             self.tags = []
+
+    def __next_page(self, *_args: Any) -> None:
+        if not self.next_pages:
+            return None
+
+        return self.next_pages[-1]

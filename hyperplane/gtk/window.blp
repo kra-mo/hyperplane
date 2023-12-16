@@ -157,6 +157,13 @@ template $HypWindow : Adw.ApplicationWindow {
             tooltip-text: _("Back");
           }
 
+          [start]
+          Button {
+            icon-name: "go-next-symbolic";
+            action-name: "win.forward";
+            tooltip-text: _("Forward");
+          }
+
           [title]
           Stack title_stack {
             transition-type: crossfade;

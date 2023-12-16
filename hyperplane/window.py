@@ -93,8 +93,12 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("hide-path-bar", self.__hide_path_bar)
         self.create_action("close", self.__on_close_action, ("<primary>w",))
         self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
+
         self.create_action("back", self.__on_back_action)
         self.lookup_action("back").set_enabled(False)
+
+        self.create_action("forward", self.__on_forward_action)
+        self.lookup_action("forward").set_enabled(False)
 
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-tag", self.__open_tag)
@@ -355,15 +359,7 @@ class HypWindow(Adw.ApplicationWindow):
             return
 
         self.set_title(self.get_visible_page().get_title())
-        self.lookup_action("back").set_enabled(
-            bool(
-                self.tab_view.get_selected_page()
-                .get_child()
-                .view.get_navigation_stack()
-                .get_n_items()
-                - 1
-            )
-        )
+        self.__nav_stack_changed()
 
     def __navigation_changed(self, view: Adw.NavigationView, *_args: Any) -> None:
         self.__hide_search_entry()
@@ -376,15 +372,7 @@ class HypWindow(Adw.ApplicationWindow):
         if self.tab_view.get_selected_page() == page:
             self.set_title(title)
 
-        self.lookup_action("back").set_enabled(
-            bool(
-                self.tab_view.get_selected_page()
-                .get_child()
-                .view.get_navigation_stack()
-                .get_n_items()
-                - 1
-            )
-        )
+        self.__nav_stack_changed()
 
     def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
         page.get_child().view.connect("popped", self.__navigation_changed)
@@ -521,6 +509,13 @@ class HypWindow(Adw.ApplicationWindow):
     def __on_back_action(self, *_args: Any) -> None:
         self.tab_view.get_selected_page().get_child().view.pop()
 
+    def __on_forward_action(self, *_args: Any) -> None:
+        nav_bin = self.tab_view.get_selected_page().get_child()
+        if not nav_bin.next_pages:
+            return
+
+        nav_bin.view.push(nav_bin.next_pages[-1])
+
     def __create_window(self, *_args: Any) -> Adw.TabView:
         win = self.get_application().do_activate()
 
@@ -567,6 +562,20 @@ class HypWindow(Adw.ApplicationWindow):
                 "open-new-window",
                 "open-with",
             }
+        )
+
+    def __nav_stack_changed(self) -> None:
+        self.lookup_action("back").set_enabled(
+            bool(
+                self.tab_view.get_selected_page()
+                .get_child()
+                .view.get_navigation_stack()
+                .get_n_items()
+                - 1
+            )
+        )
+        self.lookup_action("forward").set_enabled(
+            bool(self.tab_view.get_selected_page().get_child().next_pages)
         )
 
     def __trash_changed(self, *_args: Any) -> None:
