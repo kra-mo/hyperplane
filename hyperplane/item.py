@@ -23,7 +23,6 @@ from typing import Any, Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
-from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 from hyperplane.utils.thumbnail import generate_thumbnail
 
@@ -102,12 +101,7 @@ class HypItem(Adw.Bin):
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
-        # TODO: Do I need this? Do I need something else?
-        self.dir_thumbnail_1.set_visible(False)
-        self.dir_thumbnail_2.set_visible(False)
-        self.dir_thumbnail_3.set_visible(False)
-
-        self.picture.set_content_fit(Gtk.ContentFit.COVER)
+        pass
 
     def __build(self) -> None:
         self.play_button.set_visible(False)
@@ -152,9 +146,6 @@ class HypItem(Adw.Bin):
         )
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.Task) -> None:
-        # TODO: The async nature of this causes flickering. Do I really need it to be async?
-        # If so, how do I fix this?
-
         try:
             files = gfile.enumerate_children_finish(result)
         except GLib.Error:
@@ -220,10 +211,18 @@ class HypItem(Adw.Bin):
                 thumbnail.add_overlay(picture)
                 return
 
+            # HACK: I don't know how else to get a GFile for file_info
+            try:
+                child_gfile = gfile.get_child_for_display_name(
+                    file_info.get_display_name()
+                )
+            except GLib.Error:
+                return
+
             GLib.Thread.new(
                 None,
                 generate_thumbnail,
-                gfile,
+                child_gfile,
                 content_type,
                 self.__dir_thumb_cb,
                 thumbnail,
@@ -246,6 +245,7 @@ class HypItem(Adw.Bin):
                     Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
                     Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                     Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                    Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
                 )
             ),
             Gio.FileQueryInfoFlags.NONE,
