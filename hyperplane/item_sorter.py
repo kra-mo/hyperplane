@@ -55,7 +55,7 @@ class HypItemSorter(Gtk.Sorter):
         elif name2.startswith("."):
             return Gtk.Ordering.SMALLER
 
-        # HACK: Gtk.Otdering.from_cmpfunc seems to not work
+        # HACK: Gtk.Ordering.from_cmpfunc seems to not work
         # gi.repository.GLib.GError: g-invoke-error-quark: Could not locate gtk_ordering_from_cmpfunc: 'gtk_ordering_from_cmpfunc': /usr/lib/x86_64-linux-gnu/libgtk-4.so.1: undefined symbol: gtk_ordering_from_cmpfunc (1)
 
         coll = strcoll(name1, name2)

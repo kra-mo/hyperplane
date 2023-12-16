@@ -361,7 +361,7 @@ class HypWindow(Adw.ApplicationWindow):
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         if row.get_child() == self.sidebar_home:
-            if get_gfile_path(self.get_visible_page().gfile) != shared.home:
+            if self.get_visible_page().gfile.get_path() != str(shared.home):
                 nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
@@ -460,7 +460,10 @@ class HypWindow(Adw.ApplicationWindow):
                 self.set_focus(self.search_entry)
             case self.path_bar_clamp:
                 if (page := self.get_visible_page()).gfile:
-                    path = get_gfile_path(page.gfile, uri_fallback=True)
+                    try:
+                        path = get_gfile_path(page.gfile, uri_fallback=True)
+                    except FileNotFoundError:
+                        path = ""  # Fallback blank string
                     self.path_bar.set_text(
                         path if isinstance(path, str) else str(path) + sep
                     )
@@ -1005,11 +1008,15 @@ class HypWindow(Adw.ApplicationWindow):
         self.undo_queue[toast] = ("trash", files)
         toast.connect("button-clicked", self.__undo)
 
-    def __trash_delete(self, *_args: Any) -> None:
+    def __trash_delete(self, *args: Any) -> None:
         if isinstance(self.get_focus(), Gtk.Editable):
             return
 
         gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+
+        # When the Delete key is pressed but the user is not in the trash
+        if gfiles and (not gfiles[0].get_uri().startswith("trash://")):
+            self.__trash_delete(*args)
 
         def delete():
             for gfile in gfiles:

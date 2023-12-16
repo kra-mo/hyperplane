@@ -65,7 +65,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.tags = tags
 
         if self.gfile:
-            if get_gfile_path(self.gfile) == shared.home:
+            if self.gfile.get_path() == str(shared.home):
                 self.set_title(_("Home"))
             else:
                 self.set_title(get_gfile_display_name(self.gfile))
