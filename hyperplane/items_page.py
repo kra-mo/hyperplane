@@ -391,7 +391,7 @@ class HypItemsPage(Adw.NavigationPage):
         win = self.get_root()
 
         portal = Xdp.Portal()
-        parent = XdpGtk4.parent_new_gtk(self)
+        parent = XdpGtk4.parent_new_gtk(win)
         gfiles = win.get_gfiles_from_positions(win.get_selected_items())
         if not gfiles:
             return
