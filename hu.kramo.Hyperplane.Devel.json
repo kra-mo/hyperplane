@@ -47,11 +47,9 @@
             "name": "gnome-desktop",
             "buildsystem": "meson",
             "config-opts": [
-                "-Ddebug_tools=true",
-                "-Dudev=disabled"
-            ],
-            "cleanup": [
-                "/libexec/gnome-desktop-debug"
+              "-Ddebug_tools=false",
+              "-Ddesktop_docs=false",
+              "-Dudev=disabled"
             ],
             "sources": [
                 {
@@ -64,7 +62,7 @@
                     }
                 }
             ]
-        },
+          },      
         {
             "name": "totem-pl-parser",
             "buildsystem": "meson",
