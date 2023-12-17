@@ -2,6 +2,7 @@ using Gtk 4.0;
 
 ShortcutsWindow help_overlay {
   modal: true;
+  // TODO: Figure out a way to make page action shortcuts work wihout specifying accels manually
 
   ShortcutsSection {
     section-name: "shortcuts";
@@ -9,6 +10,16 @@ ShortcutsWindow help_overlay {
 
     ShortcutsGroup {
       title: _("Navigation");
+
+      ShortcutsShortcut {
+        title: _("Go Back");
+        accelerator: "<alt>Left";
+      }
+
+      ShortcutsShortcut {
+        title: _("Go Forward");
+        accelerator: "<alt>Right";
+      }
 
       ShortcutsShortcut {
         title: _("Go to Home Folder");
@@ -26,37 +37,37 @@ ShortcutsWindow help_overlay {
     
       ShortcutsShortcut {
         title: _("Create Folder");
-        action-name: "win.new-folder";
+        accelerator: "<primary><shift>n";
       }
 
       ShortcutsShortcut {
         title: _("Rename");
-        action-name: "win.rename";
+        accelerator: "F2";
       }
 
       ShortcutsShortcut {
         title: _("Move to Trash");
-        action-name: "win.trash";
+        accelerator: "Delete";
       }
 
       ShortcutsShortcut {
         title: _("Cut");
-        action-name: "win.cut";
+        accelerator: "<primary>x";
       }
 
       ShortcutsShortcut {
         title: _("Copy");
-        action-name: "win.copy";
+        accelerator: "<primary>c";
       }
 
       ShortcutsShortcut {
         title: _("Paste");
-        action-name: "win.paste";
+        accelerator: "<primary>v";
       }
 
       ShortcutsShortcut {
         title: _("Select All");
-        action-name: "win.select-all";
+        accelerator: "<primary>a";
       }
     }
 
@@ -87,14 +98,73 @@ ShortcutsWindow help_overlay {
         title: _("Show/Hide Hidden Files");
         action-name: "app.show-hidden";
       }
+
+      ShortcutsShortcut {
+        title: _("Show Main Menu");
+        accelerator: "F10";
+      }
+    }
+
+    ShortcutsGroup {
+      title: _("Tabs");
+
+      ShortcutsShortcut {
+        title: _("New Tab");
+        action-name: "win.new-tab";
+      }
+
+      ShortcutsShortcut {
+        title: _("Go to Previous Tab");
+        accelerator: "<alt>Page_Up";
+      }
+
+      ShortcutsShortcut {
+        title: _("Go to Next Tab");
+        accelerator: "<alt>Page_Down";
+      }
+
+      ShortcutsShortcut {
+        title: _("Open Tab");
+        accelerator: "<alt>0...8";
+      }
+
+      ShortcutsShortcut {
+        title: _("Move Tab Left");
+        accelerator: "<primary><shift>Page_Up";
+      }
+
+      ShortcutsShortcut {
+        title: _("Move Tab Right");
+        accelerator: "<primary><shift>Page_Down";
+      }
+
+      ShortcutsShortcut {
+        title: _("View Open Tabs");
+        action-name: "win.tab-overview";
+      }
     }
 
     ShortcutsGroup {
       title: _("General");
 
       ShortcutsShortcut {
+        title: _("New Window");
+        action-name: "win.new-window";
+      }
+
+      ShortcutsShortcut {
         title: _("Close Window or Tab");
         action-name: "win.close";
+      }
+
+      ShortcutsShortcut {
+        title: _("Quit");
+        action-name: "app.quit";
+      }
+
+      ShortcutsShortcut {
+        title: _("Search");
+        action-name: "win.search";
       }
 
       ShortcutsShortcut {
@@ -108,13 +178,8 @@ ShortcutsWindow help_overlay {
       }
 
       ShortcutsShortcut {
-        title: _("Quit");
-        action-name: "app.quit";
-      }
-
-      ShortcutsShortcut {
         title: _("Undo");
-        action-name: "win.undo";
+        accelerator: "<primary>z";
       }
     }
 
@@ -123,17 +188,17 @@ ShortcutsWindow help_overlay {
     
       ShortcutsShortcut {
         title: _("Open");
-        action-name: "win.open";
+        accelerator: "Return <primary>o";
       }
 
       ShortcutsShortcut {
         title: _("Open In New Tab");
-        action-name: "win.open-new-tab";
+        accelerator: "<primary>Return";
       }
 
       ShortcutsShortcut {
         title: _("Open In New Window");
-        action-name: "win.open-new-window";
+        accelerator: "<shift>Return";
       }
     }
   }

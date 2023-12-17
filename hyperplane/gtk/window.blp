@@ -4,6 +4,11 @@ using Adw 1;
 // This needs to be up top because of the custom attributes
 menu primary_menu {
     section {
+      item (_("New _Tab"), "win.new-tab")
+      item (_("New _Window"), "win.new-window")
+      item (_("View _Open Tabs"), "win.tab-overview")
+    }
+    section {
     label: _("Icon Size");
     display-hint: "inline-buttons";
 
@@ -29,197 +34,202 @@ menu primary_menu {
 }
 
 template $HypWindow : Adw.ApplicationWindow {
-  content: 
-  Adw.ToastOverlay toast_overlay {
-    Adw.OverlaySplitView {
-      sidebar-width-fraction: .2;
-      sidebar: Adw.NavigationPage {
-        title: _("Hyperplane");
-        child: 
-        Adw.ToolbarView {
-          [top]
-          Adw.HeaderBar {
-            [end]
-            MenuButton {
-              primary: true;
-              icon-name: "open-menu-symbolic";
-              tooltip-text: _("Menu");
-              popover: 
-              PopoverMenu {
-                menu-model: primary_menu;
+  content:
+  Adw.TabOverview tab_overview {
+    view: tab_view;
+    enable-new-tab: true;
 
-                [zoom-out]
-                Button {
-                  icon-name: "zoom-out-symbolic";
-                  action-name: "win.zoom-out";
-                  tooltip-text: _("Zoom Out");
+    Adw.ToastOverlay toast_overlay {
+      Adw.OverlaySplitView {
+        sidebar-width-fraction: .2;
+        sidebar: Adw.NavigationPage {
+          title: _("Hyperplane");
+          child: 
+          Adw.ToolbarView {
+            [top]
+            Adw.HeaderBar {
+              [end]
+              MenuButton {
+                primary: true;
+                icon-name: "open-menu-symbolic";
+                tooltip-text: _("Menu");
+                popover: 
+                PopoverMenu {
+                  menu-model: primary_menu;
+
+                  [zoom-out]
+                  Button {
+                    icon-name: "zoom-out-symbolic";
+                    action-name: "win.zoom-out";
+                    tooltip-text: _("Zoom Out");
+
+                    styles [
+                      "flat",
+                    ]
+                  }
+
+                  [zoom-in]
+                  Button {
+                    icon-name: "zoom-in-symbolic";
+                    action-name: "win.zoom-in";
+                    tooltip-text: _("Zoom In");
+
+                    styles [
+                      "flat",
+                    ]
+                  }
+                };
+              }
+            }
+
+            ScrolledWindow {
+              Box {
+                orientation: vertical;
+
+                ListBox sidebar {
+                  selection-mode: none;
+                  Box sidebar_recent {
+                    spacing: 12;
+                    margin-start: 6;
+                    margin-end: 6;
+                    Image {
+                      icon-name: "document-open-recent-symbolic";
+                    }
+                    Label {
+                      label: _("Recent");
+                    }
+                  }
+                  Box sidebar_home {
+                    spacing: 12;
+                    margin-start: 6;
+                    margin-end: 6;
+                    Image {
+                      icon-name: "user-home-symbolic";
+                    }
+                    Label {
+                      label: _("Home");
+                    }
+                  }
 
                   styles [
-                    "flat",
+                    "navigation-sidebar",
                   ]
                 }
-
-                [zoom-in]
-                Button {
-                  icon-name: "zoom-in-symbolic";
-                  action-name: "win.zoom-in";
-                  tooltip-text: _("Zoom In");
+                Separator {
+                  margin-start: 6;
+                  margin-end: 6;
+                }
+                ListBox new_tag_box {
+                  selection-mode: none;
+                  Box {
+                    spacing: 12;
+                    margin-start: 6;
+                    margin-end: 6;
+                    Image {
+                      icon-name: "bookmark-new";
+                    }
+                    Label {
+                      label: _("New Category");
+                    }
+                  }
 
                   styles [
-                    "flat",
+                    "navigation-sidebar",
                   ]
                 }
-              };
+                Separator {
+                  margin-start: 6;
+                  margin-end: 6;
+                }
+                ListBox trash_box {
+                  selection-mode: none;
+                  Box {
+                    spacing: 12;
+                    margin-start: 6;
+                    margin-end: 6;
+                    Image trash_icon {}
+                    Label {
+                      label: _("Trash");
+                    }
+                  }
+
+                  styles [
+                    "navigation-sidebar",
+                  ]
+                }
+              }
             }
           }
 
-          ScrolledWindow {
-            Box {
-              orientation: vertical;
+          ;
+        }
 
-              ListBox sidebar {
-                selection-mode: none;
-                Box sidebar_recent {
-                  spacing: 12;
-                  margin-start: 6;
-                  margin-end: 6;
-                  Image {
-                    icon-name: "document-open-recent-symbolic";
-                  }
-                  Label {
-                    label: _("Recent");
+        ;
+        content: 
+        Adw.ToolbarView toolbar_view {
+
+          [top]
+          Adw.HeaderBar header_bar {
+            [start]
+            Button {
+              icon-name: "go-previous-symbolic";
+              action-name: "win.back";
+              tooltip-text: _("Back");
+            }
+
+            [start]
+            Button {
+              icon-name: "go-next-symbolic";
+              action-name: "win.forward";
+              tooltip-text: _("Forward");
+            }
+
+            [title]
+            Stack title_stack {
+              transition-type: crossfade;
+              transition-duration: 100;
+
+              Adw.WindowTitle window_title {
+                title: bind template.title;
+              }
+
+              Adw.Clamp path_bar_clamp {
+                Entry path_bar {
+                  hexpand: true;
+
+                  ShortcutController {
+                    Shortcut {
+                      trigger: "Escape";
+                      action: "action(win.hide-path-bar)";
+                    }
                   }
                 }
-                Box sidebar_home {
-                  spacing: 12;
-                  margin-start: 6;
-                  margin-end: 6;
-                  Image {
-                    icon-name: "user-home-symbolic";
-                  }
-                  Label {
-                    label: _("Home");
-                  }
-                }
+              }
 
-                styles [
-                  "navigation-sidebar",
-                ]
-              }
-              Separator {
-                margin-start: 6;
-                margin-end: 6;
-              }
-              ListBox new_tag_box {
-                selection-mode: none;
-                Box {
-                  spacing: 12;
-                  margin-start: 6;
-                  margin-end: 6;
-                  Image {
-                    icon-name: "bookmark-new";
-                  }
-                  Label {
-                    label: _("New Category");
-                  }
+              Adw.Clamp search_entry_clamp {
+                SearchEntry search_entry {
                 }
-
-                styles [
-                  "navigation-sidebar",
-                ]
-              }
-              Separator {
-                margin-start: 6;
-                margin-end: 6;
-              }
-              ListBox trash_box {
-                selection-mode: none;
-                Box {
-                  spacing: 12;
-                  margin-start: 6;
-                  margin-end: 6;
-                  Image trash_icon {}
-                  Label {
-                    label: _("Trash");
-                  }
-                }
-
-                styles [
-                  "navigation-sidebar",
-                ]
               }
             }
+
+            [end]
+            ToggleButton search_button {
+              icon-name: "system-search-symbolic";
+              tooltip-text: _("Search");
+            }
+          }
+
+          [top]
+          Adw.TabBar tab_bar {
+            view: tab_view;
+          }
+
+          Adw.TabView tab_view {
           }
         }
 
         ;
       }
-
-      ;
-      content: 
-      Adw.ToolbarView toolbar_view {
-
-        [top]
-        Adw.HeaderBar header_bar {
-          [start]
-          Button {
-            icon-name: "go-previous-symbolic";
-            action-name: "win.back";
-            tooltip-text: _("Back");
-          }
-
-          [start]
-          Button {
-            icon-name: "go-next-symbolic";
-            action-name: "win.forward";
-            tooltip-text: _("Forward");
-          }
-
-          [title]
-          Stack title_stack {
-            transition-type: crossfade;
-            transition-duration: 100;
-
-            Adw.WindowTitle window_title {
-              title: bind template.title;
-            }
-
-            Adw.Clamp path_bar_clamp {
-              Entry path_bar {
-                hexpand: true;
-
-                ShortcutController {
-                  Shortcut {
-                    trigger: "Escape";
-                    action: "action(win.hide-path-bar)";
-                  }
-                }
-              }
-            }
-
-            Adw.Clamp search_entry_clamp {
-              SearchEntry search_entry {
-              }
-            }
-          }
-
-          [end]
-          ToggleButton search_button {
-            icon-name: "system-search-symbolic";
-            tooltip-text: _("Search");
-          }
-        }
-
-        [top]
-        Adw.TabBar tab_bar {
-          view: tab_view;
-        }
-
-        Adw.TabView tab_view {
-        }
-      }
-
-      ;
     }
   }
 

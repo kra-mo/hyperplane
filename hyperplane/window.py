@@ -37,6 +37,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     __gtype_name__ = "HypWindow"
 
+    tab_overview: Adw.TabOverview = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
@@ -126,6 +127,10 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("move-tag-down", self.__move_tag_down)
         self.create_action("remove-tag", self.__remove_tag)
 
+        self.create_action("new-window", self.__new_window, ("<primary>n",))
+        self.create_action("new-tab", self.__new_tab, ("<primary>t",))
+        self.create_action("tab-overview", self.__tab_overview, ("<primary><shift>o",))
+
         # Connect signals
 
         self.sidebar.connect("row-activated", self.__row_activated)
@@ -134,6 +139,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.tab_view.connect("notify::selected-page", self.__tab_changed)
         self.tab_view.connect("create-window", self.__create_window)
+        self.tab_overview.connect("create-tab", self.__create_tab)
 
         self.path_bar.connect("activate", self.__path_bar_activated)
         self.search_entry.connect("search-started", self.__show_search_entry)
@@ -173,7 +179,7 @@ class HypWindow(Adw.ApplicationWindow):
         return toast
 
     def new_tab(
-        self, gfile: Optional[Gio.File] = None, tag: Optional[str] = None
+        self, gfile: Optional[Gio.File] = None, tags: Optional[Iterable[str]] = None
     ) -> None:
         """Open a new path with the given file or tag."""
         if (
@@ -182,8 +188,8 @@ class HypWindow(Adw.ApplicationWindow):
             == Gio.FileType.DIRECTORY
         ):
             navigation_view = HypNavigationBin(initial_gfile=gfile)
-        elif tag:
-            navigation_view = HypNavigationBin(initial_tags=[tag])
+        elif tags:
+            navigation_view = HypNavigationBin(initial_tags=tags)
         else:
             return
 
@@ -192,17 +198,17 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
     def new_window(
-        self, gfile: Optional[Gio.File] = None, tag: Optional[str] = None
+        self, gfile: Optional[Gio.File] = None, tags: Optional[Iterable[str]] = None
     ) -> None:
-        """Open a new window with the given file or tag."""
+        """Open a new window with the given file or tags."""
         if (
             gfile
             and gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
             == Gio.FileType.DIRECTORY
         ):
             new_bin = HypNavigationBin(initial_gfile=gfile)
-        elif tag:
-            new_bin = HypNavigationBin(initial_tags=[tag])
+        elif tags:
+            new_bin = HypNavigationBin(initial_tags=tags)
         else:
             return
 
@@ -561,6 +567,14 @@ class HypWindow(Adw.ApplicationWindow):
         win.tab_view.close_page(win.tab_view.get_selected_page())
         return win.tab_view
 
+    def __create_tab(self, *_args: Any) -> Adw.TabPage:
+        page = self.tab_view.append(
+            HypNavigationBin(initial_gfile=Gio.File.new_for_path(str(shared.home)))
+        )
+
+        page.set_title(_("Home"))
+        return page
+
     def __open_tag(self, *_args: Any) -> None:
         # TODO: This is ugly
         self.tab_view.get_selected_page().get_child().new_page(
@@ -568,10 +582,10 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
     def __open_new_tab_tag(self, *_args: Any) -> None:
-        self.new_tab(tag=self.right_clicked_tag)
+        self.new_tab(tags=[self.right_clicked_tag])
 
     def __open_new_window_tag(self, *_args: Any) -> None:
-        self.new_window(tag=self.right_clicked_tag)
+        self.new_window(tags=[self.right_clicked_tag])
 
     def __move_tag_up(self, *_args: Any) -> None:
         move_tag(self.right_clicked_tag, up=True)
@@ -582,6 +596,17 @@ class HypWindow(Adw.ApplicationWindow):
     def __remove_tag(self, *_args: Any) -> None:
         remove_tags(self.right_clicked_tag)
         self.send_toast(_("{} removed").format(f'"{self.right_clicked_tag}"'))
+
+    def __new_tab(self, *_args: Any) -> None:
+        page = self.get_visible_page()
+        self.new_tab(gfile=page.gfile, tags=page.tags)
+
+    def __new_window(self, *_args: Any) -> None:
+        page = self.get_visible_page()
+        self.new_window(gfile=page.gfile, tags=page.tags)
+
+    def __tab_overview(self, *_args: Any) -> None:
+        self.tab_overview.set_open(not self.tab_overview.get_open())
 
     def __set_actions(self, *_args: Any) -> None:
         self.set_menu_items(

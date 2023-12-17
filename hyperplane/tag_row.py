@@ -70,4 +70,4 @@ class HypTagRow(Gtk.Box):
         self.get_root().tag_right_click_menu.popup()
 
     def __middle_click(self, *_args: Any) -> None:
-        self.get_root().new_tab(tag=self.tag)
+        self.get_root().new_tab(tags=[self.tag])
