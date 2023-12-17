@@ -84,6 +84,11 @@ rubberband {
     padding: 16px;
 }
 
+/* Remove the top margin since the header bar provides enough already */
+.properties-page scrolledwindow viewport clamp box {
+    margin-top: 0;
+}
+
 /* For flat header bars that don't look weird */
 navigation-view dimming {
     opacity: 0;

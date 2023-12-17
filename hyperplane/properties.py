@@ -79,6 +79,7 @@ class HypPropertiesWindow(Adw.Window):
         # fmt: on
 
         page = Adw.PreferencesPage()
+        page.add_css_class("properties-page")
         toolbar_view = Adw.ToolbarView(content=page)
         toolbar_view.add_top_bar(Adw.HeaderBar(show_title=False))
         navigation_view = Adw.NavigationView()
