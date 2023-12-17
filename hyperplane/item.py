@@ -84,7 +84,7 @@ class HypItem(Adw.Bin):
         self.gfile = self.file_info.get_attribute_object("standard::file")
         self.gicon = self.file_info.get_symbolic_icon()
         self.content_type = self.file_info.get_content_type()
-        self.color = get_color_for_content_type(self.content_type)
+        self.color = get_color_for_content_type(self.content_type, self.gicon)
         display_name = self.file_info.get_display_name()
         self.is_dir = self.content_type == "inode/directory"
         self.display_name = display_name if self.is_dir else Path(display_name).stem
@@ -192,8 +192,8 @@ class HypItem(Adw.Bin):
 
             self.picture.set_paintable(shared.open_folder_texture)
 
-            if icon := file_info.get_symbolic_icon():
-                thumbnail.get_child().set_from_gicon(icon)
+            if gicon := file_info.get_symbolic_icon():
+                thumbnail.get_child().set_from_gicon(gicon)
 
             if content_type == "inode/directory":
                 thumbnail.add_css_class("light-blue-background")
@@ -202,7 +202,7 @@ class HypItem(Adw.Bin):
 
             thumbnail.add_css_class("white-background")
 
-            color = get_color_for_content_type(content_type)
+            color = get_color_for_content_type(content_type, gicon)
             thumbnail.get_child().add_css_class(color + "-icon-light-only")
 
             if thumbnail_path := file_info.get_attribute_byte_string(

@@ -46,6 +46,7 @@ hyperplane_sources = [
   'main.py',
   'window.py',
   'preferences.py',
+  'properties.py',
   'navigation_bin.py',
   'items_page.py',
   'item.py',

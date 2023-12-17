@@ -308,7 +308,7 @@ class HypItemsPage(Adw.NavigationPage):
                 self.shortcut_controller.add_shortcut(
                     Gtk.Shortcut.new(
                         Gtk.ShortcutTrigger.parse_string(shortcut),
-                        Gtk.ShortcutAction.parse_string(f"action(page.{name})"),
+                        Gtk.NamedAction.new(f"page.{name}"),
                     )
                 )
 

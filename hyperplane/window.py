@@ -26,6 +26,7 @@ from gi.repository import Adw, Gio, Gtk
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
+from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
@@ -89,6 +90,10 @@ class HypWindow(Adw.ApplicationWindow):
             title := self.get_visible_page().get_title()
         )
         self.set_title(title)
+
+        self.create_action(
+            "properties", self.__properties, ("<alt>Return", "<primary>i")
+        )
 
         self.create_action("home", self.__go_home, ("<alt>Home",))
         self.create_action(
@@ -297,6 +302,16 @@ class HypWindow(Adw.ApplicationWindow):
 
         return positions
 
+    def __properties(self, *_args: Any) -> None:
+        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
+        if not gfiles:
+            return
+
+        # TODO: Allow viewing properties of multiple files
+        properties = HypPropertiesWindow(gfiles[0])
+        properties.set_transient_for(self)
+        properties.present()
+
     def __update_tags(self, *_args: Any) -> None:
         for item in self.sidebar_items:
             self.sidebar.remove(item.get_parent())
@@ -459,7 +474,13 @@ class HypWindow(Adw.ApplicationWindow):
                     except FileNotFoundError:
                         path = ""  # Fallback blank string
                     self.path_bar.set_text(
-                        path if isinstance(path, str) else str(path) + sep
+                        path
+                        if isinstance(path, str)
+                        else (
+                            str(path)
+                            if str(path) == sep  # If the path is root
+                            else str(path) + sep
+                        )
                     )
                 elif page.tags:
                     self.path_bar.set_text("//" + "//".join(page.tags) + "//")
