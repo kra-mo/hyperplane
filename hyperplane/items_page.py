@@ -236,6 +236,10 @@ class HypItemsPage(Adw.NavigationPage):
 
         Gio.AppInfo.launch_default_for_uri(uri)
 
+        # Don't add trashed items to Recent
+        if gfile.get_uri().startswith("trash://"):
+            return
+
         recent_data = Gtk.RecentData()
         recent_data.display_name = file_info.get_display_name()
         recent_data.mime_type = file_info.get_content_type()
