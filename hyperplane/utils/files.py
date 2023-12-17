@@ -218,7 +218,7 @@ def get_copy_path(path: PathLike) -> Path:
 
 
 def get_gfile_display_name(gfile: Gio.File) -> str:
-    """Gets the display name for a GFile."""
+    """Gets the display name for a `GFile`."""
     # HACK: Don't call this. Store this info somewhere instead.
     return gfile.query_info(
         Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
@@ -227,9 +227,9 @@ def get_gfile_display_name(gfile: Gio.File) -> str:
 
 def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
     """
-    Gets a pathlib.Path to represent a GFile.
+    Gets a pathlib.Path to represent a `GFile`.
 
-    If `uri_fallback` is true and no path can be retreived but the GFile
+    If `uri_fallback` is true and no path can be retreived but the `GFile`
     has a valid URI, returns that instead.
     """
 

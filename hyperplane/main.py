@@ -130,15 +130,20 @@ class HypApplication(Adw.Application):
 
     def __on_about_action(self, *_args: Any) -> None:
         """Callback for the app.about action."""
-        about = Adw.AboutWindow(
-            transient_for=self.get_active_window(),
-            application_name=_("Hyperplane"),
-            application_icon=shared.APP_ID,
-            developer_name="kramo",
-            version="0.1.0",
-            developers=["kramo"],
-            copyright="© 2023 kramo",
+        about = Adw.AboutWindow.new_from_appdata(
+            shared.PREFIX + "/" + shared.APP_ID + ".metainfo.xml", shared.VERSION
         )
+        about.set_transient_for(self.get_active_window())
+        about.set_developers(
+            (
+                "kramo https://kramo.hu",
+                "Benedek Dévényi https://github.com/rdbende",
+            )
+        )
+        about.set_designers(("kramo https://kramo.hu",))
+        about.set_copyright("© 2023 kramo")
+        # Translators: Replace this with your name for it to show up in the about window
+        about.set_translator_credits = (_("translator_credits"),)
         about.present()
 
     def __on_preferences_action(self, *_args: Any) -> None:

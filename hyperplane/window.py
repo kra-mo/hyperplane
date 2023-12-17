@@ -103,6 +103,21 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("forward", self.__on_forward_action)
         self.lookup_action("forward").set_enabled(False)
 
+        self.create_action(
+            "zoom-in",
+            self.__on_zoom_in_action,
+            ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
+        )
+        self.create_action(
+            "zoom-out",
+            self.__on_zoom_out_action,
+            ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
+        )
+        self.create_action(
+            "reset-zoom", self.__reset_zoom, ("<primary>0", "<primary>KP_0")
+        )
+        self.create_action("reload", self.__reload, ("<primary>r", "F5"))
+
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-tag", self.__open_tag)
         self.create_action("open-new-tab-tag", self.__open_new_tab_tag)
@@ -245,7 +260,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.get_visible_page().action_group.lookup_action(action).set_enabled(True)
 
     def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
-        """Get a list of GFiles corresponding to positions in the ListModel."""
+        """Get a list of `GFile`s corresponding to positions in the list model."""
         paths = []
         multi_selection = self.get_visible_page().multi_selection
 
@@ -517,6 +532,27 @@ class HypWindow(Adw.ApplicationWindow):
             return
 
         nav_bin.view.push(nav_bin.next_pages[-1])
+
+    def __on_zoom_in_action(self, *_args: Any) -> None:
+        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
+            return
+
+        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
+        self.update_zoom()
+
+    def __on_zoom_out_action(self, *_args: Any) -> None:
+        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
+            return
+
+        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
+        self.update_zoom()
+
+    def __reset_zoom(self, *_args: Any) -> None:
+        shared.state_schema.reset("zoom-level")
+        self.update_zoom()
+
+    def __reload(self, *_args: Any) -> None:
+        self.get_visible_page().reload()
 
     def __create_window(self, *_args: Any) -> Adw.TabView:
         win = self.get_application().do_activate()

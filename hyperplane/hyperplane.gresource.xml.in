@@ -11,5 +11,6 @@
     <file alias="style-dark.css">gtk/style-dark.css</file>
     <file preprocess="xml-stripblanks">assets/folder-closed.svg</file>
     <file preprocess="xml-stripblanks">assets/folder-open.svg</file>
+    <file preprocess="xml-stripblanks" alias="@APP_ID@.metainfo.xml">../data/@APP_ID@.metainfo.xml</file>
   </gresource>
 </gresources>

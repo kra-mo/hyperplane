@@ -123,21 +123,6 @@ class HypItemsPage(Adw.NavigationPage):
         self.action_group = Gio.SimpleActionGroup.new()
         self.insert_action_group("page", self.action_group)
 
-        self.create_action(
-            "zoom-in",
-            self.__on_zoom_in_action,
-            ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
-        )
-        self.create_action(
-            "zoom-out",
-            self.__on_zoom_out_action,
-            ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
-        )
-        self.create_action(
-            "reset-zoom", self.__reset_zoom, ("<primary>0", "<primary>KP_0")
-        )
-        self.create_action("reload", self.__reload, ("<primary>r", "F5"))
-
         self.create_action("undo", self.__undo, ("<primary>z",))
         self.create_action("open", self.__open, ("Return", "<primary>o"))
         self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
@@ -155,9 +140,22 @@ class HypItemsPage(Adw.NavigationPage):
         self.create_action("trash-delete", self.__trash_delete, ("Delete",))
         self.create_action("trash-restore", self.__trash_restore)
 
+    def reload(self) -> None:
+        """Refresh the view."""
+        if isinstance(self.dir_list, Gtk.DirectoryList):
+            self.dir_list.set_monitored(False)
+            self.dir_list.set_monitored(True)
+            return
+
+        # TODO: This works, but it would be best if instead of manually refreshing,
+        # tags would be monitored for changes too. I don't know how I would do that though.
+        if isinstance(self.dir_list, Gtk.FlattenListModel):
+            self.dir_list = self.__get_list(tags=self.tags)
+            self.filter_list.set_model(self.dir_list)
+
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
-    ) -> Gtk.FlattenListModel | Gtk.DirectoryList:
+    ) -> Gtk.DirectoryList | Gtk.FlattenListModel:
         attrs = ",".join(
             (
                 Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
@@ -310,30 +308,6 @@ class HypItemsPage(Adw.NavigationPage):
                     )
                 )
 
-    def __on_zoom_in_action(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
-        win.update_zoom()
-
-    def __on_zoom_out_action(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
-        win.update_zoom()
-
-    def __reset_zoom(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        shared.state_schema.reset("zoom-level")
-        win.update_zoom()
-
     def __undo(self, obj: Any, *_args: Any) -> None:
         win = self.get_root()
 
@@ -416,18 +390,6 @@ class HypItemsPage(Adw.NavigationPage):
 
         # TODO: Is there any way to open multiple files?
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
-
-    def __reload(self, *_args: Any) -> None:
-        if isinstance(self.dir_list, Gtk.DirectoryList):
-            self.dir_list.set_monitored(False)
-            self.dir_list.set_monitored(True)
-            return
-
-        # TODO: This works, but it would be best if instead of manually refreshing,
-        # tags would be monitored for changes too. I don't know how I would do that though.
-        if isinstance(self.dir_list, Gtk.FlattenListModel):
-            self.dir_list = self.__get_list(tags=self.tags)
-            self.filter_list.set_model(self.dir_list)
 
     def __new_folder(self, *_args: Any) -> None:
         path = None
