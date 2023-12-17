@@ -50,8 +50,10 @@ class HypItemsPage(Adw.NavigationPage):
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
+    no_matching_items: Adw.StatusPage = Gtk.Template.Child()
     empty_trash: Adw.StatusPage = Gtk.Template.Child()
     no_results: Adw.StatusPage = Gtk.Template.Child()
+    loading: Gtk.Viewport = Gtk.Template.Child()
 
     multi_selection: Gtk.MultiSelection
     item_filter: HypItemFilter
@@ -114,7 +116,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.grid_view.connect("activate", self.activate)
 
         self.filter_list.connect("items-changed", self.__items_changed)
-        self.__items_changed(self.dir_list)
+        self.__items_changed(self.filter_list)
 
         # Set up the "page" action group
         self.shortcut_controller = Gtk.ShortcutController.new()
@@ -167,38 +169,74 @@ class HypItemsPage(Adw.NavigationPage):
             )
         )
         if gfile:
-            return Gtk.DirectoryList.new(attrs, gfile)
+            dir_list = Gtk.DirectoryList.new(attrs, gfile)
+            dir_list.connect(
+                "notify::loading", lambda *_: self.__items_changed(self.filter_list)
+            )
+
+            return dir_list
 
         list_store = Gio.ListStore.new(Gtk.DirectoryList)
         for plane_path in iterplane(tags):
             list_store.append(
-                Gtk.DirectoryList.new(attrs, Gio.File.new_for_path(str(plane_path)))
+                dir_list := Gtk.DirectoryList.new(
+                    attrs, Gio.File.new_for_path(str(plane_path))
+                )
+            )
+            dir_list.connect(
+                "notify::loading", lambda *_: self.__items_changed(self.filter_list)
             )
 
         return Gtk.FlattenListModel.new(list_store)
 
-    # TODO: Make this more efficient with removed and added?
-    # TODO: Make this less prone to showing up during initial population
-    def __items_changed(self, filter_list: Gtk.FilterListModel, *_args: Any) -> None:
-        if (
-            child := self.scrolled_window.get_child()
-        ) != self.grid_view and filter_list.get_n_items():
+    def __items_changed(
+        self,
+        filter_list: Gtk.FilterListModel,
+        _pos: Optional[int] = 0,
+        removed: Optional[int] = 1,
+        added: Optional[int] = 1,
+    ) -> None:
+        page = self.scrolled_window.get_child()
+        n_items = filter_list.get_n_items()
+
+        if added and n_items and (page != self.grid_view):
+            if page == self.loading:
+                self.loading.get_child().stop()
+
             self.scrolled_window.set_child(self.grid_view)
-        if (
-            child not in (self.empty_folder, self.empty_trash)
-            and not filter_list.get_n_items()
-        ):
+            return
+
+        if removed and (not n_items):
             if (
                 win := self.get_root()
             ) and win.title_stack.get_visible_child() == win.search_entry_clamp:
                 self.scrolled_window.set_child(self.no_results)
                 return
 
-            if self.gfile and self.gfile.get_uri() != "trash:///":
-                self.scrolled_window.set_child(self.empty_folder)
-                return
+            if self.gfile:
+                if self.dir_list.is_loading():
+                    self.loading.get_child().start()
+                    self.scrolled_window.set_child(self.loading)
+                    return
 
-            self.scrolled_window.set_child(self.empty_trash)
+                if self.gfile.get_uri() == "trash:///":
+                    self.scrolled_window.set_child(self.empty_trash)
+                    return
+
+                self.scrolled_window.set_child(self.empty_folder)
+
+            if self.tags:
+                model = self.dir_list.get_model()
+                index = 0
+                while dir_list := model.get_item(index):
+                    if dir_list.is_loading():
+                        self.loading.get_child().start()
+                        self.scrolled_window.set_child(self.loading)
+                        return
+                    index += 1
+
+                self.scrolled_window.set_child(self.no_matching_items)
+                return
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.set_child(HypItem(item))

@@ -18,6 +18,11 @@ Adw.StatusPage empty_folder {
   icon-name: "folder-symbolic";
 }
 
+Adw.StatusPage no_matching_items {
+  title: _("No Matching Items");
+  icon-name: "user-bookmarks-symbolic";
+}
+
 Adw.StatusPage empty_trash {
   title: _("Trash is Empty");
   icon-name: "user-trash-symbolic";
@@ -26,4 +31,12 @@ Adw.StatusPage empty_trash {
 Adw.StatusPage no_results {
   title: _("No Results Found");
   icon-name: "system-search-symbolic";
+}
+
+Viewport loading {
+  Spinner {
+    hexpand: true;
+    halign: center;
+    width-request: 32;
+  }
 }
