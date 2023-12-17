@@ -1,1 +1,3 @@
+"""Additional builtins mainly for IntelliSense."""
+
 def _(_msg: str, /) -> str: ...

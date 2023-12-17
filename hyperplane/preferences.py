@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""The main preferences window."""
 from typing import Any
 
 from gi.repository import Adw, Gio, Gtk
@@ -26,6 +27,8 @@ from hyperplane import shared
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/preferences.ui")
 class HypPreferencesWindow(Adw.PreferencesWindow):
+    """The main preferences window."""
+
     __gtype_name__ = "HypPreferencesWindow"
 
     folders_switch_row = Gtk.Template.Child()

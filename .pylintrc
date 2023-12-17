@@ -1,0 +1,9 @@
+[MESSAGES CONTROL]
+
+disable=import-error,
+        no-name-in-module
+
+
+[VARIABLES]
+
+additional-builtins=_

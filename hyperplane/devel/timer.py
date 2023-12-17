@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Print the time it took to execute a function."""
 from time import perf_counter
 from typing import Callable
 

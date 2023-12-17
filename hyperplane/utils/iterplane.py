@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Get the existing paths that contain files tagged `filter_tags`."""
 from pathlib import Path
 from typing import Generator, Iterable
 

@@ -36,13 +36,15 @@ from hyperplane.utils.files import (
     restore,
     rm,
     trash_rm,
+    validate_name,
 )
 from hyperplane.utils.iterplane import iterplane
-from hyperplane.utils.validate_name import validate_name
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
 class HypItemsPage(Adw.NavigationPage):
+    """A view of `HypItem`s in a directory to be added to an `AdwNavigationView`"""
+
     __gtype_name__ = "HypItemsPage"
 
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()

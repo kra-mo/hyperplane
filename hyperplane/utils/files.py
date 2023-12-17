@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Miscellaneous utilities for file operations."""
 import shutil
 from os import PathLike, getenv
 from pathlib import Path
@@ -249,6 +250,65 @@ def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
         return gfile_uri
 
     raise FileNotFoundError
+
+
+def validate_name(
+    gfile: Gio.File, name: str, siblings: Optional[bool] = False
+) -> (bool, Optional[str]):
+    """
+    The first return value is true if `name` is a valid name for a new file or folder
+    in the directory represented by `gfile`.
+
+    The second is either a warning or error depenging on whether the first return value was true.
+    This should be displayed to the user before the file operation.
+
+    Set `siblings` to true for a move operation in the same directory (a rename).
+    """
+    try:
+        path = Path(get_gfile_path(gfile))
+    except FileNotFoundError:
+        # Assume that locations without paths are not writable
+        # TODO: This may be incorrect
+        return False, _("The path is not writable.")
+
+    is_dir = path.is_dir()
+    is_file = (not is_dir) and (path.exists())
+
+    # TODO: More elegant (cross-platfrom) way to check for invalid paths
+    if name in (".", ".."):
+        if is_dir:
+            error = _('A folder cannot be called "{}".').format(name)
+        else:
+            error = _('A file cannot be called "{}".').format(name)
+        return False, error
+
+    if "/" in name:
+        if is_dir:
+            error = _('Folder names cannot conrain "{}".').format("/")
+        else:
+            error = _('File names cannot conrain "{}".').format("/")
+        return False, error
+
+    new_path = Path(path.parent, name) if siblings else path / name
+    new_is_dir = new_path.is_dir()
+    new_is_file = (not new_is_dir) and (new_path.exists())
+
+    if new_is_dir and is_dir and new_path != path:
+        error = _("A folder with that name already exists.")
+        return False, error
+
+    if new_is_file and is_file and new_path != path:
+        error = _("A file with that name already exists.")
+        return False, error
+
+    if name[0] == ".":
+        if is_dir:
+            warning = _("Folders with “.” at the beginning of their name are hidden.")
+        else:
+            warning = _("Files with “.” at the beginning of their name are hidden.")
+        return True, warning
+
+    return True, None
 
 
 def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):

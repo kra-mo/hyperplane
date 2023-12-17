@@ -35,6 +35,7 @@ configure_file(
 )
 
 install_subdir('utils', install_dir: moduledir)
+install_subdir('logging', install_dir: moduledir)
 
 if profile == 'development'
   install_subdir('devel', install_dir: moduledir)

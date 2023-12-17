@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Main filter for HypItemsPage."""
 from pathlib import Path
 from typing import Optional
 
@@ -26,6 +27,8 @@ from hyperplane import shared
 
 
 class HypItemFilter(Gtk.Filter):
+    """Main filter for HypItemsPage."""
+
     __gtype_name__ = "HypItemFilter"
 
     def __tag_filter(self, file_info: Gio.FileInfo) -> bool:
@@ -75,6 +78,7 @@ class HypItemFilter(Gtk.Filter):
         return True
 
     def do_match(self, file_info: Optional[Gio.FileInfo] = None) -> bool:
+        """Checks if the given `item` is matched by the filter or not."""
         if not file_info:
             return False
 

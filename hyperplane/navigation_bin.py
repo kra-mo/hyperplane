@@ -17,6 +17,10 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+An `AdwBin` with an `AdwNavigationView` child to be used
+with `HypItemsPage`s in its navigation stack.
+"""
 from typing import Any, Iterable, Optional
 
 from gi.repository import Adw, Gio, GLib
@@ -25,6 +29,11 @@ from hyperplane.items_page import HypItemsPage
 
 
 class HypNavigationBin(Adw.Bin):
+    """
+    An `AdwBin` with an `AdwNavigationView` child to be used
+    with `HypItemsPage`s in its navigation stack.
+    """
+
     __gtype_name__ = "HypNavigationBin"
 
     items_page: HypItemsPage

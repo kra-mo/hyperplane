@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Utilities for working with thumbnails."""
 from logging import debug
 from typing import Any, Callable
 

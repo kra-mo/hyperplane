@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""An item represeting a file to be set up thorugh a `GtkSignalListItemFactory`."""
 from pathlib import Path
 from typing import Any, Optional
 
@@ -29,6 +30,8 @@ from hyperplane.utils.thumbnail import generate_thumbnail
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
 class HypItem(Adw.Bin):
+    """An item represeting a file to be set up thorugh a `GtkSignalListItemFactory`."""
+
     __gtype_name__ = "HypItem"
 
     clamp: Adw.Clamp = Gtk.Template.Child()
@@ -361,14 +364,16 @@ class HypItem(Adw.Bin):
 
     @GObject.Property(type=str)
     def display_name(self) -> str:
+        """The name of the item visible to the user."""
         return self._display_name
 
     @display_name.setter
-    def set_name(self, name: str) -> None:
+    def set_display_name(self, name: str) -> None:
         self._display_name = name
 
     @GObject.Property(type=Gio.Icon)
     def gicon(self) -> Gio.Icon:
+        """The icon of the item displayed to the user if no thumbnail is available."""
         return self._gicon
 
     @gicon.setter

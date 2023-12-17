@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""The main application singleton class."""
 import sys
 from typing import Any, Callable, Iterable, Optional
 
@@ -33,8 +34,8 @@ gi.require_version("XdpGtk4", "1.0")
 from gi.repository import Adw, Gio, GLib
 
 from hyperplane import shared
+from hyperplane.logging.logging_config import logging_config
 from hyperplane.preferences import HypPreferencesWindow
-from hyperplane.utils.logging_config import logging_config
 from hyperplane.window import HypWindow
 
 
@@ -105,6 +106,7 @@ class HypApplication(Adw.Application):
         return win
 
     def do_handle_local_options(self, options: GLib.VariantDict) -> int:
+        """Handles local command line arguments."""
         if options.contains("new-window") and self.get_is_registered():
             self.do_activate()
         return -1

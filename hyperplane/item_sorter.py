@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""The main sorter for HypItemsPage."""
 from locale import strcoll
 from typing import Optional
 
@@ -26,6 +27,8 @@ from hyperplane import shared
 
 
 class HypItemSorter(Gtk.Sorter):
+    """The main sorter for HypItemsPage."""
+
     __gtype_name__ = "HypItemSorter"
 
     def do_compare(
@@ -33,6 +36,18 @@ class HypItemSorter(Gtk.Sorter):
         file_info1: Optional[Gio.FileInfo] = None,
         file_info2: Optional[Gio.FileInfo] = None,
     ) -> int:
+        """
+        Compares two given items according to the sort order implemented by the sorter.
+
+        Sorters implement a partial order:
+
+        - It is reflexive, ie a = a
+        - It is antisymmetric, ie if a < b and b < a, then a = b
+        - It is transitive, ie given any 3 items with a ≤ b and b ≤ c, then a ≤ c
+
+        The sorter may signal it conforms to additional constraints
+        via the return value of `HypItemSorter.get_order()`.
+        """
         if (not file_info1) or (not file_info2):
             return Gtk.Ordering.EQUAL
 
@@ -84,8 +99,12 @@ class HypItemSorter(Gtk.Sorter):
         return self.__ordering_from_cmpfunc(strcoll(name1, name2))
 
     def __ordering_from_cmpfunc(self, cmpfunc_result: int) -> Gtk.Ordering:
+        """Converts the result of a `GCompareFunc` like `strcmp()` to a `GtkOrdering` value."""
         # HACK: Gtk.Ordering.from_cmpfunc seems to not work
-        # gi.repository.GLib.GError: g-invoke-error-quark: Could not locate gtk_ordering_from_cmpfunc: 'gtk_ordering_from_cmpfunc': /usr/lib/x86_64-linux-gnu/libgtk-4.so.1: undefined symbol: gtk_ordering_from_cmpfunc (1)
+        # gi.repository.GLib.GError: g-invoke-error-quark:
+        # Could not locate gtk_ordering_from_cmpfunc:
+        # 'gtk_ordering_from_cmpfunc': /usr/lib/x86_64-linux-gnu/libgtk-4.so.1:
+        # undefined symbol: gtk_ordering_from_cmpfunc (1)
 
         if cmpfunc_result > 0:
             return Gtk.Ordering.LARGER

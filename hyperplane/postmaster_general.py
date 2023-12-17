@@ -17,20 +17,32 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""A singleton class for sending signals throughtout the app."""
 from gi.repository import GObject
 
 
 class HypPostmasterGeneral(GObject.Object):
+    """A singleton class for sending signals throughtout the app."""
+
     __gtype_name__ = "HypPostmasterGeneral"
 
     @GObject.Signal(name="zoom")
     def zoom(self, zoom_level: int) -> None:
-        pass
+        """
+        Emitted whenever the zoom level changes.
+
+        All widgets that are affected by zooming should connect to it.
+        """
 
     @GObject.Signal(name="toggle-hidden")
-    def show_hidden(self) -> None:
-        pass
+    def toggle_hidden(self) -> None:
+        """Emitted when the visibility of hidden files changes."""
 
     @GObject.Signal(name="tags-changed")
     def tags_changed(self) -> None:
-        pass
+        """
+        Emitted whenever the list of tags changes.
+
+        All objects that keep an internal list of tags should connect to this
+        and update their list accordingly.
+        """

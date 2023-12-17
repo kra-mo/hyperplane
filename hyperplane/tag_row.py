@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""A row in the sidebar representing a tag."""
 from typing import Any
 
 from gi.repository import Gdk, Gtk
@@ -26,6 +27,8 @@ from hyperplane import shared
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/tag-row.ui")
 class HypTagRow(Gtk.Box):
+    """A row in the sidebar representing a tag."""
+
     __gtype_name__ = "HypTagRow"
 
     image: Gtk.Image = Gtk.Template.Child()

@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Miscellaneous utilities for working with tags."""
 from hyperplane import shared
 
 

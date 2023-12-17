@@ -17,8 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""The main application window."""
 from os import sep
-from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
 from gi.repository import Adw, Gio, Gtk
@@ -33,6 +33,8 @@ from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
 class HypWindow(Adw.ApplicationWindow):
+    """The main application window."""
+
     __gtype_name__ = "HypWindow"
 
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()

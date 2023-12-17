@@ -17,9 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""Returns the color associated with a MIME type."""
+
 
 # pylint: disable=too-many-return-statements
 def get_color_for_content_type(content_type: str) -> str:
+    """Returns the color associated with a MIME type."""
     if content_type == "inode/directory":
         return "dark-blue"
 
