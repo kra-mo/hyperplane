@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import shutil
-from os import PathLike
+from os import PathLike, getenv
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -288,9 +288,7 @@ def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):
 
 def __remove_trashinfo(trash_path: PathLike, orig_path: PathLike) -> None:
     trashinfo = (
-        Path.home()
-        / ".local"
-        / "share"
+        Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
         / "Trash"
         / "info"
         / (trash_path.name + ".trashinfo")

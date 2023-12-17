@@ -34,6 +34,7 @@ from gi.repository import Adw, Gio, GLib
 
 from hyperplane import shared
 from hyperplane.preferences import HypPreferencesWindow
+from hyperplane.utils.logging_config import logging_config
 from hyperplane.window import HypWindow
 
 
@@ -45,6 +46,7 @@ class HypApplication(Adw.Application):
             application_id=shared.APP_ID,
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
+        logging_config()
 
         # Create home
         shared.home.mkdir(parents=True, exist_ok=True)

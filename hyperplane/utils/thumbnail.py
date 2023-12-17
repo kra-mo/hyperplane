@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from logging import debug
 from typing import Any, Callable
 
 from gi.repository import Gdk, Gio, GLib, GnomeDesktop
@@ -45,7 +46,7 @@ def generate_thumbnail(
             .get_modification_date_time()
             .to_unix()
         )
-    except AttributeError:
+    except (GLib.Error, AttributeError):
         return
 
     if not factory.can_thumbnail(uri, content_type, mtime):
@@ -56,7 +57,7 @@ def generate_thumbnail(
         thumbnail = factory.generate_thumbnail(uri, content_type)
     except GLib.Error as error:
         if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
-            print(f"Cannot thumbnail: {error}")
+            debug("Cannot thumbnail: %s", error)
             callback(failed=True)
             return
 
@@ -69,13 +70,13 @@ def generate_thumbnail(
             ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
 
             if not target_uri:
-                print(f"Cannot thumbnail: {error}")
+                debug("Cannot thumbnail: %s", error)
                 callback(failed=True)
                 return
 
             thumbnail = factory.generate_thumbnail(target_uri, content_type)
         except GLib.Error as new_error:
-            print(f"Cannot thumbnail: {new_error}")
+            debug("Cannot thumbnail: %s", new_error)
             callback(failed=True)
             return
 

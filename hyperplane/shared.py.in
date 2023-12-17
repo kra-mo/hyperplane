@@ -69,10 +69,13 @@ is_flatpak = getenv("FLATPAK_ID") == APP_ID
 
 if (
     is_flatpak
-    and (path := Path.home() / ".local" / "share" / "recently-used.xbel").is_file()
+    and (
+        path := Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        / "recently-used.xbel"
+    ).is_file()
 ):
     # Use the system-wide RecentManager instead of the application-specific one
-    # so files are visible to GVFS
+    # so Hyperplane's recent files are visible to GVFS
     recent_manager = Gtk.RecentManager(filename=str(path))
 else:
     recent_manager = Gtk.RecentManager.get_default()
