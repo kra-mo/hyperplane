@@ -120,8 +120,17 @@ class HypItem(Adw.Bin):
             )
 
         else:
-            self.display_name = Path(display_name).stem
-            self.extension = Path(display_name).suffix[1:].upper()
+            # Blacklist some MIME types from getting extension badges
+            if self.content_type in {
+                "application/x-sharedlib",
+                "application/x-executable",
+                "application/x-pie-executable",
+            }:
+                self.display_name = display_name
+                self.extension = None
+            else:
+                self.display_name = Path(display_name).stem
+                self.extension = Path(display_name).suffix[1:].upper()
             idle_add(self.picture.set_content_fit, Gtk.ContentFit.COVER)
 
             if thumbnail_path := self.file_info.get_attribute_byte_string(
