@@ -55,6 +55,7 @@ class HypItem(Adw.Bin):
     dir_picture_3: Gtk.Picture = Gtk.Template.Child()
 
     item: Gtk.ListItem
+    page: Adw.NavigationPage
     file_info: Gio.FileInfo
 
     gfile: Gio.File
@@ -68,9 +69,11 @@ class HypItem(Adw.Bin):
     _extension: str
     _thumbnail_paintable: Gdk.Paintable
 
-    def __init__(self, item, **kwargs) -> None:
+    def __init__(self, item, page, **kwargs) -> None:
         super().__init__(**kwargs)
         self.item = item
+        self.page = page
+
         self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         shared.postmaster.connect("zoom", self.__zoom)
 
@@ -397,14 +400,13 @@ class HypItem(Adw.Bin):
             menu_items.add("trash-delete")
 
         # TODO: Ugly
-        self.get_parent().get_parent().get_parent().get_parent().menu_items = menu_items
+        self.page.menu_items = menu_items
 
     def __middle_click(self, *_args: Any) -> None:
         self.__select_self()
 
-        win = self.get_root()
-        for gfile in win.get_gfiles_from_positions(win.get_selected_items()):
-            win.new_tab(gfile)
+        for gfile in self.page.get_selected_gfiles():
+            self.get_root().new_tab(gfile)
 
     @GObject.Property(type=str)
     def display_name(self) -> str:

@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""A view of `HypItem`s to be added to an `AdwNavigationView`."""
 from pathlib import Path
 from time import time
 from typing import Any, Callable, Iterable, Optional
@@ -43,7 +44,7 @@ from hyperplane.utils.iterplane import iterplane
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
 class HypItemsPage(Adw.NavigationPage):
-    """A view of `HypItem`s in a directory to be added to an `AdwNavigationView`"""
+    """A view of `HypItem`s to be added to an `AdwNavigationView`."""
 
     __gtype_name__ = "HypItemsPage"
 
@@ -157,6 +158,45 @@ class HypItemsPage(Adw.NavigationPage):
             self.dir_list = self.__get_list(tags=self.tags)
             self.filter_list.set_model(self.dir_list)
 
+    def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
+        """Get a list of `GFile`s corresponding to positions in the list model."""
+        paths = []
+
+        for position in positions:
+            paths.append(
+                self.multi_selection.get_item(position).get_attribute_object(
+                    "standard::file"
+                )
+            )
+
+        return paths
+
+    def get_selected_positions(self) -> list[int]:
+        """Gets the list of positions for selected items in the grid view."""
+        not_empty, bitset_iter, position = Gtk.BitsetIter.init_first(
+            self.multi_selection.get_selection()
+        )
+
+        if not not_empty:
+            return []
+
+        positions = [position]
+
+        while True:
+            next_val, pos = bitset_iter.next()
+            if not next_val:
+                break
+            positions.append(pos)
+
+        return positions
+
+    def get_selected_gfiles(self) -> list[Gio.File]:
+        """
+        Gets a list of `GFiles` representing
+        the currently selected items in the grid view.
+        """
+        return self.get_gfiles_from_positions(self.get_selected_positions())
+
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
     ) -> Gtk.DirectoryList | Gtk.FlattenListModel:
@@ -242,7 +282,7 @@ class HypItemsPage(Adw.NavigationPage):
                 return
 
     def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        item.set_child(HypItem(item))
+        item.set_child(HypItem(item, self))
 
     def __bind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         GLib.Thread.new(None, item.get_child().bind)
@@ -410,9 +450,7 @@ class HypItemsPage(Adw.NavigationPage):
         win.undo_queue.popitem()
 
     def __open(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        if len(positions := win.get_selected_items()) > 1:
+        if len(positions := self.get_selected_positions()) > 1:
             # TODO: Maybe switch to newly opened tab like Nautilus?
             self.__open_new_tab(None, None, positions)
             return
@@ -428,9 +466,9 @@ class HypItemsPage(Adw.NavigationPage):
         win = self.get_root()
 
         if not positions:
-            positions = win.get_selected_items()
+            positions = self.get_selected_positions()
 
-        gfiles = win.get_gfiles_from_positions(positions)
+        gfiles = self.get_gfiles_from_positions(positions)
 
         for gfile in gfiles:
             win.new_tab(gfile)
@@ -438,7 +476,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __open_new_window(self, *_args: Any) -> None:
         win = self.get_root()
 
-        gfiles = win.get_gfiles_from_positions(win.get_selected_items())
+        gfiles = self.get_selected_gfiles()
 
         for gfile in gfiles:
             win.new_window(gfile)
@@ -448,11 +486,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         portal = Xdp.Portal()
         parent = XdpGtk4.parent_new_gtk(win)
-        gfiles = (
-            [self.gfile]
-            if self.right_click_view
-            else win.get_gfiles_from_positions(win.get_selected_items())
-        )
+        gfiles = [self.gfile] if self.right_click_view else self.get_selected_gfiles()
         self.right_click_view = False
         if not gfiles:
             return
@@ -534,7 +568,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         win.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
-        if not (items := win.get_gfiles_from_positions(win.get_selected_items())):
+        if not (items := self.get_selected_gfiles()):
             return
 
         provider = Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_array(items))
@@ -626,11 +660,11 @@ class HypItemsPage(Adw.NavigationPage):
 
         # TODO: Maybe make it stop iteration on first item?
         try:
-            position = win.get_selected_items()[0]
+            position = self.get_selected_positions()[0]
         except IndexError:
             return
         # TODO: Get edit name from gfile
-        gfile = win.get_gfiles_from_positions([position])[0]
+        gfile = self.get_gfiles_from_positions([position])[0]
 
         try:
             path = get_gfile_path(gfile)
@@ -713,7 +747,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __trash(self, *args) -> None:
         win = self.get_root()
 
-        gfiles = win.get_gfiles_from_positions(win.get_selected_items())
+        gfiles = self.get_selected_gfiles()
 
         # When the Delete key is pressed but the user is in the trash
         if gfiles and gfiles[0].get_uri().startswith("trash://"):
@@ -750,9 +784,7 @@ class HypItemsPage(Adw.NavigationPage):
         toast.connect("button-clicked", self.__undo)
 
     def __trash_delete(self, *args: Any) -> None:
-        win = self.get_root()
-
-        gfiles = win.get_gfiles_from_positions(win.get_selected_items())
+        gfiles = self.get_selected_gfiles()
 
         # When the Delete key is pressed but the user is not in the trash
         if gfiles and (not gfiles[0].get_uri().startswith("trash://")):
@@ -793,9 +825,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.present()
 
     def __trash_restore(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        gfiles = win.get_gfiles_from_positions(win.get_selected_items())
+        gfiles = self.get_selected_gfiles()
 
         for gfile in gfiles:
             restore(gfile=gfile)

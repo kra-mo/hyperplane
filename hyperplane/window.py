@@ -222,9 +222,13 @@ class HypWindow(Adw.ApplicationWindow):
         win.tab_view.close_page(win.tab_view.get_selected_page())
         win.tab_view.append(new_bin)
 
+    def get_nav_bin(self) -> HypNavigationBin:
+        """Returns the currently visible HypNavigationBin."""
+        return self.tab_view.get_selected_page().get_child()
+
     def get_visible_page(self) -> HypItemsPage:
         """Return the currently visible HypItemsPage."""
-        return self.tab_view.get_selected_page().get_child().view.get_visible_page()
+        return self.get_nav_bin().view.get_visible_page()
 
     def update_zoom(self) -> None:
         """Update the zoom level of all items in the navigation stack"""
@@ -272,46 +276,10 @@ class HypWindow(Adw.ApplicationWindow):
         for action in menu_items:
             self.get_visible_page().action_group.lookup_action(action).set_enabled(True)
 
-    def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
-        """Get a list of `GFile`s corresponding to positions in the list model."""
-        paths = []
-        multi_selection = self.get_visible_page().multi_selection
-
-        for position in positions:
-            paths.append(
-                multi_selection.get_item(position).get_attribute_object(
-                    "standard::file"
-                )
-            )
-
-        return paths
-
-    def get_selected_items(self) -> list[int]:
-        """Gets the list of positions for selected items in the grid view."""
-        bitset = self.get_visible_page().multi_selection.get_selection()
-        not_empty, bitset_iter, position = Gtk.BitsetIter.init_first(bitset)
-
-        if not not_empty:
-            return []
-
-        positions = [position]
-
-        while True:
-            next_val, pos = bitset_iter.next()
-            if not next_val:
-                break
-            positions.append(pos)
-
-        return positions
-
     def __properties(self, *_args: Any) -> None:
         page = self.get_visible_page()
 
-        gfiles = (
-            [page.gfile]
-            if page.right_click_view
-            else self.get_gfiles_from_positions(self.get_selected_items())
-        )
+        gfiles = [page.gfile] if page.right_click_view else page.get_selected_gfiles()
         page.right_click_view = False
 
         if (
@@ -374,17 +342,15 @@ class HypWindow(Adw.ApplicationWindow):
         if self.overlay_split_view.get_collapsed():
             self.overlay_split_view.set_show_sidebar(False)
 
-        nav_bin = self.tab_view.get_selected_page().get_child()
-
         gfile = self.get_visible_page().gfile
         if (not gfile) or (gfile.get_uri() != "trash:///"):
-            nav_bin.new_page(Gio.File.new_for_uri("trash://"))
+            self.get_nav_bin().new_page(Gio.File.new_for_uri("trash://"))
 
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         if self.overlay_split_view.get_collapsed():
             self.overlay_split_view.set_show_sidebar(False)
 
-        nav_bin = self.tab_view.get_selected_page().get_child()
+        nav_bin = self.get_nav_bin()
 
         if (child := row.get_child()) == self.sidebar_home:
             gfile = self.get_visible_page().gfile
@@ -426,7 +392,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __path_bar_activated(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
-        nav_bin = self.tab_view.get_selected_page().get_child()
+        nav_bin = self.get_nav_bin()
 
         if text.startswith("//"):
             self.__hide_path_bar()
@@ -558,9 +524,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.__hide_path_bar()
 
     def __go_home(self, *_args: Any) -> None:
-        self.tab_view.get_selected_page().get_child().new_page(
-            Gio.File.new_for_path(str(shared.home))
-        )
+        self.get_nav_bin().new_page(Gio.File.new_for_path(str(shared.home)))
 
     def __close(self, *_args: Any) -> None:
         if self.tab_view.get_n_pages() > 1:
@@ -569,10 +533,10 @@ class HypWindow(Adw.ApplicationWindow):
             self.close()
 
     def __back(self, *_args: Any) -> None:
-        self.tab_view.get_selected_page().get_child().view.pop()
+        self.get_nav_bin().view.pop()
 
     def __forward(self, *_args: Any) -> None:
-        nav_bin = self.tab_view.get_selected_page().get_child()
+        nav_bin = self.get_nav_bin()
         if not nav_bin.next_pages:
             return
 
@@ -616,9 +580,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __open_tag(self, *_args: Any) -> None:
         # TODO: This is ugly
-        self.tab_view.get_selected_page().get_child().new_page(
-            tag=self.right_clicked_tag
-        )
+        self.get_nav_bin().new_page(tag=self.right_clicked_tag)
 
     def __open_new_tab_tag(self, *_args: Any) -> None:
         self.new_tab(tags=[self.right_clicked_tag])
@@ -676,9 +638,7 @@ class HypWindow(Adw.ApplicationWindow):
                 - 1
             )
         )
-        self.lookup_action("forward").set_enabled(
-            bool(self.tab_view.get_selected_page().get_child().next_pages)
-        )
+        self.lookup_action("forward").set_enabled(bool(self.get_nav_bin().next_pages))
 
     def __trash_changed(self, *_args: Any) -> None:
         self.trash_icon.set_from_icon_name(
