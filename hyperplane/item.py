@@ -44,6 +44,7 @@ class HypItem(Adw.Bin):
     extension_label: Gtk.Label = Gtk.Template.Child()
     picture: Gtk.Picture = Gtk.Template.Child()
     play_button: Gtk.Box = Gtk.Template.Child()
+    play_button_icon: Gtk.Image = Gtk.Template.Child()
 
     dir_thumbnails: Gtk.Box = Gtk.Template.Child()
     dir_thumbnail_1: Gtk.Box = Gtk.Template.Child()
@@ -308,10 +309,20 @@ class HypItem(Adw.Bin):
 
     def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
-        self.box.set_margin_start(4 * zoom_level)
-        self.box.set_margin_end(4 * zoom_level)
-        self.box.set_margin_top(4 * zoom_level)
-        self.box.set_margin_bottom(4 * zoom_level)
+
+        box_margin = zoom_level * 4
+        self.box.set_margin_start(box_margin)
+        self.box.set_margin_end(box_margin)
+        self.box.set_margin_top(box_margin)
+        self.box.set_margin_bottom(box_margin)
+
+        play_margin = zoom_level * 2 + 8
+        self.play_button_icon.set_margin_start(play_margin)
+        self.play_button_icon.set_margin_end(play_margin)
+        self.play_button_icon.set_margin_top(play_margin)
+        self.play_button_icon.set_margin_bottom(play_margin)
+
+        self.play_button_icon.set_pixel_size((zoom_level * 4) + 8)
 
         match zoom_level:
             case 1:
