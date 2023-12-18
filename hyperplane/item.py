@@ -104,7 +104,9 @@ class HypItem(Adw.Bin):
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
-        return  # TODO: Clean up
+        self.icon.set_css_classes(["large-icons"])
+        self.thumbnail.set_css_classes(["item-thumbnail"])
+        self.extension_label.set_css_classes(["file-extension"])
 
     def __build(self) -> None:
         self.play_button.set_visible(False)
@@ -119,10 +121,6 @@ class HypItem(Adw.Bin):
     def __file_thumb_done(self, failed: bool) -> None:
         self.icon.set_visible(failed)
         self.picture.set_visible(not failed)
-
-        self.icon.set_css_classes(["large-icons"])
-        self.thumbnail.set_css_classes(["item-thumbnail"])
-        self.extension_label.set_css_classes(["file-extension"])
 
         if failed:
             self.icon.add_css_class(self.color + "-icon")
