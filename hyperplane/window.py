@@ -40,6 +40,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     tab_overview: Adw.TabOverview = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    overlay_split_view: Adw.OverlaySplitView = Gtk.Template.Child()
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     sidebar: Gtk.ListBox = Gtk.Template.Child()
@@ -359,6 +360,9 @@ class HypWindow(Adw.ApplicationWindow):
         dialog.choose()
 
     def __open_trash(self, *_args: Any) -> None:
+        if self.overlay_split_view.get_collapsed():
+            self.overlay_split_view.set_show_sidebar(False)
+
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         gfile = self.get_visible_page().gfile
@@ -366,6 +370,9 @@ class HypWindow(Adw.ApplicationWindow):
             nav_bin.new_page(Gio.File.new_for_uri("trash://"))
 
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
+        if self.overlay_split_view.get_collapsed():
+            self.overlay_split_view.set_show_sidebar(False)
+
         nav_bin = self.tab_view.get_selected_page().get_child()
 
         if (child := row.get_child()) == self.sidebar_home:

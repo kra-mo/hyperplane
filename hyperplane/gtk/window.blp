@@ -34,13 +34,18 @@ menu primary_menu {
 }
 
 template $HypWindow : Adw.ApplicationWindow {
+  width-request: 281;
+  height-request: 126;
   content:
   Adw.TabOverview tab_overview {
     view: tab_view;
     enable-new-tab: true;
 
     Adw.ToastOverlay toast_overlay {
-      Adw.OverlaySplitView {
+      Adw.OverlaySplitView overlay_split_view {
+        // Taken from Nautilus
+        max-sidebar-width: 240;
+        sidebar-width-unit: px;
         sidebar-width-fraction: .2;
         sidebar: Adw.NavigationPage {
           title: _("Hyperplane");
@@ -48,6 +53,14 @@ template $HypWindow : Adw.ApplicationWindow {
           Adw.ToolbarView {
             [top]
             Adw.HeaderBar {
+              [start]
+                ToggleButton hide_sidebar_button {
+                visible: false;
+                icon-name: "sidebar-show-symbolic";
+                tooltip-text: _("Hide Sidebar");
+                active: bind overlay_split_view.show-sidebar bidirectional inverted;
+              }
+
               [end]
               MenuButton {
                 primary: true;
@@ -171,6 +184,14 @@ template $HypWindow : Adw.ApplicationWindow {
           [top]
           Adw.HeaderBar header_bar {
             [start]
+            ToggleButton show_sidebar_button {
+              visible: false;
+              icon-name: "sidebar-show-symbolic";
+              tooltip-text: _("Show Sidebar");
+              active: bind overlay_split_view.show-sidebar bidirectional;
+            }
+
+            [start]
             Button {
               icon-name: "go-previous-symbolic";
               action-name: "win.back";
@@ -238,6 +259,15 @@ template $HypWindow : Adw.ApplicationWindow {
   styles [
     "view",
   ]
+
+  Adw.Breakpoint {
+    condition ("max-width: 682sp") // Value taken from Nautilus
+    setters {
+      overlay_split_view.collapsed: true;
+      show_sidebar_button.visible: true;
+      hide_sidebar_button.visible: true;
+    }
+  }
 }
 
 Popover rename_popover {
