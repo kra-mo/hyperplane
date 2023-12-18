@@ -30,6 +30,6 @@
     filter: initial;
 }
 
-navigation-view shadow {
+navigation-view > shadow {
 	background: radial-gradient(farthest-side at right, rgba(0,0,0,.15) 0%, rgba(0,0,0,0) 100%);
 }

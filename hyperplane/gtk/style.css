@@ -85,15 +85,15 @@ rubberband {
 }
 
 /* Remove the top margin since the header bar provides enough already */
-.properties-page scrolledwindow viewport clamp box {
+.properties-page > scrolledwindow > viewport > clamp > box {
     margin-top: 0;
 }
 
 /* For flat header bars that don't look weird */
-navigation-view dimming {
+navigation-view > dimming {
     opacity: 0;
 }
 
-navigation-view shadow {
+navigation-view > shadow {
 	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
 }
