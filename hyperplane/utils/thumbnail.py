@@ -30,11 +30,7 @@ def generate_thumbnail(
     """
     Generates a thumbnail and passes it to `callback` as a `Gdk.Texture` with any additional args.
 
-    If the thumbnail generation fails,
-    `callback` will be called with the `failed` kwarg set to True.
-
-    Callbacks for successful thumbnailing will automatically be called with `GLib.idle_add`
-    but failed ones won't.
+    If the thumbnail generation fails, `callback` is called with None and *args.
     """
     factory = GnomeDesktop.DesktopThumbnailFactory()
     uri = gfile.get_uri()
@@ -51,7 +47,7 @@ def generate_thumbnail(
         return
 
     if not factory.can_thumbnail(uri, content_type, mtime):
-        callback(failed=True)
+        callback(None, *args)
         return
 
     try:
@@ -59,7 +55,7 @@ def generate_thumbnail(
     except GLib.Error as error:
         if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
             debug("Cannot thumbnail: %s", error)
-            callback(failed=True)
+            callback(None, *args)
             return
 
         # If it cannot get a path for the URI, try the target URI
@@ -72,18 +68,18 @@ def generate_thumbnail(
 
             if not target_uri:
                 debug("Cannot thumbnail: %s", error)
-                callback(failed=True)
+                callback(None, *args)
                 return
 
             thumbnail = factory.generate_thumbnail(target_uri, content_type)
         except GLib.Error as new_error:
             debug("Cannot thumbnail: %s", new_error)
-            callback(failed=True)
+            callback(None, *args)
             return
 
     if not thumbnail:
-        callback(failed=True)
+        callback(None, *args)
         return
 
     factory.save_thumbnail(thumbnail, uri, mtime)
-    GLib.idle_add(callback, Gdk.Texture.new_for_pixbuf(thumbnail), *args)
+    callback(Gdk.Texture.new_for_pixbuf(thumbnail), *args)

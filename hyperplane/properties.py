@@ -108,10 +108,7 @@ class HypPropertiesWindow(Adw.Window):
                 icon_group.add(image := Gtk.Image(gicon=gicon, halign=Gtk.Align.CENTER))
                 image.set_icon_size(Gtk.IconSize.LARGE)
 
-                if content_type == "inode/directory":
-                    color = "blue"
-                else:
-                    color = get_color_for_content_type(content_type, gicon)
+                color = get_color_for_content_type(content_type, gicon)
 
                 image.add_css_class(color + "-icon")
                 image.add_css_class(color + "-background")

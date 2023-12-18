@@ -166,6 +166,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
+                Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
             )
         )
         if gfile:
@@ -242,7 +243,7 @@ class HypItemsPage(Adw.NavigationPage):
         item.set_child(HypItem(item))
 
     def __bind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        item.get_child().bind()
+        GLib.Thread.new(None, item.get_child().bind)
 
     def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.get_child().unbind()

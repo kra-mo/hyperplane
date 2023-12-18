@@ -30,7 +30,7 @@ def get_color_for_content_type(
     """Returns the color associated with a MIME type."""
 
     if content_type == "inode/directory":
-        return "dark-blue"
+        return "blue"
 
     # TODO: Certificates don't have a standard mime type
     # TODO: I don't think addon, firmware or applicance are a thing for files

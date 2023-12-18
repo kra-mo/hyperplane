@@ -18,9 +18,14 @@ template $HypItem : Adw.Bin {
 
           Overlay dir_thumbnail_1 {
             overflow: hidden;
-            visible: false;
+
+            [overlay]
+            Picture dir_picture_1 {
+              visible: false;
+            }
 
             Image {
+              visible: bind dir_picture_1.visible inverted;
             }
 
             styles [
@@ -30,9 +35,14 @@ template $HypItem : Adw.Bin {
 
           Overlay dir_thumbnail_2 {
             overflow: hidden;
-            visible: false;
+
+            [overlay]
+            Picture dir_picture_2 {
+              visible: false;
+            }
 
             Image {
+              visible: bind dir_picture_2.visible inverted;
             }
 
             styles [
@@ -42,9 +52,14 @@ template $HypItem : Adw.Bin {
 
           Overlay dir_thumbnail_3 {
             overflow: hidden;
-            visible: false;
+
+            [overlay]
+            Picture dir_picture_3 {
+              visible: false;
+            }
 
             Image {
+              visible: bind dir_picture_3.visible inverted;
             }
 
             styles [
@@ -56,6 +71,7 @@ template $HypItem : Adw.Bin {
         [overlay]
         Picture picture {
           content-fit: cover;
+          paintable: bind template.thumbnail-paintable;
 
           styles [
             "thumbnail-picture",
@@ -90,6 +106,7 @@ template $HypItem : Adw.Bin {
           margin-end: 5;
           margin-start: 5;
           ellipsize: end;
+          label: bind template.extension;
 
           styles [
             "file-extension",
@@ -98,6 +115,7 @@ template $HypItem : Adw.Bin {
 
         Image icon {
           gicon: bind template.gicon;
+          visible: bind picture.visible inverted;
         }
 
         styles [
