@@ -101,23 +101,23 @@ class HypWindow(Adw.ApplicationWindow):
             "toggle-path-bar", self.__toggle_path_bar, ("F6", "<primary>l")
         )
         self.create_action("hide-path-bar", self.__hide_path_bar)
-        self.create_action("close", self.__on_close_action, ("<primary>w",))
+        self.create_action("close", self.__close, ("<primary>w",))
         self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
 
-        self.create_action("back", self.__on_back_action)
+        self.create_action("back", self.__back)
         self.lookup_action("back").set_enabled(False)
 
-        self.create_action("forward", self.__on_forward_action)
+        self.create_action("forward", self.__forward)
         self.lookup_action("forward").set_enabled(False)
 
         self.create_action(
             "zoom-in",
-            self.__on_zoom_in_action,
+            self.__zoom_in,
             ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
         )
         self.create_action(
             "zoom-out",
-            self.__on_zoom_out_action,
+            self.__zoom_out,
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
         self.create_action(
@@ -562,30 +562,30 @@ class HypWindow(Adw.ApplicationWindow):
             Gio.File.new_for_path(str(shared.home))
         )
 
-    def __on_close_action(self, *_args: Any) -> None:
+    def __close(self, *_args: Any) -> None:
         if self.tab_view.get_n_pages() > 1:
             self.tab_view.close_page(self.tab_view.get_selected_page())
         else:
             self.close()
 
-    def __on_back_action(self, *_args: Any) -> None:
+    def __back(self, *_args: Any) -> None:
         self.tab_view.get_selected_page().get_child().view.pop()
 
-    def __on_forward_action(self, *_args: Any) -> None:
+    def __forward(self, *_args: Any) -> None:
         nav_bin = self.tab_view.get_selected_page().get_child()
         if not nav_bin.next_pages:
             return
 
         nav_bin.view.push(nav_bin.next_pages[-1])
 
-    def __on_zoom_in_action(self, *_args: Any) -> None:
+    def __zoom_in(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level + 1)
         self.update_zoom()
 
-    def __on_zoom_out_action(self, *_args: Any) -> None:
+    def __zoom_out(self, *_args: Any) -> None:
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
             return
 

@@ -67,10 +67,8 @@ class HypApplication(Adw.Application):
         self.add_main_option_entries((new_window,))
 
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
-        self.create_action("about", self.__on_about_action)
-        self.create_action(
-            "preferences", self.__on_preferences_action, ("<primary>comma",)
-        )
+        self.create_action("about", self.__about)
+        self.create_action("preferences", self.__preferences, ("<primary>comma",))
 
         show_hidden_action = Gio.SimpleAction.new_stateful(
             "show-hidden", None, shared.state_schema.get_value("show-hidden")
@@ -128,8 +126,7 @@ class HypApplication(Adw.Application):
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
-    def __on_about_action(self, *_args: Any) -> None:
-        """Callback for the app.about action."""
+    def __about(self, *_args: Any) -> None:
         about = Adw.AboutWindow.new_from_appdata(
             shared.PREFIX + "/" + shared.APP_ID + ".metainfo.xml", shared.VERSION
         )
@@ -146,7 +143,7 @@ class HypApplication(Adw.Application):
         about.set_translator_credits = (_("translator_credits"),)
         about.present()
 
-    def __on_preferences_action(self, *_args: Any) -> None:
+    def __preferences(self, *_args: Any) -> None:
         prefs = HypPreferencesWindow()
         prefs.present()
 

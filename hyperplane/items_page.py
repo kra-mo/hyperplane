@@ -556,7 +556,7 @@ class HypItemsPage(Adw.NavigationPage):
         if not clipboard.get_formats().contain_gtype(Gdk.FileList):
             return
 
-        def __cb(clipboard, result) -> None:
+        def cb(clipboard, result) -> None:
             nonlocal paths
 
             try:
@@ -616,7 +616,7 @@ class HypItemsPage(Adw.NavigationPage):
                 win.undo_queue[time()] = ("copy", paths)
             win.cut_page = None
 
-        clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, __cb)
+        clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, cb)
 
     def __select_all(self, *_args: Any) -> None:
         self.multi_selection.select_all()
