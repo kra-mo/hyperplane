@@ -367,7 +367,7 @@ class HypItem(Adw.Bin):
     def __right_click(self, *_args: Any) -> None:
         self.__select_self()
 
-        menu_items = {"rename", "copy", "cut", "trash", "open"}
+        menu_items = {"rename", "copy", "cut", "trash", "open", "open-with"}
         if self.is_dir:
             menu_items.add("open-new-tab")
             menu_items.add("open-new-window")
@@ -376,7 +376,8 @@ class HypItem(Adw.Bin):
             menu_items.add("trash-restore")
             menu_items.add("trash-delete")
 
-        self.get_root().set_menu_items(menu_items)
+        # TODO: Ugly
+        self.get_parent().get_parent().get_parent().get_parent().menu_items = menu_items
 
     def __middle_click(self, *_args: Any) -> None:
         self.__select_self()

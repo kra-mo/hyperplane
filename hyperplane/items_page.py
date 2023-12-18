@@ -84,10 +84,12 @@ class HypItemsPage(Adw.NavigationPage):
         elif self.tags:
             self.set_title(" + ".join(self.tags))
 
-        # Right click
+        # Right-click
         gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
+        self.menu_items = None
+        self.right_click_view = False
 
         # Drag and drop
         # TODO: Accept more actions than just copy
@@ -287,13 +289,32 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.recent_manager.add_full(uri, recent_data)
 
+    def __popup_menu(self) -> None:
+        if self.menu_items:
+            self.get_root().set_menu_items(self.menu_items)
+            self.menu_items = None
+        else:
+            self.right_click_view = True
+            self.get_root().set_menu_items(
+                {
+                    "paste",
+                    "new-folder",
+                    "select-all",
+                    "open-with",
+                }
+            )
+
+        self.get_root().right_click_menu.popup()
+
     def __right_click(self, _gesture, _n, x, y) -> None:
         self.get_root().right_click_menu.unparent()
         self.get_root().right_click_menu.set_parent(self)
         rectangle = Gdk.Rectangle()
         rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
         self.get_root().right_click_menu.set_pointing_to(rectangle)
-        self.get_root().right_click_menu.popup()
+        # HACK: Timeout hack because of the right-click callback race condition
+        # between the items page and the item
+        GLib.timeout_add(10, self.__popup_menu)
 
     def __drop(self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y):
         # TODO: This is mostly copy-paste from HypWindow.__paste()
@@ -427,7 +448,12 @@ class HypItemsPage(Adw.NavigationPage):
 
         portal = Xdp.Portal()
         parent = XdpGtk4.parent_new_gtk(win)
-        gfiles = win.get_gfiles_from_positions(win.get_selected_items())
+        gfiles = (
+            [self.gfile]
+            if self.right_click_view
+            else win.get_gfiles_from_positions(win.get_selected_items())
+        )
+        self.right_click_view = False
         if not gfiles:
             return
 

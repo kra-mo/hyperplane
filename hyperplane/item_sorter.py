@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The main sorter for HypItemsPage."""
+"""Main sorter for HypItemsPage."""
 from locale import strcoll
 from typing import Optional
 
@@ -27,7 +27,7 @@ from hyperplane import shared
 
 
 class HypItemSorter(Gtk.Sorter):
-    """The main sorter for HypItemsPage."""
+    """Main sorter for HypItemsPage."""
 
     __gtype_name__ = "HypItemSorter"
 

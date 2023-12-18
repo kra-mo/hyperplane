@@ -262,6 +262,7 @@ class HypWindow(Adw.ApplicationWindow):
             "open",
             "open-new-tab",
             "open-new-window",
+            "open-with",
         }
 
         for action in actions.difference(menu_items):
@@ -304,9 +305,19 @@ class HypWindow(Adw.ApplicationWindow):
         return positions
 
     def __properties(self, *_args: Any) -> None:
-        gfiles = self.get_gfiles_from_positions(self.get_selected_items())
-        if not gfiles:
-            return
+        page = self.get_visible_page()
+
+        gfiles = (
+            [page.gfile]
+            if page.right_click_view
+            else self.get_gfiles_from_positions(self.get_selected_items())
+        )
+        page.right_click_view = False
+
+        if (
+            not gfiles
+        ):  # If the keyboard shortcut was triggered, but no items are selected
+            gfiles = [page.gfile]
 
         # TODO: Allow viewing properties of multiple files
         properties = HypPropertiesWindow(gfiles[0])
