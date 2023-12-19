@@ -756,17 +756,13 @@ class HypItemsPage(Adw.NavigationPage):
         files = []
         n = 0
         for gfile in gfiles:
+            gfile.trash_async(GLib.PRIORITY_DEFAULT)
             try:
-                gfile.trash()
-            except GLib.Error:
-                pass
+                files.append((get_gfile_path(gfile), int(time())))
+            except FileNotFoundError:
+                continue
             else:
-                try:
-                    files.append((get_gfile_path(gfile), int(time())))
-                except FileNotFoundError:
-                    continue
-                else:
-                    n += 1
+                n += 1
 
         if not n:
             return
