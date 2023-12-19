@@ -63,6 +63,7 @@ class HypItem(Adw.Bin):
     content_type: str
     extension: str
     color: str
+    edit_name: str
 
     _gicon: str
     _display_name: str
@@ -99,6 +100,7 @@ class HypItem(Adw.Bin):
         self.gicon = self.file_info.get_symbolic_icon()
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_content_type(self.content_type, self.gicon)
+        self.edit_name = self.file_info.get_edit_name()
 
         self.is_dir = self.content_type == "inode/directory"
         display_name = self.file_info.get_display_name()

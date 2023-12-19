@@ -37,7 +37,7 @@ def logging_config() -> None:
                 "console_handler": {
                     "class": "logging.StreamHandler",
                     "formatter": "console_formatter",
-                    "level": "DEBUG",
+                    "level": "WARNING",
                 },
             },
             "root": {

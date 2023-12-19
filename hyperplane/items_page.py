@@ -108,6 +108,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
                 Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
                 Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
             )
@@ -154,7 +155,6 @@ class HypItemsPage(Adw.NavigationPage):
         self.create_action("cut", self.__cut, ("<primary>x",))
         self.create_action("paste", self.__paste, ("<primary>v",))
         self.create_action("select-all", self.__select_all, ("<primary>a",))
-        self.create_action("rename", self.__rename, ("F2",))
         self.create_action("trash", self.__trash, ("Delete",))
         self.create_action("trash-delete", self.__trash_delete, ("Delete",))
         self.create_action("trash-restore", self.__trash_restore)
@@ -666,95 +666,6 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __select_all(self, *_args: Any) -> None:
         self.multi_selection.select_all()
-
-    def __rename(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        # TODO: Maybe make it stop iteration on first item?
-        try:
-            position = self.get_selected_positions()[0]
-        except IndexError:
-            return
-        # TODO: Get edit name from gfile
-        gfile = self.get_gfiles_from_positions([position])[0]
-
-        try:
-            path = get_gfile_path(gfile)
-        except FileNotFoundError:
-            return
-
-        self.multi_selection.select_item(position, True)
-
-        children = self.grid_view.observe_children()
-
-        # TODO: This may be slow
-        index = 0
-        while item := children.get_item(index):
-            if item.get_first_child().gfile == gfile:
-                (popover := win.rename_popover).set_parent(item)
-                break
-            index += 1
-
-        if path.is_dir():
-            win.rename_label.set_label(_("Rename Folder"))
-        else:
-            win.rename_label.set_label(_("Rename File"))
-
-        entry = win.rename_entry
-        entry.set_text(path.name)
-
-        button = win.rename_button
-        revealer = win.rename_revealer
-        revealer_label = win.rename_revealer_label
-        can_rename = True
-
-        def rename(obj: Any, *_args: Any) -> None:
-            if isinstance(obj, Gio.SimpleAction) and (not self.is_focus()):
-                return
-
-            popover.popdown()
-            try:
-                old_name = path.name
-                new_file = gfile.set_display_name(entry.get_text().strip())
-            except GLib.Error:
-                pass
-            else:
-                shared.undo_queue[time()] = ("rename", new_file, old_name)
-
-        def set_incative(*_args: Any) -> None:
-            nonlocal can_rename
-            nonlocal path
-
-            if not popover.is_visible():
-                return
-
-            text = entry.get_text().strip()
-
-            if not text:
-                can_rename = False
-                button.set_sensitive(False)
-                revealer.set_reveal_child(False)
-                return
-
-            can_rename, message = validate_name(
-                Gio.File.new_for_path(str(path)), text, True
-            )
-            button.set_sensitive(can_rename)
-            revealer.set_reveal_child(bool(message))
-            if message:
-                revealer_label.set_label(message)
-
-        def unparent(popover):
-            popover.unparent()
-
-        popover.connect("notify::visible", set_incative)
-        popover.connect("closed", unparent)
-        entry.connect("changed", set_incative)
-        entry.connect("entry-activated", rename)
-        button.connect("clicked", rename)
-
-        popover.popup()
-        entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
     def __trash(self, *args) -> None:
         gfiles = self.get_selected_gfiles()

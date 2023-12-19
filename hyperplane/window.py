@@ -19,16 +19,17 @@
 
 """The main application window."""
 from os import sep
+from time import time
 from typing import Any, Callable, Iterable, Optional
 
-from gi.repository import Adw, Gio, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import get_gfile_path
+from hyperplane.utils.files import get_gfile_path, validate_name
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 
 
@@ -123,6 +124,8 @@ class HypWindow(Adw.ApplicationWindow):
         )
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
+        self.create_action("rename", self.__rename, ("F2",))
+
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-tag", self.__open_tag)
         self.create_action("open-new-tab-tag", self.__open_new_tab_tag)
@@ -155,6 +158,13 @@ class HypWindow(Adw.ApplicationWindow):
         shared.postmaster.connect("tags-changed", self.__update_tags)
 
         self.right_click_menu.connect("closed", self.__set_actions)
+
+        self.can_rename = True
+        self.rename_item = None
+        self.rename_entry.connect("changed", self.__rename_state_changed)
+        self.rename_popover.connect("closed", self.__rename_popover_closed)
+        self.rename_entry.connect("entry-activated", self.__do_rename)
+        self.rename_button.connect("clicked", self.__do_rename)
 
         self.__set_actions()
 
@@ -251,28 +261,26 @@ class HypWindow(Adw.ApplicationWindow):
 
     def set_menu_items(self, menu_items: Iterable[str]) -> None:
         """Disables all right-click menu items not in `menu_items`."""
+        page = self.get_visible_page().action_group
+
         actions = {
-            "rename",
-            "copy",
-            "cut",
-            "paste",
-            "trash",
-            "trash-delete",
-            "trash-restore",
-            "new-folder",
-            "select-all",
-            "open",
-            "open-new-tab",
-            "open-new-window",
-            "open-with",
+            "rename": self,
+            "copy": page,
+            "cut": page,
+            "paste": page,
+            "trash": page,
+            "trash-delete": page,
+            "trash-restore": page,
+            "new-folder": page,
+            "select-all": page,
+            "open": page,
+            "open-new-tab": page,
+            "open-new-window": page,
+            "open-with": page,
         }
 
-        for action in actions.difference(menu_items):
-            self.get_visible_page().action_group.lookup_action(action).set_enabled(
-                False
-            )
-        for action in menu_items:
-            self.get_visible_page().action_group.lookup_action(action).set_enabled(True)
+        for action, group in actions.items():
+            group.lookup_action(action).set_enabled(action in menu_items)
 
     def __properties(self, *_args: Any) -> None:
         page = self.get_visible_page()
@@ -644,3 +652,66 @@ class HypWindow(Adw.ApplicationWindow):
             if shared.trash_list.get_n_items()
             else "user-trash-symbolic"
         )
+
+    def __rename(self, *_args: Any) -> None:
+        page = self.get_visible_page()
+
+        try:
+            position = page.get_selected_positions()[0]
+        except IndexError:
+            return
+
+        page.multi_selection.select_item(position, True)
+
+        children = page.grid_view.observe_children()
+
+        child = children.get_item(position)
+        self.rename_popover.set_parent(child)
+
+        item = child.get_first_child()
+
+        if item.is_dir:
+            self.rename_label.set_label(_("Rename Folder"))
+        else:
+            self.rename_label.set_label(_("Rename File"))
+
+        self.rename_entry.set_text(item.edit_name)
+
+        self.rename_popover.popup()
+        self.rename_entry.select_region(0, len(item.display_name))
+        self.rename_item = item
+
+    def __do_rename(self, *_args: Any) -> None:
+        if not self.rename_item:
+            return
+
+        self.rename_popover.popdown()
+        try:
+            new_file = self.rename_item.gfile.set_display_name(
+                self.rename_entry.get_text().strip()
+            )
+        except GLib.Error:
+            pass
+        else:
+            shared.undo_queue[time()] = ("rename", new_file, self.rename_item.edit_name)
+
+    def __rename_popover_closed(self, *_args: Any) -> None:
+        self.rename_popover.unparent()
+
+    def __rename_state_changed(self, *_args: Any) -> None:
+        if (not self.rename_popover.is_visible()) or (not self.rename_item):
+            return
+
+        text = self.rename_entry.get_text().strip()
+
+        if not text:
+            self.can_rename = False
+            self.rename_button.set_sensitive(False)
+            self.rename_revealer.set_reveal_child(False)
+            return
+
+        self.can_rename, message = validate_name(self.rename_item.gfile, text, True)
+        self.rename_button.set_sensitive(self.can_rename)
+        self.rename_revealer.set_reveal_child(bool(message))
+        if message:
+            self.rename_revealer_label.set_label(message)
