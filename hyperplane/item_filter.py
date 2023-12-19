@@ -18,12 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """Main filter for HypItemsPage."""
-from pathlib import Path
 from typing import Optional
 
 from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
+from hyperplane.utils.files import path_represents_tags
 
 
 class HypItemFilter(Gtk.Filter):
@@ -38,19 +38,10 @@ class HypItemFilter(Gtk.Filter):
         if file_info.get_content_type() != "inode/directory":
             return True
 
-        try:
-            relative_parts = Path(
-                Gio.File.new_for_path(str(shared.home)).get_relative_path(
-                    file_info.get_attribute_object("standard::file")
-                )
-            ).parts
-        except TypeError:
-            return True
+        if not (path := file_info.get_attribute_object("standard::file").get_path()):
+            return False
 
-        if (
-            tuple(tag for tag in shared.tags if tag in (relative_parts))
-            != relative_parts
-        ):
+        if not path_represents_tags(path):
             return True
 
         return False

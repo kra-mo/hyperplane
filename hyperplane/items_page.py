@@ -30,7 +30,7 @@ from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
 from hyperplane.utils.files import (
     copy,
-    get_copy_path,
+    get_copy_gfile,
     get_gfile_display_name,
     get_gfile_path,
     move,
@@ -373,36 +373,36 @@ class HypItemsPage(Adw.NavigationPage):
         GLib.timeout_add(10, self.__popup_menu)
 
     def __drop(self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y):
-        # TODO: This is mostly copy-paste from __paste()
-        for gfile in file_list:
+        # TODO: This is copy-paste from __paste()
+        for src in file_list:
             if self.tags:
                 tags = tuple(tag for tag in shared.tags if tag in self.tags)
-                dst = Path(
-                    shared.home,
-                    *tags,
+                dst = Gio.File.new_for_path(
+                    str(
+                        Path(
+                            shared.home,
+                            *tags,
+                        )
+                    )
                 )
             else:
+                dst = self.gfile
+
+            try:
+                dst = Gio.File.new_for_path(
+                    str(get_gfile_path(dst) / get_gfile_display_name(src))
+                )
+            except (FileNotFoundError, TypeError):
+                continue
+
+            else:
                 try:
-                    dst = get_gfile_path(self.gfile)
-                except FileNotFoundError:
-                    continue
-            try:
-                src = get_gfile_path(gfile)
-            except (
-                TypeError,  # If the value being dropped isn't a pathlike
-                FileNotFoundError,
-            ):
-                continue
-            if not src.exists():
-                continue
-
-            dst = dst / src.name
-
-            try:
-                copy(src, dst)
-            except FileExistsError:
-                dst = get_copy_path(dst)
-                copy(src, dst)
+                    copy(src, dst)
+                except FileExistsError:
+                    try:
+                        copy(src, get_copy_gfile(dst))
+                    except (FileExistsError, FileNotFoundError):
+                        continue
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
@@ -443,14 +443,13 @@ class HypItemsPage(Adw.NavigationPage):
         match item[0]:
             case "copy":
                 for trash_item in item[1]:
-                    if trash_item.is_dir():
+                    try:
                         rm(trash_item)
-                    else:
-                        trash_item.unlink(missing_ok=True)
+                    except FileNotFoundError:
+                        pass
             case "cut":
-                for paths in item[1]:
-                    if paths[1].exists():
-                        move(paths[1], paths[0])
+                for gfiles in item[1]:
+                    move(gfiles[1], gfiles[0])
             case "rename":
                 try:
                     item[1].set_display_name(item[2])
@@ -610,29 +609,26 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.cut_page = None
                 return
 
-            for gfile in file_list:
+            for src in file_list:
                 if self.tags:
                     tags = tuple(tag for tag in shared.tags if tag in self.tags)
-                    dst = Path(
-                        shared.home,
-                        *tags,
+                    dst = Gio.File.new_for_path(
+                        str(
+                            Path(
+                                shared.home,
+                                *tags,
+                            )
+                        )
                     )
                 else:
-                    try:
-                        dst = get_gfile_path(self.gfile)
-                    except FileNotFoundError:
-                        continue
-                try:
-                    src = get_gfile_path(gfile)
-                except (
-                    TypeError,  # If the value being pasted isn't a pathlike
-                    FileNotFoundError,
-                ):
-                    continue
-                if not src.exists():
-                    continue
+                    dst = self.gfile
 
-                dst = dst / src.name
+                try:
+                    dst = Gio.File.new_for_path(
+                        str(get_gfile_path(dst) / get_gfile_display_name(src))
+                    )
+                except (FileNotFoundError, TypeError):
+                    continue
 
                 if shared.cut_page:
                     try:
@@ -640,7 +636,8 @@ class HypItemsPage(Adw.NavigationPage):
                     except FileExistsError:
                         self.get_root().send_toast(
                             _("A folder with that name already exists.")
-                            if src.is_dir()
+                            if src.query_file_type(Gio.FileQueryInfoFlags.NONE)
+                            == Gio.FileType.DIRECTORY
                             else _("A file with that name already exists.")
                         )
                         continue
@@ -651,8 +648,11 @@ class HypItemsPage(Adw.NavigationPage):
                     try:
                         copy(src, dst)
                     except FileExistsError:
-                        dst = get_copy_path(dst)
-                        copy(src, dst)
+                        try:
+                            dst = get_copy_gfile(dst)
+                            copy(src, dst)
+                        except (FileExistsError, FileNotFoundError):
+                            continue
 
                     paths.append(dst)
 
@@ -762,6 +762,7 @@ class HypItemsPage(Adw.NavigationPage):
         # When the Delete key is pressed but the user is in the trash
         if gfiles and gfiles[0].get_uri().startswith("trash://"):
             self.__trash_delete(*args)
+            return
 
         files = []
         n = 0
@@ -834,4 +835,4 @@ class HypItemsPage(Adw.NavigationPage):
         gfiles = self.get_selected_gfiles()
 
         for gfile in gfiles:
-            restore(gfile=gfile)
+            restore(gfile)

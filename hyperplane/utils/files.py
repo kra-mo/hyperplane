@@ -31,7 +31,7 @@ from hyperplane import shared
 # TODO: Handle errors better
 
 
-def path_represents_tags(path: PathLike) -> bool:
+def path_represents_tags(path: PathLike | str) -> bool:
     """Checks whether a given `path` represents tags or not."""
     path = Path(path)
 
@@ -41,7 +41,7 @@ def path_represents_tags(path: PathLike) -> bool:
     return all(part in shared.tags for part in path.relative_to(shared.home).parts)
 
 
-def copy(src: PathLike, dst: PathLike) -> None:
+def copy(src: Gio.File, dst: Gio.File) -> None:
     """
     Asynchronously copies a file or directory from `src` to `dst`.
 
@@ -51,11 +51,14 @@ def copy(src: PathLike, dst: PathLike) -> None:
     FileExistsError will be raised.
     """
 
-    src = Path(src)
-    dst = Path(dst)
-
-    if dst.exists():
+    if dst.query_exists():
         raise FileExistsError
+
+    try:
+        src = Path(get_gfile_path(src))
+        dst = Path(get_gfile_path(dst))
+    except FileNotFoundError:
+        return
 
     tag_location_created = path_represents_tags(dst.parent) and (
         not dst.parent.is_dir()
@@ -86,7 +89,7 @@ def copy(src: PathLike, dst: PathLike) -> None:
     )
 
 
-def move(src: PathLike, dst: PathLike) -> None:
+def move(src: Gio.File, dst: Gio.File) -> None:
     """
     Asynchronously moves a file or directory from `src` to `dst`.
 
@@ -96,11 +99,14 @@ def move(src: PathLike, dst: PathLike) -> None:
     FileExistsError will be raised.
     """
 
-    src = Path(src)
-    dst = Path(dst)
-
-    if dst.exists():
+    if dst.query_exists():
         raise FileExistsError
+
+    try:
+        src = Path(get_gfile_path(src))
+        dst = Path(get_gfile_path(dst))
+    except FileNotFoundError:
+        return
 
     tags_changed = path_represents_tags(dst.parent) and (not dst.parent.is_dir())
 
@@ -116,11 +122,11 @@ def move(src: PathLike, dst: PathLike) -> None:
         None,
         dst if tags_changed else None,
     )
-    task.run_in_thread(lambda *_: shutil.copytree(src, dst))
+    task.run_in_thread(lambda *_: shutil.move(src, dst))
 
 
 def restore(
-    path: Optional[PathLike] = None,
+    path: Optional[PathLike | str] = None,
     t: Optional[int] = None,
     gfile: Optional[Gio.File] = None,
 ) -> None:
@@ -129,10 +135,16 @@ def restore(
     either deleted from `path` at `t` or represented by `gfile`.
     """
 
+    if path:
+        path = Path(path)
+
     def do_restore(trash_path, orig_path):
         # Move the item in Trash/files back to the original location
         try:
-            move(trash_path, orig_path)
+            move(
+                Gio.File.new_for_path(str(trash_path)),
+                Gio.File.new_for_path(str(orig_path)),
+            )
         except FileExistsError:
             return
 
@@ -202,12 +214,12 @@ def trash_rm(gfile: Gio.File) -> None:
         uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
 
         try:
-            trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
+            trash_gfile = Gio.File.new_for_uri(uri)
         except FileNotFoundError:
             return
 
-        rm(trash_path)
-        __remove_trashinfo(trash_path, orig_path)
+        rm(trash_gfile)
+        __remove_trashinfo(get_gfile_path(trash_gfile), orig_path)
 
     gfile.query_info_async(
         ",".join(
@@ -223,23 +235,32 @@ def trash_rm(gfile: Gio.File) -> None:
     )
 
 
-def rm(path: PathLike) -> None:
+def rm(gfile: Gio.File) -> None:
     """
-    Tries to asynchronously remove the file or directory at `path`.
+    Tries to asynchronously remove `gfile`.
 
     Directories are removed recursively.
     """
+    try:
+        path = Path(get_gfile_path(gfile))
+    except FileNotFoundError:
+        return
 
-    if Path(path).is_dir():
+    if path.is_dir():
         GLib.Thread.new(None, shutil.rmtree, path, True)
     else:
         Gio.File.new_for_path(str(path)).delete_async(GLib.PRIORITY_DEFAULT)
 
 
-def get_copy_path(path: PathLike) -> Path:
-    """Returns the path that should be used if `dst` already exists for a paste operation."""
-
-    path = Path(path)
+def get_copy_gfile(gfile: Gio.File) -> Gio.File:
+    """
+    Returns a `GFile` representing the path that should be used
+    if `dst` (`gfile`) already exists for a paste operation.
+    """
+    try:
+        path = Path(get_gfile_path(gfile))
+    except FileNotFoundError:
+        return
 
     # "File (copy)"
     if not (
@@ -247,7 +268,7 @@ def get_copy_path(path: PathLike) -> Path:
             copy_path := (path.parent / f'{path.stem} ({_("copy")}){path.suffix}')
         ).exists()
     ):
-        return copy_path
+        return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy n)"
     n = 2
@@ -255,12 +276,12 @@ def get_copy_path(path: PathLike) -> Path:
         if not (
             (copy_path := path.parent / f'{path.stem} ({_("copy")} {n}){path.suffix}')
         ).exists():
-            return copy_path
+            return Gio.File.new_for_path(str(copy_path))
         n += 1
 
 
 def get_gfile_display_name(gfile: Gio.File) -> str:
-    """Gets the display name for a `GFile`."""
+    """Gets the display name for `gfile`."""
     # HACK: Don't call this. Store this info somewhere instead.
     return gfile.query_info(
         Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
@@ -353,7 +374,7 @@ def validate_name(
     return True, None
 
 
-def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):
+def __trash_lookup(path: PathLike | str, t: int) -> (PathLike, PathLike):
     trash = Gio.File.new_for_uri("trash://")
 
     files = trash.enumerate_children(
@@ -367,7 +388,7 @@ def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):
         Gio.FileAttributeInfoFlags.NONE,
     )
 
-    path = str(path)
+    path = str(Path(path))
 
     while file_info := files.next_file():
         orig_path = file_info.get_attribute_byte_string(
@@ -388,7 +409,10 @@ def __trash_lookup(path: PathLike, t: int) -> (PathLike, PathLike):
     raise FileNotFoundError
 
 
-def __remove_trashinfo(trash_path: PathLike, orig_path: PathLike) -> None:
+def __remove_trashinfo(trash_path: PathLike | str, orig_path: PathLike | str) -> None:
+    trash_path = Path(trash_path)
+    orig_path = Path(orig_path)
+
     trashinfo = (
         Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
         / "Trash"
@@ -403,7 +427,7 @@ def __remove_trashinfo(trash_path: PathLike, orig_path: PathLike) -> None:
         return
 
     # Double-check that the file is the right one
-    if keyfile.get_string("Trash Info", "Path") == quote(orig_path):
+    if keyfile.get_string("Trash Info", "Path") == quote(str(orig_path)):
         try:
             Gio.File.new_for_path(str(trashinfo)).delete()
         except GLib.Error:
