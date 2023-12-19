@@ -27,6 +27,7 @@ from urllib.parse import quote
 from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
+from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
 
 # TODO: Handle errors better
 
@@ -262,19 +263,27 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
     except FileNotFoundError:
         return
 
-    # "File (copy)"
-    if not (
-        (
-            copy_path := (path.parent / f'{path.stem} ({_("copy")}){path.suffix}')
-        ).exists()
+    if (
+        gfile.query_info(
+            Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, Gio.FileQueryInfoFlags.NONE
+        ).get_content_type()
+        in DOT_IS_NOT_EXTENSION
     ):
+        stem = path.name
+        suffix = ""
+    else:
+        stem = path.stem
+        suffix = path.suffix
+
+    # "File (copy)"
+    if not ((copy_path := (path.parent / f'{stem} ({_("copy")}){suffix}')).exists()):
         return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy n)"
     n = 2
     while True:
         if not (
-            (copy_path := path.parent / f'{path.stem} ({_("copy")} {n}){path.suffix}')
+            (copy_path := path.parent / f'{stem} ({_("copy")} {n}){suffix}')
         ).exists():
             return Gio.File.new_for_path(str(copy_path))
         n += 1

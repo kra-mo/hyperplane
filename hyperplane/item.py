@@ -25,6 +25,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 from gi.repository.GLib import idle_add
 
 from hyperplane import shared
+from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 from hyperplane.utils.thumbnail import generate_thumbnail
 
@@ -126,11 +127,7 @@ class HypItem(Adw.Bin):
 
         else:
             # Blacklist some MIME types from getting extension badges
-            if self.content_type in {
-                "application/x-sharedlib",
-                "application/x-executable",
-                "application/x-pie-executable",
-            }:
+            if self.content_type in DOT_IS_NOT_EXTENSION:
                 self.display_name = display_name
                 self.extension = None
             else:

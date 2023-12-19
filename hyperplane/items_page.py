@@ -503,17 +503,11 @@ class HypItemsPage(Adw.NavigationPage):
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
 
     def __new_folder(self, *_args: Any) -> None:
-        path = None
-
         if self.tags:
             tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            path = Path(shared.home, *tags)
-
-        if not path:
-            try:
-                path = get_gfile_path(self.gfile)
-            except FileNotFoundError:
-                return
+            gfile = Gio.File.new_for_path(str(Path(shared.home, *tags)))
+        else:
+            gfile = self.gfile
 
         dialog = Adw.MessageDialog.new(self.get_root(), _("New Folder"))
 
@@ -538,7 +532,6 @@ class HypItemsPage(Adw.NavigationPage):
 
         def set_incative(*_args: Any) -> None:
             nonlocal can_create
-            nonlocal path
 
             if not (text := entry.get_text().strip()):
                 can_create = False
@@ -546,7 +539,7 @@ class HypItemsPage(Adw.NavigationPage):
                 revealer.set_reveal_child(False)
                 return
 
-            can_create, message = validate_name(Gio.File.new_for_path(str(path)), text)
+            can_create, message = validate_name(gfile, text)
             dialog.set_response_enabled("create", can_create)
             revealer.set_reveal_child(bool(message))
             if message:
@@ -554,20 +547,24 @@ class HypItemsPage(Adw.NavigationPage):
 
         def create_folder(*_args: Any):
             nonlocal can_create
-            nonlocal path
 
             if not can_create:
                 return
 
-            Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
+            new_gfile = gfile.get_child_for_display_name(entry.get_text())
+            emit = self.tags and (not new_gfile.get_parent().query_exists())
+
+            new_gfile.make_directory_with_parents()
             dialog.close()
 
-            if self.tags and not path.parent.is_dir():
-                shared.postmaster.emit(
-                    "tag-location-created",
-                    Gtk.StringList.new(tags),
-                    Gio.File.new_for_path(str(path)),
-                )
+            if not emit:
+                return
+
+            shared.postmaster.emit(
+                "tag-location-created",
+                Gtk.StringList.new(tags),
+                gfile,
+            )
 
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "create":
@@ -692,9 +689,8 @@ class HypItemsPage(Adw.NavigationPage):
         if n > 1:
             message = _("{} files moved to trash").format(n)
         elif n:
-            # TODO: Use the GFileInfo's display name maybe
             message = _("{} moved to trash").format(
-                f'"{files[0][0].name}"'  # pylint: disable=undefined-loop-variable
+                f'"{get_gfile_display_name(gfiles[0])}"'
             )
 
         toast = self.get_root().send_toast(message, undo=True)

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="@PREFIX@">
-    <file preprocess="xml-stripblanks">gtk/window.ui</file>
-    <file preprocess="xml-stripblanks">gtk/preferences.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
-    <file preprocess="xml-stripblanks">gtk/items-page.ui</file>
     <file preprocess="xml-stripblanks">gtk/item.ui</file>
+    <file preprocess="xml-stripblanks">gtk/items-page.ui</file>
+    <file preprocess="xml-stripblanks">gtk/preferences.ui</file>
     <file preprocess="xml-stripblanks">gtk/tag-row.ui</file>
+    <file preprocess="xml-stripblanks">gtk/window.ui</file>
     <file alias="style.css">gtk/style.css</file>
     <file alias="style-dark.css">gtk/style-dark.css</file>
     <file preprocess="xml-stripblanks">assets/folder-closed.svg</file>

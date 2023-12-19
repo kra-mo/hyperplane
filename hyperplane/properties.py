@@ -18,12 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The item properties window."""
-from pathlib import Path
 from stat import S_IEXEC
 from typing import Any
 
 from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
+from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 
 
@@ -241,13 +241,10 @@ class HypPropertiesWindow(Adw.Window):
                             my_change = False
                             return
 
-                        if not (path := gfile.get_path()):
-                            return
-
-                        path = Path(path)
                         try:
+                            path = get_gfile_path(gfile)
                             path.chmod(path.stat().st_mode ^ S_IEXEC)
-                        except OSError:
+                        except (FileNotFoundError, OSError):
                             my_change = True
                             exec_row.set_active(not exec_row.get_active())
 
