@@ -31,17 +31,17 @@ from hyperplane import shared
 # TODO: Handle errors better
 
 
-def __emit_tags_changed(_file: Gio.File, _result: Gio.Task, path: Path) -> None:
-    tags = path.relative_to(shared.home).parent.parts
+def path_represents_tags(path: PathLike) -> bool:
+    """Checks whether a given `path` represents tags or not."""
+    path = Path(path)
 
-    shared.postmaster.emit(
-        "tag-location-created",
-        Gtk.StringList.new(tags),
-        Gio.File.new_for_path(str(Path(shared.home, *tags))),
-    )
+    if not path.is_relative_to(shared.home):
+        return False
+
+    return all(part in shared.tags for part in path.relative_to(shared.home).parts)
 
 
-def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
+def copy(src: PathLike, dst: PathLike) -> None:
     """
     Asynchronously copies a file or directory from `src` to `dst`.
 
@@ -49,9 +49,6 @@ def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
 
     If a file or directory with the same name already exists at `dst`,
     FileExistsError will be raised.
-
-    If `tags` is true, it is assumed that the destination is a path representing tags.
-    This is information is necessary for updating the list of valid tag directories.
     """
 
     src = Path(src)
@@ -60,7 +57,9 @@ def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
     if dst.exists():
         raise FileExistsError
 
-    tags_changed = tags and (not dst.parent.is_dir())
+    tag_location_created = path_represents_tags(dst.parent) and (
+        not dst.parent.is_dir()
+    )
 
     if not (parent := Path(dst).parent).is_dir():
         parent.mkdir(parents=True)
@@ -70,10 +69,10 @@ def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
         task = Gio.Task.new(
             None,
             None,
-            __emit_tags_changed if tags_changed else None,
+            __emit_tags_changed if tag_location_created else None,
             None,
             None,
-            dst if tags_changed else None,
+            dst if tag_location_created else None,
         )
         task.run_in_thread(lambda *_: shutil.copytree(src, dst))
         return
@@ -82,12 +81,12 @@ def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
         Gio.File.new_for_path(str(dst)),
         Gio.FileCopyFlags.NONE,
         GLib.PRIORITY_DEFAULT,
-        callback=__emit_tags_changed if tags_changed else None,
+        callback=__emit_tags_changed if tag_location_created else None,
         user_data=dst,
     )
 
 
-def move(src: PathLike, dst: PathLike, tags: bool = False) -> None:
+def move(src: PathLike, dst: PathLike) -> None:
     """
     Asynchronously moves a file or directory from `src` to `dst`.
 
@@ -95,9 +94,6 @@ def move(src: PathLike, dst: PathLike, tags: bool = False) -> None:
 
     If a file or directory with the same name already exists at `dst`,
     FileExistsError will be raised.
-
-    If `tags` is true, it is assumed that the destination is a path representing tags.
-    This is information is necessary for updating the list of valid tag directories.
     """
 
     src = Path(src)
@@ -106,7 +102,7 @@ def move(src: PathLike, dst: PathLike, tags: bool = False) -> None:
     if dst.exists():
         raise FileExistsError
 
-    tags_changed = tags and (not dst.parent.is_dir())
+    tags_changed = path_represents_tags(dst.parent) and (not dst.parent.is_dir())
 
     if not (parent := dst.parent).is_dir():
         parent.mkdir(parents=True)
@@ -412,3 +408,13 @@ def __remove_trashinfo(trash_path: PathLike, orig_path: PathLike) -> None:
             Gio.File.new_for_path(str(trashinfo)).delete()
         except GLib.Error:
             pass
+
+
+def __emit_tags_changed(_file: Gio.File, _result: Gio.Task, path: Path) -> None:
+    tags = path.relative_to(shared.home).parent.parts
+
+    shared.postmaster.emit(
+        "tag-location-created",
+        Gtk.StringList.new(tags),
+        Gio.File.new_for_path(str(Path(shared.home, *tags))),
+    )

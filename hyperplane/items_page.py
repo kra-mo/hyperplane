@@ -243,7 +243,7 @@ class HypItemsPage(Adw.NavigationPage):
             tags.add(string.get_string())
             index += 1
 
-        if all(tag for tag in tags if tag in self.tags):
+        if all(tag in self.tags for tag in tags):
             self.dir_list.get_model().append(
                 Gtk.DirectoryList.new(self.file_attrs, new_location)
             )
@@ -399,10 +399,10 @@ class HypItemsPage(Adw.NavigationPage):
             dst = dst / src.name
 
             try:
-                copy(src, dst, tags=bool(self.tags))
+                copy(src, dst)
             except FileExistsError:
                 dst = get_copy_path(dst)
-                copy(src, dst, tags=bool(self.tags))
+                copy(src, dst)
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
@@ -636,7 +636,7 @@ class HypItemsPage(Adw.NavigationPage):
 
                 if shared.cut_page:
                     try:
-                        move(src, dst, tags=bool(self.tags))
+                        move(src, dst)
                     except FileExistsError:
                         self.get_root().send_toast(
                             _("A folder with that name already exists.")
@@ -649,10 +649,10 @@ class HypItemsPage(Adw.NavigationPage):
 
                 else:
                     try:
-                        copy(src, dst, tags=bool(self.tags))
+                        copy(src, dst)
                     except FileExistsError:
                         dst = get_copy_path(dst)
-                        copy(src, dst, tags=bool(self.tags))
+                        copy(src, dst)
 
                     paths.append(dst)
 
