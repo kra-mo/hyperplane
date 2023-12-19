@@ -39,7 +39,7 @@ class HypItemFilter(Gtk.Filter):
             return True
 
         if not (path := file_info.get_attribute_object("standard::file").get_path()):
-            return False
+            return True
 
         if not path_represents_tags(path):
             return True
