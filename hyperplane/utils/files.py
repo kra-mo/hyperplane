@@ -24,12 +24,24 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
-from gi.repository import Gio, GLib
+from gi.repository import Gio, GLib, Gtk
+
+from hyperplane import shared
 
 # TODO: Handle errors better
 
 
-def copy(src: PathLike, dst: PathLike) -> None:
+def __emit_tags_changed(_file: Gio.File, _result: Gio.Task, path: Path) -> None:
+    tags = path.relative_to(shared.home).parent.parts
+
+    shared.postmaster.emit(
+        "tag-location-created",
+        Gtk.StringList.new(tags),
+        Gio.File.new_for_path(str(Path(shared.home, *tags))),
+    )
+
+
+def copy(src: PathLike, dst: PathLike, tags: bool = False) -> None:
     """
     Asynchronously copies a file or directory from `src` to `dst`.
 
@@ -37,27 +49,45 @@ def copy(src: PathLike, dst: PathLike) -> None:
 
     If a file or directory with the same name already exists at `dst`,
     FileExistsError will be raised.
+
+    If `tags` is true, it is assumed that the destination is a path representing tags.
+    This is information is necessary for updating the list of valid tag directories.
     """
 
-    if Path(dst).exists():
+    src = Path(src)
+    dst = Path(dst)
+
+    if dst.exists():
         raise FileExistsError
+
+    tags_changed = tags and (not dst.parent.is_dir())
 
     if not (parent := Path(dst).parent).is_dir():
         parent.mkdir(parents=True)
 
-    if Path(src).is_dir():
+    if src.is_dir():
         # Gio doesn't support recursive copies
-        GLib.Thread.new(None, shutil.copytree, src, Path(dst))
+        task = Gio.Task.new(
+            None,
+            None,
+            __emit_tags_changed if tags_changed else None,
+            None,
+            None,
+            dst if tags_changed else None,
+        )
+        task.run_in_thread(lambda *_: shutil.copytree(src, dst))
         return
 
     Gio.File.new_for_path(str(src)).copy_async(
         Gio.File.new_for_path(str(dst)),
         Gio.FileCopyFlags.NONE,
         GLib.PRIORITY_DEFAULT,
+        callback=__emit_tags_changed if tags_changed else None,
+        user_data=dst,
     )
 
 
-def move(src: PathLike, dst: PathLike) -> None:
+def move(src: PathLike, dst: PathLike, tags: bool = False) -> None:
     """
     Asynchronously moves a file or directory from `src` to `dst`.
 
@@ -65,16 +95,32 @@ def move(src: PathLike, dst: PathLike) -> None:
 
     If a file or directory with the same name already exists at `dst`,
     FileExistsError will be raised.
+
+    If `tags` is true, it is assumed that the destination is a path representing tags.
+    This is information is necessary for updating the list of valid tag directories.
     """
 
-    if Path(dst).exists():
+    src = Path(src)
+    dst = Path(dst)
+
+    if dst.exists():
         raise FileExistsError
 
-    if not (parent := Path(dst).parent).is_dir():
+    tags_changed = tags and (not dst.parent.is_dir())
+
+    if not (parent := dst.parent).is_dir():
         parent.mkdir(parents=True)
 
     # Gio doesn't seem to work with trashed items
-    GLib.Thread.new(None, shutil.move, src, dst)
+    task = Gio.Task.new(
+        None,
+        None,
+        __emit_tags_changed if tags_changed else None,
+        None,
+        None,
+        dst if tags_changed else None,
+    )
+    task.run_in_thread(lambda *_: shutil.copytree(src, dst))
 
 
 def restore(

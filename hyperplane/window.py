@@ -68,8 +68,6 @@ class HypWindow(Adw.ApplicationWindow):
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
     tag_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
-    undo_queue: dict = {}
-    cut_page: Optional[HypItemsPage] = None
     path_bar_connection: int
     sidebar_items: set
     right_clicked_tag: str

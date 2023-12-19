@@ -101,6 +101,18 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
+        self.file_attrs = ",".join(
+            (
+                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+                Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
+                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
+                Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
+            )
+        )
+
         self.dir_list = self.__get_list(self.gfile, self.tags)
         self.item_filter = HypItemFilter()
         self.filter_list = Gtk.FilterListModel.new(self.dir_list, self.item_filter)
@@ -119,7 +131,9 @@ class HypItemsPage(Adw.NavigationPage):
         self.grid_view.connect("activate", self.activate)
 
         self.filter_list.connect("items-changed", self.__items_changed)
-        self.__items_changed(self.filter_list)
+        self.__items_changed()
+
+        shared.postmaster.connect("tag-location-created", self.__tag_location_added)
 
         # Set up the "page" action group
         self.shortcut_controller = Gtk.ShortcutController.new()
@@ -200,22 +214,9 @@ class HypItemsPage(Adw.NavigationPage):
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
     ) -> Gtk.DirectoryList | Gtk.FlattenListModel:
-        attrs = ",".join(
-            (
-                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
-                Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
-                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
-                Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
-            )
-        )
         if gfile:
-            dir_list = Gtk.DirectoryList.new(attrs, gfile)
-            dir_list.connect(
-                "notify::loading", lambda *_: self.__items_changed(self.filter_list)
-            )
+            dir_list = Gtk.DirectoryList.new(self.file_attrs, gfile)
+            dir_list.connect("notify::loading", lambda *_: self.__items_changed())
 
             return dir_list
 
@@ -223,24 +224,39 @@ class HypItemsPage(Adw.NavigationPage):
         for plane_path in iterplane(tags):
             list_store.append(
                 dir_list := Gtk.DirectoryList.new(
-                    attrs, Gio.File.new_for_path(str(plane_path))
+                    self.file_attrs, Gio.File.new_for_path(str(plane_path))
                 )
             )
-            dir_list.connect(
-                "notify::loading", lambda *_: self.__items_changed(self.filter_list)
-            )
+            dir_list.connect("notify::loading", lambda *_: self.__items_changed())
 
         return Gtk.FlattenListModel.new(list_store)
 
+    def __tag_location_added(
+        self, _obj: Any, string_list: Gtk.StringList, new_location: Gio.File
+    ):
+        if not self.tags:
+            return
+
+        tags = set()
+        index = 0
+        while string := string_list.get_item(index):
+            tags.add(string.get_string())
+            index += 1
+
+        if all(tag for tag in tags if tag in self.tags):
+            self.dir_list.get_model().append(
+                Gtk.DirectoryList.new(self.file_attrs, new_location)
+            )
+
     def __items_changed(
         self,
-        filter_list: Gtk.FilterListModel,
+        _filter_list: Optional[Gtk.FilterListModel] = None,
         _pos: Optional[int] = 0,
         removed: Optional[int] = 1,
         added: Optional[int] = 1,
     ) -> None:
         page = self.scrolled_window.get_child()
-        n_items = filter_list.get_n_items()
+        n_items = self.filter_list.get_n_items()
 
         if added and n_items and (page != self.grid_view):
             if page == self.loading:
@@ -357,12 +373,13 @@ class HypItemsPage(Adw.NavigationPage):
         GLib.timeout_add(10, self.__popup_menu)
 
     def __drop(self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y):
-        # TODO: This is mostly copy-paste from HypWindow.__paste()
+        # TODO: This is mostly copy-paste from __paste()
         for gfile in file_list:
             if self.tags:
+                tags = tuple(tag for tag in shared.tags if tag in self.tags)
                 dst = Path(
                     shared.home,
-                    *(tag for tag in shared.tags if tag in self.tags),
+                    *tags,
                 )
             else:
                 try:
@@ -382,10 +399,10 @@ class HypItemsPage(Adw.NavigationPage):
             dst = dst / src.name
 
             try:
-                copy(src, dst)
+                copy(src, dst, tags=bool(self.tags))
             except FileExistsError:
                 dst = get_copy_path(dst)
-                copy(src, dst)
+                copy(src, dst, tags=bool(self.tags))
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
@@ -413,16 +430,14 @@ class HypItemsPage(Adw.NavigationPage):
                 )
 
     def __undo(self, obj: Any, *_args: Any) -> None:
-        win = self.get_root()
-
-        if not win.undo_queue:
+        if not shared.undo_queue:
             return
 
         if isinstance(obj, Adw.Toast):
             index = obj
         else:
-            index = tuple(win.undo_queue.keys())[-1]
-        item = win.undo_queue[index]
+            index = tuple(shared.undo_queue.keys())[-1]
+        item = shared.undo_queue[index]
 
         # TODO: Look up the pages with the paths and update those
         match item[0]:
@@ -447,7 +462,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         if isinstance(index, Adw.Toast):
             index.dismiss()
-        win.undo_queue.popitem()
+        shared.undo_queue.popitem()
 
     def __open(self, *_args: Any) -> None:
         if len(positions := self.get_selected_positions()) > 1:
@@ -463,29 +478,23 @@ class HypItemsPage(Adw.NavigationPage):
     def __open_new_tab(
         self, _obj: Any, _parameter: Any, positions: Optional[list[int]] = None
     ) -> None:
-        win = self.get_root()
-
         if not positions:
             positions = self.get_selected_positions()
 
         gfiles = self.get_gfiles_from_positions(positions)
 
         for gfile in gfiles:
-            win.new_tab(gfile)
+            self.get_root().new_tab(gfile)
 
     def __open_new_window(self, *_args: Any) -> None:
-        win = self.get_root()
-
         gfiles = self.get_selected_gfiles()
 
         for gfile in gfiles:
-            win.new_window(gfile)
+            self.get_root().new_window(gfile)
 
     def __open_with(self, *_args: Any) -> None:
-        win = self.get_root()
-
         portal = Xdp.Portal()
-        parent = XdpGtk4.parent_new_gtk(win)
+        parent = XdpGtk4.parent_new_gtk(self.get_root())
         gfiles = [self.gfile] if self.right_click_view else self.get_selected_gfiles()
         self.right_click_view = False
         if not gfiles:
@@ -498,7 +507,8 @@ class HypItemsPage(Adw.NavigationPage):
         path = None
 
         if self.tags:
-            path = Path(shared.home, *(tag for tag in shared.tags if tag in self.tags))
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            path = Path(shared.home, *tags)
 
         if not path:
             try:
@@ -553,6 +563,13 @@ class HypItemsPage(Adw.NavigationPage):
             Path(path, entry.get_text().strip()).mkdir(parents=True, exist_ok=True)
             dialog.close()
 
+            if self.tags and not path.parent.is_dir():
+                shared.postmaster.emit(
+                    "tag-location-created",
+                    Gtk.StringList.new(tags),
+                    Gio.File.new_for_path(str(path)),
+                )
+
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "create":
                 create_folder()
@@ -564,9 +581,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.choose()
 
     def __copy(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        win.cut_page = None
+        shared.cut_page = None
         clipboard = Gdk.Display.get_default().get_clipboard()
         if not (items := self.get_selected_gfiles()):
             return
@@ -576,14 +591,10 @@ class HypItemsPage(Adw.NavigationPage):
         clipboard.set_content(provider)
 
     def __cut(self, _obj: Any, *args: Any) -> None:
-        win = self.get_root()
-
         self.__copy(*args)
-        win.cut_page = self
+        shared.cut_page = self
 
     def __paste(self, *_args: Any) -> None:
-        win = self.get_root()
-
         clipboard = Gdk.Display.get_default().get_clipboard()
         paths = []
 
@@ -596,14 +607,15 @@ class HypItemsPage(Adw.NavigationPage):
             try:
                 file_list = clipboard.read_value_finish(result)
             except GLib.Error:
-                win.cut_page = None
+                shared.cut_page = None
                 return
 
             for gfile in file_list:
                 if self.tags:
+                    tags = tuple(tag for tag in shared.tags if tag in self.tags)
                     dst = Path(
                         shared.home,
-                        *(tag for tag in shared.tags if tag in self.tags),
+                        *tags,
                     )
                 else:
                     try:
@@ -622,11 +634,11 @@ class HypItemsPage(Adw.NavigationPage):
 
                 dst = dst / src.name
 
-                if win.cut_page:
+                if shared.cut_page:
                     try:
-                        move(src, dst)
+                        move(src, dst, tags=bool(self.tags))
                     except FileExistsError:
-                        win.send_toast(
+                        self.get_root().send_toast(
                             _("A folder with that name already exists.")
                             if src.is_dir()
                             else _("A file with that name already exists.")
@@ -637,18 +649,18 @@ class HypItemsPage(Adw.NavigationPage):
 
                 else:
                     try:
-                        copy(src, dst)
+                        copy(src, dst, tags=bool(self.tags))
                     except FileExistsError:
                         dst = get_copy_path(dst)
-                        copy(src, dst)
+                        copy(src, dst, tags=bool(self.tags))
 
                     paths.append(dst)
 
-            if win.cut_page:
-                win.undo_queue[time()] = ("cut", paths)
+            if shared.cut_page:
+                shared.undo_queue[time()] = ("cut", paths)
             else:
-                win.undo_queue[time()] = ("copy", paths)
-            win.cut_page = None
+                shared.undo_queue[time()] = ("copy", paths)
+            shared.cut_page = None
 
         clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, cb)
 
@@ -707,7 +719,7 @@ class HypItemsPage(Adw.NavigationPage):
             except GLib.Error:
                 pass
             else:
-                win.undo_queue[time()] = ("rename", new_file, old_name)
+                shared.undo_queue[time()] = ("rename", new_file, old_name)
 
         def set_incative(*_args: Any) -> None:
             nonlocal can_rename
@@ -745,8 +757,6 @@ class HypItemsPage(Adw.NavigationPage):
         entry.select_region(0, len(path.name) - len("".join(path.suffixes)))
 
     def __trash(self, *args) -> None:
-        win = self.get_root()
-
         gfiles = self.get_selected_gfiles()
 
         # When the Delete key is pressed but the user is in the trash
@@ -775,8 +785,8 @@ class HypItemsPage(Adw.NavigationPage):
                 f'"{files[0][0].name}"'  # pylint: disable=undefined-loop-variable
             )
 
-        toast = win.send_toast(message, undo=True)
-        win.undo_queue[toast] = ("trash", files)
+        toast = self.get_root().send_toast(message, undo=True)
+        shared.undo_queue[toast] = ("trash", files)
         toast.connect("button-clicked", self.__undo)
 
     def __trash_delete(self, *args: Any) -> None:

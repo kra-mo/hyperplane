@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A singleton class for sending signals throughtout the app."""
-from gi.repository import GObject
+from gi.repository import Gio, GObject, Gtk
 
 
 class HypPostmasterGeneral(GObject.Object):
@@ -43,6 +43,18 @@ class HypPostmasterGeneral(GObject.Object):
         """
         Emitted whenever the list of tags changes.
 
-        All objects that keep an internal list of tags should connect to this
+        All objects that keep an internal list of tags should connect to it
         and update their list accordingly.
+        """
+
+    @GObject.Signal(name="tag-location-created")
+    def tag_location_created(
+        self, tags: Gtk.StringList, new_location: Gio.File
+    ) -> None:
+        """
+        Emitted whenever a new directory is created for tags.
+
+        All widgets that display items from tags should connect to it
+        and set it up so they append `new_location` to their list of locations
+        if all `tags` are in their tags.
         """
