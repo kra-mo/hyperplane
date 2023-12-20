@@ -375,10 +375,11 @@ class HypItem(Adw.Bin):
 
         if zoom_level < 2:
             self.icon.set_pixel_size(20)
-            self.icon.set_icon_size(Gtk.IconSize.INHERIT)
         else:
-            self.icon.set_pixel_size(-1)
-            self.icon.set_icon_size(Gtk.IconSize.LARGE)
+            # Pixel size is set instead of GTK_ICON_SIZE_LARGE
+            # because otherwise GTK gets confused even if pixel-size is reset to -1
+            # and it can lead to graphical glitches after zooming
+            self.icon.set_pixel_size(32)
 
     def __select_self(self) -> None:
         if not (
