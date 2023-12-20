@@ -82,6 +82,8 @@ class HypWindow(Adw.ApplicationWindow):
             self.add_css_class("devel")
 
         self.tab_view.connect("page-attached", self.__page_attached)
+        self.tab_view.connect("close-page", self.__close_page)
+        self.closed_tabs = []
 
         # Create actions
 
@@ -103,6 +105,7 @@ class HypWindow(Adw.ApplicationWindow):
         )
         self.create_action("hide-path-bar", self.__hide_path_bar)
         self.create_action("close", self.__close, ("<primary>w",))
+        self.create_action("reopen-tab", self.__reopen_tab, ("<primary><shift>t",))
         self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
 
         self.create_action("back", self.__back)
@@ -359,7 +362,6 @@ class HypWindow(Adw.ApplicationWindow):
                 .replace("/", "⧸")
                 .replace("\n", " ")
             ) in shared.tags:
-                # TODO: Use a revealer and insensitivity here instead of a toast
                 self.send_toast(_('A category named "{}" already exists').format(text))
                 return
 
@@ -428,6 +430,21 @@ class HypWindow(Adw.ApplicationWindow):
     def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
         page.get_child().view.connect("popped", self.__navigation_changed)
         page.get_child().view.connect("pushed", self.__navigation_changed)
+
+    def __close_page(self, _view: Adw.TabView, page: Adw.TabPage) -> None:
+        # TODO: I thought registering a handler meant just connecting to the signal
+        # but apparently not?
+        # Regardless, this still works since the default handler does what I want anyway
+        child = page.get_child()
+        child.unparent()
+        self.closed_tabs.append((child, page.get_title()))
+
+    def __reopen_tab(self, *_args: Any) -> None:
+        try:
+            page, title = self.closed_tabs.pop()
+        except IndexError:
+            return
+        self.tab_view.append(page).set_title(title)
 
     def __path_bar_activated(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()

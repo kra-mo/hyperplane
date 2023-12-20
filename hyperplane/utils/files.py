@@ -18,8 +18,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """Miscellaneous utilities for file operations."""
+import logging
 import shutil
-from logging import warning
 from os import PathLike, getenv
 from pathlib import Path
 from typing import Optional
@@ -201,7 +201,7 @@ def empty_trash() -> None:
     try:
         Gio.Subprocess.new(("gio", "trash", "--empty"), Gio.SubprocessFlags.NONE)
     except GLib.Error as error:
-        warning("Failed to empty trash: %s", error)
+        logging.warning("Failed to empty trash: %s", error)
         return
 
     for key, value in shared.undo_queue.copy().items():
