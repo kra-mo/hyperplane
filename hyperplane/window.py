@@ -68,11 +68,12 @@ class HypWindow(Adw.ApplicationWindow):
 
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
     tag_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
-    trash_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
+    file_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     path_bar_connection: int
     sidebar_items: set
     right_clicked_tag: str
+    right_clicked_file: Gio.File
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -128,6 +129,11 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("rename", self.__rename, ("F2",))
 
         # TODO: This is tedious, maybe use GTK Expressions?
+        self.create_action("open-sidebar", self.__open_sidebar)
+        self.create_action("open-new-tab-sidebar", self.__open_new_tab_sidebar)
+        self.create_action("open-new-window-sidebar", self.__open_new_window_sidebar)
+        self.create_action("properties-sidebar", self.__properties_sidebar)
+
         self.create_action("open-tag", self.__open_tag)
         self.create_action("open-new-tab-tag", self.__open_new_tab_tag)
         self.create_action("open-new-window-tag", self.__open_new_window_tag)
@@ -168,10 +174,23 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_entry.connect("entry-activated", self.__do_rename)
         self.rename_button.connect("clicked", self.__do_rename)
 
-        trash_right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
-        trash_right_click.connect("pressed", self.__trash_right_click)
-        self.trash_box.get_first_child().add_controller(trash_right_click)
-        self.trash_right_click_menu.set_parent(self.trash_box.get_first_child())
+        sidebar_items = {
+            self.sidebar_recent: Gio.File.new_for_uri("recent://"),
+            self.sidebar_home: Gio.File.new_for_path(str(shared.home)),
+            self.trash_box.get_first_child(): Gio.File.new_for_uri("trash://"),
+        }
+
+        for widget, gfile in sidebar_items.items():
+            (right_click := Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)).connect(
+                "pressed", self.__sidebar_right_click, gfile
+            )
+
+            (middle_click := Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)).connect(
+                "pressed", self.__sidebar_middle_click, gfile
+            )
+
+            widget.add_controller(right_click)
+            widget.add_controller(middle_click)
 
         self.__set_actions()
 
@@ -333,13 +352,19 @@ class HypWindow(Adw.ApplicationWindow):
         def add_tag(*_args: Any) -> None:
             dialog.close()
 
-            if (text := entry.get_text().strip()) in shared.tags:
+            if (
+                # Replace characters that wouldn't be valid with similar ones
+                text := entry.get_text()
+                .strip()
+                .replace("/", "⧸")
+                .replace("\n", " ")
+            ) in shared.tags:
                 # TODO: Use a revealer and insensitivity here instead of a toast
                 self.send_toast(_('A category named "{}" already exists').format(text))
                 return
 
-            # TODO: Present this to the user
-            if (not text) or ("/" in text) or ("\n" in text) or (text in (".", "..")):
+            if text in (".", ".."):
+                self.send_toast(_("A category cannot be named {}").format(f'"{text}"'))
                 return
 
             add_tags(text)
@@ -592,8 +617,21 @@ class HypWindow(Adw.ApplicationWindow):
         page.set_title(_("Home"))
         return page
 
+    def __open_sidebar(self, *_args: Any) -> None:
+        self.get_nav_bin().new_page(self.right_clicked_file)
+
+    def __open_new_tab_sidebar(self, *_args: Any) -> None:
+        self.new_tab(self.right_clicked_file)
+
+    def __open_new_window_sidebar(self, *_args: Any) -> None:
+        self.new_window(self.right_clicked_file)
+
+    def __properties_sidebar(self, *_args: Any) -> None:
+        properties = HypPropertiesWindow(self.right_clicked_file)
+        properties.set_transient_for(self)
+        properties.present()
+
     def __open_tag(self, *_args: Any) -> None:
-        # TODO: This is ugly
         self.get_nav_bin().new_page(tag=self.right_clicked_tag)
 
     def __open_new_tab_tag(self, *_args: Any) -> None:
@@ -725,15 +763,28 @@ class HypWindow(Adw.ApplicationWindow):
         if message:
             self.rename_revealer_label.set_label(message)
 
-    def __trash_right_click(self, _gesture, _n, x, y) -> None:
+    def __sidebar_right_click(
+        self, gesture: Gtk.GestureClick, _n: int, x: float, y: float, gfile: Gio.File
+    ) -> None:
+        self.right_clicked_file = gfile
+
+        print(bool(gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()))
+
         self.lookup_action("empty-trash").set_enabled(
-            bool(shared.trash_list.get_n_items())
+            gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()
         )
 
+        self.file_right_click_menu.unparent()
+        self.file_right_click_menu.set_parent(gesture.get_widget())
         rectangle = Gdk.Rectangle()
         rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
-        self.trash_right_click_menu.set_pointing_to(rectangle)
-        self.trash_right_click_menu.popup()
+        self.file_right_click_menu.set_pointing_to(rectangle)
+        self.file_right_click_menu.popup()
+
+    def __sidebar_middle_click(
+        self, _gesture: Gtk.GestureClick, _n: int, _x: float, _y: float, gfile: Gio.File
+    ) -> None:
+        self.new_tab(gfile)
 
     def __emptry_trash(self, *_args: Any) -> None:
         dialog = Adw.MessageDialog.new(

@@ -322,15 +322,15 @@ PopoverMenu right_click_menu {
   has-arrow: false;
 }
 
-PopoverMenu tag_right_click_menu {
+PopoverMenu file_right_click_menu {
   halign: start;
-  menu-model: tag_right_click;
+  menu-model: file_right_click;
   has-arrow: false;
 }
 
-PopoverMenu trash_right_click_menu {
+PopoverMenu tag_right_click_menu {
   halign: start;
-  menu-model: trash_right_click;
+  menu-model: tag_right_click;
   has-arrow: false;
 }
 
@@ -423,10 +423,6 @@ menu right_click {
   }
 }
 
-menu trash_right_click {
-  item (_("Empty Trash…"), "win.empty-trash")
-}
-
 menu tag_right_click {
   section {
     item (_("Open"), "win.open-tag")
@@ -445,5 +441,23 @@ menu tag_right_click {
       hidden-when: "action-disabled";
     }
     item (_("Remove Category"), "win.remove-tag")
+  }
+}
+
+menu file_right_click {
+  section {
+    item (_("Open"), "win.open-sidebar")
+    item (_("Open In New Tab"), "win.open-new-tab-sidebar")
+    item (_("Open In New Window"), "win.open-new-window-sidebar")
+  }
+  section {
+    item {
+      label: _("Empty Trash…");
+      action: "win.empty-trash";
+      hidden-when: "action-disabled";
+    }
+  }
+  section {
+    item (_("Properties"), "win.properties-sidebar")
   }
 }

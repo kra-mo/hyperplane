@@ -359,6 +359,8 @@ class HypItemsPage(Adw.NavigationPage):
             }
             if self.gfile.get_uri() == "trash:///":
                 items.add("empty-trash")
+                items.remove("paste")
+                items.remove("new-folder")
 
             self.get_root().set_menu_items(items)
 

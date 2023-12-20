@@ -23,6 +23,7 @@ from typing import Any
 
 from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
+from hyperplane import shared
 from hyperplane.utils.files import get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 
@@ -138,6 +139,17 @@ class HypPropertiesWindow(Adw.Window):
                             label=Gio.content_type_get_description(content_type),
                         )
                     )
+
+            if gfile.get_uri() == "trash:///":
+                page.add(trash_group := Adw.PreferencesGroup())
+
+                trash_group.add(
+                    trash_items_row := Adw.ActionRow(
+                        title=_("Items"), subtitle=str(shared.trash_list.get_n_items())
+                    )
+                )
+                trash_items_row.add_css_class("property")
+                trash_items_row.set_title_selectable(True)
 
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())
