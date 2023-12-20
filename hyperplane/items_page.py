@@ -351,14 +351,16 @@ class HypItemsPage(Adw.NavigationPage):
             self.menu_items = None
         else:
             self.right_click_view = True
-            self.get_root().set_menu_items(
-                {
-                    "paste",
-                    "new-folder",
-                    "select-all",
-                    "open-with",
-                }
-            )
+            items = {
+                "paste",
+                "new-folder",
+                "select-all",
+                "open-with",
+            }
+            if self.gfile.get_uri() == "trash:///":
+                items.add("empty-trash")
+
+            self.get_root().set_menu_items(items)
 
         self.get_root().right_click_menu.popup()
 

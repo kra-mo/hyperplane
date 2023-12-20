@@ -328,6 +328,12 @@ PopoverMenu tag_right_click_menu {
   has-arrow: false;
 }
 
+PopoverMenu trash_right_click_menu {
+  halign: start;
+  menu-model: trash_right_click;
+  has-arrow: false;
+}
+
 menu right_click {
   section {
     item {
@@ -406,10 +412,19 @@ menu right_click {
       action: "page.trash-restore";
       hidden-when: "action-disabled";
     }
+    item {
+      label: _("Empty Trash…");
+      action: "win.empty-trash";
+      hidden-when: "action-disabled";
+    }
   }
   section {
     item (_("Properties"), "win.properties")
   }
+}
+
+menu trash_right_click {
+  item (_("Empty Trash…"), "win.empty-trash")
 }
 
 menu tag_right_click {

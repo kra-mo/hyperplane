@@ -19,6 +19,7 @@
 
 """Miscellaneous utilities for file operations."""
 import shutil
+from logging import warning
 from os import PathLike, getenv
 from pathlib import Path
 from typing import Optional
@@ -193,6 +194,20 @@ def restore(
             None,
             query_cb,
         )
+
+
+def empty_trash() -> None:
+    """Tries to asynchronously empty the Trash."""
+    try:
+        Gio.Subprocess.new(("gio", "trash", "--empty"), Gio.SubprocessFlags.NONE)
+    except GLib.Error as error:
+        warning("Failed to empty trash: %s", error)
+        return
+
+    for key, value in shared.undo_queue.copy().items():
+        if value[0] == "trash":
+            key.dismiss()
+            shared.undo_queue.pop(key)
 
 
 def trash_rm(gfile: Gio.File) -> None:

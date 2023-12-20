@@ -22,14 +22,14 @@ from os import sep
 from time import time
 from typing import Any, Callable, Iterable, Optional
 
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import get_gfile_path, validate_name
+from hyperplane.utils.files import empty_trash, get_gfile_path, validate_name
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 
 
@@ -68,6 +68,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
     tag_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
+    trash_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     path_bar_connection: int
     sidebar_items: set
@@ -137,6 +138,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("new-window", self.__new_window, ("<primary>n",))
         self.create_action("new-tab", self.__new_tab, ("<primary>t",))
         self.create_action("tab-overview", self.__tab_overview, ("<primary><shift>o",))
+        self.create_action("empty-trash", self.__emptry_trash)
 
         # Connect signals
 
@@ -165,6 +167,11 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_popover.connect("closed", self.__rename_popover_closed)
         self.rename_entry.connect("entry-activated", self.__do_rename)
         self.rename_button.connect("clicked", self.__do_rename)
+
+        trash_right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        trash_right_click.connect("pressed", self.__trash_right_click)
+        self.trash_box.get_first_child().add_controller(trash_right_click)
+        self.trash_right_click_menu.set_parent(self.trash_box.get_first_child())
 
         self.__set_actions()
 
@@ -271,6 +278,7 @@ class HypWindow(Adw.ApplicationWindow):
             "trash": page,
             "trash-delete": page,
             "trash-restore": page,
+            "empty-trash": self,
             "new-folder": page,
             "select-all": page,
             "open": page,
@@ -625,6 +633,7 @@ class HypWindow(Adw.ApplicationWindow):
                 "trash",
                 "trash-delete",
                 "trash-restore",
+                "empty-trash",
                 "new-folder",
                 "select-all",
                 "open",
@@ -715,3 +724,33 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_revealer.set_reveal_child(bool(message))
         if message:
             self.rename_revealer_label.set_label(message)
+
+    def __trash_right_click(self, _gesture, _n, x, y) -> None:
+        self.lookup_action("empty-trash").set_enabled(
+            bool(shared.trash_list.get_n_items())
+        )
+
+        rectangle = Gdk.Rectangle()
+        rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
+        self.trash_right_click_menu.set_pointing_to(rectangle)
+        self.trash_right_click_menu.popup()
+
+    def __emptry_trash(self, *_args: Any) -> None:
+        dialog = Adw.MessageDialog.new(
+            self,
+            _("Empty all Items From Trash?"),
+            _("All items in the Trash will be permamently deleted."),
+        )
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("empty", _("Empty Trash"))
+
+        dialog.set_default_response("empty")
+        dialog.set_response_appearance("empty", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
+            if response == "empty":
+                empty_trash()
+
+        dialog.connect("response", handle_response)
+        dialog.present()

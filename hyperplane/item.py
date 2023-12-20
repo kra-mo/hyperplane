@@ -393,10 +393,12 @@ class HypItem(Adw.Bin):
         if self.is_dir:
             menu_items.add("open-new-tab")
             menu_items.add("open-new-window")
-        if self.gfile.get_uri().startswith("trash://"):
+        if self.gfile.get_uri().startswith("trash:///"):
             menu_items.remove("trash")
-            menu_items.add("trash-restore")
-            menu_items.add("trash-delete")
+            menu_items.remove("rename")
+            if self.gfile.get_uri().count("/") < 4:
+                menu_items.add("trash-restore")
+                menu_items.add("trash-delete")
 
         # TODO: Ugly
         self.page.menu_items = menu_items
