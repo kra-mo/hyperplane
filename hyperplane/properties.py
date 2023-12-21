@@ -96,6 +96,7 @@ class HypPropertiesWindow(Adw.Window):
                 picture.set_content_fit(Gtk.ContentFit.COVER)
                 picture.add_css_class("item-thumbnail")
                 picture.add_css_class("thumbnail-picture")
+                picture.add_css_class("gray-background")
 
                 icon_group.add(
                     Adw.Clamp(
