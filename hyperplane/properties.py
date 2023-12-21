@@ -101,7 +101,7 @@ class HypPropertiesWindow(Adw.Window):
                 icon_group.add(
                     Adw.Clamp(
                         child=Adw.Clamp(child=picture, maximum_size=150),
-                        maximum_size=100,
+                        maximum_size=120,
                         orientation=Gtk.Orientation.VERTICAL,
                     )
                 )

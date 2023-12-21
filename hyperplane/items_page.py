@@ -159,6 +159,17 @@ class HypItemsPage(Adw.NavigationPage):
         self.create_action("trash-delete", self.__trash_delete, ("Delete",))
         self.create_action("trash-restore", self.__trash_restore)
 
+        # Set up zoom scrolling
+
+        self.scroll = Gtk.EventControllerScroll.new(
+            (
+                Gtk.EventControllerScrollFlags.VERTICAL
+                | Gtk.EventControllerScrollFlags.DISCRETE
+            ),
+        )
+        self.scroll.connect("scroll", self.__scroll)
+        self.scrolled_window.add_controller(self.scroll)
+
     def reload(self) -> None:
         """Refresh the view."""
         if isinstance(self.dir_list, Gtk.DirectoryList):
@@ -747,3 +758,15 @@ class HypItemsPage(Adw.NavigationPage):
 
         for gfile in gfiles:
             restore(gfile)
+
+    def __scroll(
+        self, _scroll: Gtk.EventControllerScroll, _dx: float, dy: float
+    ) -> None:
+        if self.scroll.get_current_event_state() != Gdk.ModifierType.CONTROL_MASK:
+            return
+
+        if dy < 0:
+            self.get_root().zoom_in()
+            return
+
+        self.get_root().zoom_out()

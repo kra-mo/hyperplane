@@ -337,7 +337,9 @@ class HypItem(Adw.Bin):
 
         match zoom_level:
             case 1:
-                self.thumbnail.set_size_request(96, 80)
+                # This is not the exact aspect ratio, but it is close enough.
+                # It's good for keeping the folder textures sharp
+                self.thumbnail.set_size_request(96, 74)
             case 2:
                 self.thumbnail.set_size_request(96, 96)
             case _:
@@ -373,12 +375,11 @@ class HypItem(Adw.Bin):
             self.dir_thumbnail_2.set_size_request(56, 56)
             self.dir_thumbnail_3.set_size_request(56, 56)
 
+        # Pixel size is set instead of icon size because otherwise GTK gets confused
+        # and it can lead to graphical glitches after zooming
         if zoom_level < 2:
-            self.icon.set_pixel_size(20)
+            self.icon.set_pixel_size(16)
         else:
-            # Pixel size is set instead of GTK_ICON_SIZE_LARGE
-            # because otherwise GTK gets confused even if pixel-size is reset to -1
-            # and it can lead to graphical glitches after zooming
             self.icon.set_pixel_size(32)
 
     def __select_self(self) -> None:

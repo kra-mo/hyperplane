@@ -116,12 +116,12 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.create_action(
             "zoom-in",
-            self.__zoom_in,
+            self.zoom_in,
             ("<primary>plus", "<Primary>KP_Add", "<primary>equal"),
         )
         self.create_action(
             "zoom-out",
-            self.__zoom_out,
+            self.zoom_out,
             ("<primary>minus", "<Primary>KP_Subtract", "<Primary>underscore"),
         )
         self.create_action(
@@ -177,6 +177,21 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_entry.connect("entry-activated", self.__do_rename)
         self.rename_button.connect("clicked", self.__do_rename)
 
+        # Set up search
+
+        self.searched_page = self.get_visible_page()
+        self.search_entry.set_key_capture_widget(self)
+
+        # Build sidebar
+
+        self.sidebar_items = set()
+        self.__update_tags()
+
+        self.__trash_changed()
+        shared.trash_list.connect("notify::n-items", self.__trash_changed)
+
+        # Set up sidebar actions
+
         sidebar_items = {
             self.sidebar_recent: Gio.File.new_for_uri("recent://"),
             self.sidebar_home: Gio.File.new_for_path(str(shared.home)),
@@ -196,19 +211,6 @@ class HypWindow(Adw.ApplicationWindow):
             widget.add_controller(middle_click)
 
         self.__set_actions()
-
-        # Set up search
-
-        self.searched_page = self.get_visible_page()
-        self.search_entry.set_key_capture_widget(self)
-
-        # Build sidebar
-
-        self.sidebar_items = set()
-        self.__update_tags()
-
-        self.__trash_changed()
-        shared.trash_list.connect("notify::n-items", self.__trash_changed)
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
@@ -598,14 +600,18 @@ class HypWindow(Adw.ApplicationWindow):
 
         nav_bin.view.push(nav_bin.next_pages[-1])
 
-    def __zoom_in(self, *_args: Any) -> None:
+    def zoom_in(self, *_args: Any) -> None:
+        """Increases the zoom level of all views."""
+
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
             return
 
         shared.state_schema.set_uint("zoom-level", zoom_level + 1)
         self.update_zoom()
 
-    def __zoom_out(self, *_args: Any) -> None:
+    def zoom_out(self, *_args: Any) -> None:
+        """Decreases the zoom level of all views."""
+
         if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
             return
 
