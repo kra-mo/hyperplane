@@ -24,7 +24,7 @@ from typing import Any
 from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from hyperplane import shared
-from hyperplane.utils.files import empty_trash, get_gfile_path
+from hyperplane.utils.files import clear_recent_files, empty_trash, get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 
 
@@ -285,6 +285,24 @@ class HypPropertiesWindow(Adw.Window):
                 )
                 recent_items_row.add_css_class("property")
                 recent_items_row.set_subtitle_selectable(True)
+
+                recent_group.add(
+                    clear_recents_button := Gtk.Button(
+                        margin_top=24,
+                        label=_("Clear History"),
+                        halign="center",
+                    )
+                )
+
+                def clear(*_args: Any) -> None:
+                    clear_recent_files()
+                    self.close()
+
+                clear_recents_button.add_css_class("pill")
+                clear_recents_button.connect("clicked", clear)
+                clear_recents_button.set_sensitive(
+                    bool(shared.recent_manager.get_items())
+                )
 
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())

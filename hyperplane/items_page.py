@@ -53,6 +53,7 @@ class HypItemsPage(Adw.NavigationPage):
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     no_matching_items: Adw.StatusPage = Gtk.Template.Child()
     empty_trash: Adw.StatusPage = Gtk.Template.Child()
+    no_recents: Adw.StatusPage = Gtk.Template.Child()
     no_results: Adw.StatusPage = Gtk.Template.Child()
     loading: Gtk.Viewport = Gtk.Template.Child()
 
@@ -105,7 +106,7 @@ class HypItemsPage(Adw.NavigationPage):
         )
         self.grid_view.add_controller(texture_drop_target)
 
-        text_drop_target = Gtk.DropTarget.new(GObject.TYPE_STRING, Gdk.DragAction.COPY)
+        text_drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.COPY)
         text_drop_target.connect("drop", self.__drop_text)
         self.grid_view.add_controller(text_drop_target)
 
@@ -328,6 +329,10 @@ class HypItemsPage(Adw.NavigationPage):
                     self.scrolled_window.set_child(self.empty_trash)
                     return
 
+                elif self.gfile.get_uri() == "recent:///":
+                    self.scrolled_window.set_child(self.no_recents)
+                    return
+
                 self.scrolled_window.set_child(self.empty_folder)
 
             if self.tags:
@@ -403,9 +408,16 @@ class HypItemsPage(Adw.NavigationPage):
                 "select-all",
                 "open-with",
             }
+
             if self.gfile.get_uri() == "trash:///":
                 if shared.trash_list.get_n_items():
                     items.add("empty-trash")
+                items.remove("paste")
+                items.remove("new-folder")
+
+            if self.gfile.get_uri() == "recent:///":
+                if bool(shared.recent_manager.get_items()):
+                    items.add("clear-recents")
                 items.remove("paste")
                 items.remove("new-folder")
 
@@ -497,7 +509,7 @@ class HypItemsPage(Adw.NavigationPage):
         self, _drop_target: Gtk.DropTarget, text: GObject.Value, _x, _y
     ) -> None:
         # TODO: Agian again, copy-paste from __paste()
-        if not text: # If text is an empty string
+        if not text:  # If text is an empty string
             return
 
         if self.tags:

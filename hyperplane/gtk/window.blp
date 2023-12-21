@@ -418,6 +418,11 @@ menu right_click {
       action: "win.empty-trash";
       hidden-when: "action-disabled";
     }
+    item {
+      label: _("Clear History");
+      action: "win.clear-recents";
+      hidden-when: "action-disabled";
+    }
   }
   section {
     item (_("Properties"), "win.properties")
@@ -455,6 +460,13 @@ menu file_right_click {
     item {
       label: _("Empty Trash…");
       action: "win.empty-trash";
+      hidden-when: "action-disabled";
+    }
+  }
+  section {
+    item {
+      label: _("Clear History");
+      action: "win.clear-recents";
       hidden-when: "action-disabled";
     }
   }

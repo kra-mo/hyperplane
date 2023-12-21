@@ -29,7 +29,12 @@ from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.files import empty_trash, get_gfile_path, validate_name
+from hyperplane.utils.files import (
+    clear_recent_files,
+    empty_trash,
+    get_gfile_path,
+    validate_name,
+)
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 
 
@@ -162,6 +167,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("new-tab", self.__new_tab, ("<primary>t",))
         self.create_action("tab-overview", self.__tab_overview, ("<primary><shift>o",))
         self.create_action("empty-trash", self.__emptry_trash)
+        self.create_action("clear-recents", self.__clear_recents)
 
         # Connect signals
 
@@ -338,6 +344,7 @@ class HypWindow(Adw.ApplicationWindow):
             "trash-delete": page,
             "trash-restore": page,
             "empty-trash": self,
+            "clear-recents": self,
             "new-folder": page,
             "select-all": page,
             "open": page,
@@ -712,6 +719,7 @@ class HypWindow(Adw.ApplicationWindow):
                 "trash-delete",
                 "trash-restore",
                 "empty-trash",
+                "clear-recents",
                 "new-folder",
                 "select-all",
                 "open",
@@ -811,6 +819,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.lookup_action("empty-trash").set_enabled(
             gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()
         )
+        self.lookup_action("clear-recents").set_enabled(
+            gfile.get_uri() == "recent:///" and bool(shared.recent_manager.get_items())
+        )
 
         self.file_right_click_menu.unparent()
         self.file_right_click_menu.set_parent(gesture.get_widget())
@@ -843,3 +854,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         dialog.connect("response", handle_response)
         dialog.present()
+
+    def __clear_recents(self, *_args: Any) -> None:
+        clear_recent_files()

@@ -215,6 +215,11 @@ def empty_trash() -> None:
             shared.undo_queue.pop(key)
 
 
+def clear_recent_files() -> None:
+    """Clears the list of recently used files."""
+    shared.recent_manager.purge_items()
+
+
 def trash_rm(gfile: Gio.File) -> None:
     """
     Tries to asynchronously remove a file or directory that is in the trash.
