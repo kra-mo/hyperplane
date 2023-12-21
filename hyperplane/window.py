@@ -785,8 +785,6 @@ class HypWindow(Adw.ApplicationWindow):
     ) -> None:
         self.right_clicked_file = gfile
 
-        print(bool(gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()))
-
         self.lookup_action("empty-trash").set_enabled(
             gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()
         )
