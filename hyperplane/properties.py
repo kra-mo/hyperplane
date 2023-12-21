@@ -167,7 +167,7 @@ class HypPropertiesWindow(Adw.Window):
                         folder_size_label := Gtk.Label(
                             justify=Gtk.Justification.CENTER,
                             ellipsize=Pango.EllipsizeMode.END,
-                            label=_("Empty Folder"),
+                            label=_("Empty folder"),
                         )
                     )
                     folder_size_box.append(
