@@ -149,7 +149,7 @@ class HypPropertiesWindow(Adw.Window):
                     )
                 )
                 trash_items_row.add_css_class("property")
-                trash_items_row.set_title_selectable(True)
+                trash_items_row.set_subtitle_selectable(True)
 
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())
