@@ -37,6 +37,9 @@ def path_represents_tags(path: PathLike | str) -> bool:
     """Checks whether a given `path` represents tags or not."""
     path = Path(path)
 
+    if path == shared.home:
+        return False
+
     if not path.is_relative_to(shared.home):
         return False
 

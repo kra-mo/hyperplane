@@ -48,6 +48,8 @@ class HypPropertiesWindow(Adw.Window):
             Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
             Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
             Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
+            Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
+            Gio.FILE_ATTRIBUTE_STANDARD_TYPE,
             # History
             Gio.FILE_ATTRIBUTE_TIME_ACCESS,
             Gio.FILE_ATTRIBUTE_TIME_MODIFIED,
@@ -68,6 +70,8 @@ class HypPropertiesWindow(Adw.Window):
         content_type = file_info.get_content_type()
         gicon = file_info.get_symbolic_icon()
         thumbnail_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH)
+        size = file_info.get_size()
+        file_type = file_info.get_file_type()
         access = file_info.get_access_date_time()
         modified = file_info.get_modification_date_time()
         created = file_info.get_creation_date_time()
@@ -87,6 +91,10 @@ class HypPropertiesWindow(Adw.Window):
         navigation_view.add(Adw.NavigationPage.new(toolbar_view, _("Properties")))
 
         self.set_content(navigation_view)
+
+        # Stop threads after the window is closed
+        self.stop = False
+        self.connect("close-request", self.__stop)
 
         if gicon or thumbnail_path:
             page.add(icon_group := Adw.PreferencesGroup())
@@ -116,7 +124,7 @@ class HypPropertiesWindow(Adw.Window):
                 image.add_css_class(color + "-background")
                 image.add_css_class("circular-icon")
 
-            if display_name or content_type:
+            if display_name or content_type or size:
                 if display_name:
                     page.add(title_group := Adw.PreferencesGroup())
                     title_group.add(
@@ -131,7 +139,7 @@ class HypPropertiesWindow(Adw.Window):
                     )
                     label.add_css_class("title-3")
 
-                if content_type:
+                if content_type and not file_type == Gio.FileType.DIRECTORY:
                     title_group.add(
                         Gtk.Label(
                             justify=Gtk.Justification.CENTER,
@@ -140,6 +148,101 @@ class HypPropertiesWindow(Adw.Window):
                             label=Gio.content_type_get_description(content_type),
                         )
                     )
+
+                if size and not file_type == Gio.FileType.DIRECTORY:
+                    title_group.add(
+                        Gtk.Label(
+                            justify=Gtk.Justification.CENTER,
+                            ellipsize=Pango.EllipsizeMode.END,
+                            margin_top=6,
+                            label=GLib.format_size(size),
+                        )
+                    )
+
+                elif file_type == Gio.FileType.DIRECTORY:
+                    folder_size_box = Gtk.Box(
+                        margin_top=6, spacing=6, halign=Gtk.Align.CENTER
+                    )
+                    folder_size_box.append(
+                        folder_size_label := Gtk.Label(
+                            justify=Gtk.Justification.CENTER,
+                            ellipsize=Pango.EllipsizeMode.END,
+                            label=_("Empty Folder"),
+                        )
+                    )
+                    folder_size_box.append(
+                        folder_size_spinner := Gtk.Spinner(valign=Gtk.Align.BASELINE)
+                    )
+                    title_group.add(folder_size_box)
+
+                    size = 0
+
+                    def add_to_size(enumerator, enumerator_gfile) -> None:
+                        nonlocal size
+
+                        if self.stop:
+                            return
+
+                        while file_info := enumerator.next_file():
+                            basename = file_info.get_name()
+
+                            child_gfile = enumerator_gfile.get_child(basename)
+
+                            if file_info.get_file_type() == Gio.FileType.DIRECTORY:
+                                try:
+                                    child_enumerator = child_gfile.enumerate_children(
+                                        ",".join(
+                                            (
+                                                Gio.FILE_ATTRIBUTE_STANDARD_NAME,
+                                                Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
+                                                Gio.FILE_ATTRIBUTE_STANDARD_TYPE,
+                                            )
+                                        ),
+                                        Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+                                    )
+                                except GLib.Error:
+                                    pass
+                                else:
+                                    add_to_size(child_enumerator, child_gfile)
+
+                            if not (next_size := file_info.get_size()):
+                                continue
+
+                            size += next_size
+
+                            GLib.idle_add(
+                                folder_size_label.set_label, GLib.format_size(size)
+                            )
+
+                    try:
+                        enumerator = gfile.enumerate_children(
+                            ",".join(
+                                (
+                                    Gio.FILE_ATTRIBUTE_STANDARD_NAME,
+                                    Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
+                                    Gio.FILE_ATTRIBUTE_STANDARD_TYPE,
+                                )
+                            ),
+                            Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+                        )
+                    except GLib.Error:
+                        pass
+                    else:
+
+                        def stop_loading(thread: GLib.Thread):
+                            nonlocal folder_size_spinner
+                            thread.join()
+                            folder_size_spinner.stop()
+                            folder_size_spinner.set_visible(False)
+
+                        # The way I'm doing this is slow but at least
+                        # I don't reach the file descriptor limit
+                        folder_size_spinner.start()
+                        GLib.Thread.new(
+                            None,
+                            stop_loading,
+                            GLib.Thread.new(None, add_to_size, enumerator, gfile),
+                        )
 
             if gfile.get_uri() == "trash:///":
                 page.add(trash_group := Adw.PreferencesGroup())
@@ -263,3 +366,6 @@ class HypPropertiesWindow(Adw.Window):
 
                     exec_row.set_active(can_execute == "TRUE")
                     exec_row.connect("notify::active", set_executable)
+
+    def __stop(self, *_args: Any) -> None:
+        self.stop = True
