@@ -58,3 +58,7 @@ class HypPostmasterGeneral(GObject.Object):
         and set it up so they append `new_location` to their list of locations
         if all `tags` are in their tags.
         """
+
+    @GObject.Signal(name="trash-emptied")
+    def trash_emptied(self) -> None:
+        """Emitted when the trash is emptied by the app."""

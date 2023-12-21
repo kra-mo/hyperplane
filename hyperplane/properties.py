@@ -24,7 +24,7 @@ from typing import Any
 from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from hyperplane import shared
-from hyperplane.utils.files import get_gfile_path
+from hyperplane.utils.files import empty_trash, get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
 
 
@@ -70,7 +70,7 @@ class HypPropertiesWindow(Adw.Window):
         content_type = file_info.get_content_type()
         gicon = file_info.get_symbolic_icon()
         thumbnail_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH)
-        size = file_info.get_size()
+        size = file_info.get_size() if gfile.get_uri().startswith("file://") else None
         file_type = file_info.get_file_type()
         access = file_info.get_access_date_time()
         modified = file_info.get_modification_date_time()
@@ -159,7 +159,9 @@ class HypPropertiesWindow(Adw.Window):
                         )
                     )
 
-                elif file_type == Gio.FileType.DIRECTORY:
+                elif file_type == Gio.FileType.DIRECTORY and gfile.get_uri().startswith(
+                    "file://"
+                ):
                     folder_size_box = Gtk.Box(
                         margin_top=6, spacing=6, halign=Gtk.Align.CENTER
                     )
@@ -254,6 +256,35 @@ class HypPropertiesWindow(Adw.Window):
                 )
                 trash_items_row.add_css_class("property")
                 trash_items_row.set_subtitle_selectable(True)
+
+                trash_group.add(
+                    empty_trash_button := Gtk.Button(
+                        margin_top=24,
+                        label=_("Empty Trash"),
+                        halign="center",
+                    )
+                )
+
+                def empty(*_args: Any) -> None:
+                    empty_trash()
+                    self.close()
+
+                empty_trash_button.add_css_class("pill")
+                empty_trash_button.add_css_class("destructive-action")
+                empty_trash_button.connect("clicked", empty)
+                empty_trash_button.set_sensitive(bool(shared.trash_list.get_n_items()))
+
+            elif gfile.get_uri() == "recent:///":
+                page.add(recent_group := Adw.PreferencesGroup())
+
+                recent_group.add(
+                    recent_items_row := Adw.ActionRow(
+                        title=_("Items"),
+                        subtitle=str(len(shared.recent_manager.get_items())),
+                    )
+                )
+                recent_items_row.add_css_class("property")
+                recent_items_row.set_subtitle_selectable(True)
 
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())

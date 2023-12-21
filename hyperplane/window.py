@@ -181,6 +181,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.search_button.connect("clicked", self.__toggle_search_entry)
 
         shared.postmaster.connect("tags-changed", self.__update_tags)
+        shared.postmaster.connect(
+            "trash-emptied", lambda *_: self.trash_empty_animation.play()
+        )
 
         self.right_click_menu.connect("closed", self.__set_actions)
 
@@ -837,7 +840,6 @@ class HypWindow(Adw.ApplicationWindow):
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "empty":
                 empty_trash()
-                self.get_root().trash_empty_animation.play()
 
         dialog.connect("response", handle_response)
         dialog.present()

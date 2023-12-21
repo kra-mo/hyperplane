@@ -207,6 +207,8 @@ def empty_trash() -> None:
         logging.warning("Failed to empty trash: %s", error)
         return
 
+    shared.postmaster.emit("trash-emptied")
+
     for key, value in shared.undo_queue.copy().items():
         if value[0] == "trash":
             key.dismiss()
