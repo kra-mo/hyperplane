@@ -95,9 +95,19 @@ class HypItemsPage(Adw.NavigationPage):
         # Drag and drop
         # TODO: Accept more actions than just copy
         # TODO: Provide DragSource (why is it so hard with rubberbanding TwT)
-        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
-        drop_target.connect("drop", self.__drop)
-        self.add_controller(drop_target)
+        file_drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        file_drop_target.connect("drop", self.__drop_file)
+        self.grid_view.add_controller(file_drop_target)
+
+        texture_drop_target = Gtk.DropTarget.new(Gdk.Texture, Gdk.DragAction.COPY)
+        texture_drop_target.connect(
+            "drop", lambda *args: GLib.Thread.new(None, self.__drop_texture, *args)
+        )
+        self.grid_view.add_controller(texture_drop_target)
+
+        text_drop_target = Gtk.DropTarget.new(GObject.TYPE_STRING, Gdk.DragAction.COPY)
+        text_drop_target.connect("drop", self.__drop_text)
+        self.grid_view.add_controller(text_drop_target)
 
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
@@ -221,6 +231,31 @@ class HypItemsPage(Adw.NavigationPage):
         the currently selected items in the grid view.
         """
         return self.get_gfiles_from_positions(self.get_selected_positions())
+
+    def create_action(
+        self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
+    ) -> None:
+        """Add a page action.
+
+        Args:
+            name: the name of the action
+            callback: the function to be called when the action is
+              activated
+            shortcuts: an optional list of accelerators
+        """
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.action_group.add_action(action)
+
+        # HACK: Use the proper Gio API (I have no idea what it is though)
+        if shortcuts:
+            for shortcut in shortcuts:
+                self.shortcut_controller.add_shortcut(
+                    Gtk.Shortcut.new(
+                        Gtk.ShortcutTrigger.parse_string(shortcut),
+                        Gtk.NamedAction.new(f"page.{name}"),
+                    )
+                )
 
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
@@ -388,7 +423,9 @@ class HypItemsPage(Adw.NavigationPage):
         # between the items page and the item
         GLib.timeout_add(10, self.__popup_menu)
 
-    def __drop(self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y):
+    def __drop_file(
+        self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y
+    ) -> None:
         # TODO: This is copy-paste from __paste()
         for src in file_list:
             if self.tags:
@@ -420,30 +457,78 @@ class HypItemsPage(Adw.NavigationPage):
                     except (FileExistsError, FileNotFoundError):
                         continue
 
-    def create_action(
-        self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
+    def __drop_texture(
+        self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x, _y
     ) -> None:
-        """Add a page action.
-
-        Args:
-            name: the name of the action
-            callback: the function to be called when the action is
-              activated
-            shortcuts: an optional list of accelerators
-        """
-        action = Gio.SimpleAction.new(name, None)
-        action.connect("activate", callback)
-        self.action_group.add_action(action)
-
-        # HACK: Use the proper Gio API (I have no idea what it is though)
-        if shortcuts:
-            for shortcut in shortcuts:
-                self.shortcut_controller.add_shortcut(
-                    Gtk.Shortcut.new(
-                        Gtk.ShortcutTrigger.parse_string(shortcut),
-                        Gtk.NamedAction.new(f"page.{name}"),
+        # TODO: Agian, copy-paste from __paste()
+        if self.tags:
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            dst = Gio.File.new_for_path(
+                str(
+                    Path(
+                        shared.home,
+                        *tags,
                     )
                 )
+            )
+        else:
+            dst = self.gfile
+
+        texture_bytes = texture.save_to_png_bytes()
+
+        dst = dst.get_child_for_display_name(_("Dropped Image") + ".png")
+
+        if dst.query_exists():
+            dst = get_copy_gfile(dst)
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+        else:
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+
+        output = stream.get_output_stream()
+        output.write_bytes(texture_bytes)
+
+    def __drop_text(
+        self, _drop_target: Gtk.DropTarget, text: GObject.Value, _x, _y
+    ) -> None:
+        # TODO: Agian again, copy-paste from __paste()
+        if not text: # If text is an empty string
+            return
+
+        if self.tags:
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            dst = Gio.File.new_for_path(
+                str(
+                    Path(
+                        shared.home,
+                        *tags,
+                    )
+                )
+            )
+        else:
+            dst = self.gfile
+
+        dst = dst.get_child_for_display_name(_("Dropped Text") + ".txt")
+
+        if dst.query_exists():
+            dst = get_copy_gfile(dst)
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+        else:
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+
+        output = stream.get_output_stream()
+        output.write(text.encode("utf-8"))
 
     def __undo(self, obj: Any, *_args: Any) -> None:
         if not shared.undo_queue:
@@ -610,11 +695,22 @@ class HypItemsPage(Adw.NavigationPage):
         clipboard = Gdk.Display.get_default().get_clipboard()
         paths = []
 
-        if not clipboard.get_formats().contain_gtype(Gdk.FileList):
-            return
+        if self.tags:
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            dst = Gio.File.new_for_path(
+                str(
+                    Path(
+                        shared.home,
+                        *tags,
+                    )
+                )
+            )
+        else:
+            dst = self.gfile
 
-        def cb(clipboard, result) -> None:
+        def paste_file_cb(clipboard: Gdk.Clipboard, result: Gio.Task) -> None:
             nonlocal paths
+            nonlocal dst
 
             try:
                 file_list = clipboard.read_value_finish(result)
@@ -623,19 +719,6 @@ class HypItemsPage(Adw.NavigationPage):
                 return
 
             for src in file_list:
-                if self.tags:
-                    tags = tuple(tag for tag in shared.tags if tag in self.tags)
-                    dst = Gio.File.new_for_path(
-                        str(
-                            Path(
-                                shared.home,
-                                *tags,
-                            )
-                        )
-                    )
-                else:
-                    dst = self.gfile
-
                 try:
                     dst = Gio.File.new_for_path(
                         str(get_gfile_path(dst) / get_gfile_display_name(src))
@@ -675,7 +758,50 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.undo_queue[time()] = ("copy", paths)
             shared.cut_page = None
 
-        clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, cb)
+        def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.Task) -> None:
+            nonlocal dst
+
+            try:
+                texture = clipboard.read_value_finish(result)
+            except GLib.Error:
+                return
+
+            texture_bytes = texture.save_to_png_bytes()
+
+            dst = dst.get_child_for_display_name(_("Pasted Image") + ".png")
+
+            if dst.query_exists():
+                dst = get_copy_gfile(dst)
+                try:
+                    stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+                except GLib.Error:
+                    return
+            else:
+                try:
+                    stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+                except GLib.Error:
+                    return
+
+            output = stream.get_output_stream()
+            output.write_bytes(texture_bytes)
+
+        formats = clipboard.get_formats()
+
+        if formats.contain_gtype(Gdk.FileList):
+            clipboard.read_value_async(
+                Gdk.FileList,
+                GLib.PRIORITY_DEFAULT,
+                None,
+                paste_file_cb,
+            )
+        elif formats.contain_gtype(Gdk.Texture):
+            # Run this threaded because the operation can take a long time
+            clipboard.read_value_async(
+                Gdk.Texture,
+                GLib.PRIORITY_DEFAULT,
+                None,
+                lambda *args: GLib.Thread.new(None, paste_texture_cb, *args),
+            )
 
     def __select_all(self, *_args: Any) -> None:
         self.multi_selection.select_all()
