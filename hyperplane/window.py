@@ -29,6 +29,7 @@ from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
+from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.files import (
     clear_recent_files,
     empty_trash,
@@ -166,7 +167,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("new-window", self.__new_window, ("<primary>n",))
         self.create_action("new-tab", self.__new_tab, ("<primary>t",))
         self.create_action("tab-overview", self.__tab_overview, ("<primary><shift>o",))
-        self.create_action("empty-trash", self.__emptry_trash)
+        self.create_action("empty-trash", self.__empty_trash)
         self.create_action("clear-recents", self.__clear_recents)
 
         # Connect signals
@@ -383,18 +384,9 @@ class HypWindow(Adw.ApplicationWindow):
             self.sidebar.insert(row, 2)
 
     def __new_tag(self, *_args: Any) -> None:
-        dialog = Adw.MessageDialog.new(self, _("New Category"))
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("add", _("Add"))
-
-        dialog.set_default_response("add")
-        dialog.set_response_appearance("add", Adw.ResponseAppearance.SUGGESTED)
-
         (preferences_group := Adw.PreferencesGroup(width_request=360)).add(
             entry := Adw.EntryRow(title=_("Name"))
         )
-        dialog.set_extra_child(preferences_group)
 
         def add_tag(*_args: Any) -> None:
             dialog.close()
@@ -410,17 +402,20 @@ class HypWindow(Adw.ApplicationWindow):
                 return
 
             if text in (".", ".."):
-                self.send_toast(_("A category cannot be named {}").format(f'"{text}"'))
+                self.send_toast(_("A category cannot be called {}").format(f'"{text}"'))
                 return
 
             add_tags(text)
 
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "add":
-                add_tag()
+        dialog = create_message_dialog(
+            self,
+            _("New Category"),
+            (_("Cancel"), None, None, None, False),
+            (_("Add"), None, Adw.ResponseAppearance.SUGGESTED, add_tag, True),
+            extra_child=preferences_group,
+        )
 
         entry.connect("entry-activated", add_tag)
-        dialog.connect("response", handle_response)
         dialog.choose()
 
     def __open_trash(self, *_args: Any) -> None:
@@ -835,25 +830,20 @@ class HypWindow(Adw.ApplicationWindow):
     ) -> None:
         self.new_tab(gfile)
 
-    def __emptry_trash(self, *_args: Any) -> None:
-        dialog = Adw.MessageDialog.new(
+    def __empty_trash(self, *_args: Any) -> None:
+        create_message_dialog(
             self,
             _("Empty all Items From Trash?"),
-            _("All items in the Trash will be permamently deleted."),
-        )
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("empty", _("Empty Trash"))
-
-        dialog.set_default_response("empty")
-        dialog.set_response_appearance("empty", Adw.ResponseAppearance.DESTRUCTIVE)
-
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "empty":
-                empty_trash()
-
-        dialog.connect("response", handle_response)
-        dialog.present()
+            (_("Cancel"), None, None, None, False),
+            (
+                _("Empty Trash"),
+                None,
+                Adw.ResponseAppearance.DESTRUCTIVE,
+                empty_trash,
+                True,
+            ),
+            body=_("All items in the Trash will be permamently deleted."),
+        ).choose()
 
     def __clear_recents(self, *_args: Any) -> None:
         clear_recent_files()

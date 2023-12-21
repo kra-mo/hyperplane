@@ -28,6 +28,7 @@ from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
+from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.files import (
     copy,
     get_copy_gfile,
@@ -622,14 +623,6 @@ class HypItemsPage(Adw.NavigationPage):
         else:
             gfile = self.gfile
 
-        dialog = Adw.MessageDialog.new(self.get_root(), _("New Folder"))
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("create", _("Create"))
-
-        dialog.set_default_response("create")
-        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
-
         preferences_group = Adw.PreferencesGroup(width_request=360)
         revealer_label = Gtk.Label(
             margin_start=6,
@@ -638,7 +631,29 @@ class HypItemsPage(Adw.NavigationPage):
         )
         preferences_group.add(revealer := Gtk.Revealer(child=revealer_label))
         preferences_group.add(entry := Adw.EntryRow(title=_("Folder name")))
-        dialog.set_extra_child(preferences_group)
+
+        def dialog_cb() -> None:
+            create_folder()
+
+        dialog = create_message_dialog(
+            self.get_root(),
+            _("New Folder"),
+            (
+                _("Cancel"),
+                None,
+                None,
+                None,
+                False,
+            ),
+            (
+                _("Create"),
+                "create",
+                Adw.ResponseAppearance.SUGGESTED,
+                dialog_cb,
+                True,
+            ),
+            extra_child=preferences_group,
+        )
 
         dialog.set_response_enabled("create", False)
         can_create = False
@@ -679,11 +694,6 @@ class HypItemsPage(Adw.NavigationPage):
                 gfile,
             )
 
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "create":
-                create_folder()
-
-        dialog.connect("response", handle_response)
         entry.connect("entry-activated", create_folder)
         entry.connect("changed", set_incative)
 
@@ -878,21 +888,13 @@ class HypItemsPage(Adw.NavigationPage):
                     "Are you sure you want to permanently delete the {} selected items?"
                 ).format(len(gfiles))
 
-        dialog = Adw.MessageDialog.new(self.get_root(), msg)
-        dialog.set_body(_("If you delete an item, it will be permanently lost."))
-
-        dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("delete", _("Delete"))
-
-        dialog.set_default_response("delete")
-        dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
-
-        def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
-            if response == "delete":
-                delete()
-
-        dialog.connect("response", handle_response)
-        dialog.present()
+        create_message_dialog(
+            self.get_root(),
+            msg,
+            (_("Cancel"), None, None, None, False),
+            (_("Delete"), None, Adw.ResponseAppearance.DESTRUCTIVE, delete, True),
+            body=_("If you delete an item, it will be permanently lost."),
+        ).present()
 
     def __trash_restore(self, *_args: Any) -> None:
         gfiles = self.get_selected_gfiles()
