@@ -70,7 +70,7 @@ class HypNavigationBin(Adw.Bin):
         tag: Optional[str] = None,
         tags: Optional[Iterable[str]] = None,
     ) -> None:
-        """Push a new page with the given path or tag to the navigation stack."""
+        """Push a new page with the given file or tag to the navigation stack."""
         if gfile:
             self.tags = []
             page = HypItemsPage(gfile=gfile)

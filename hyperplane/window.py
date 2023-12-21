@@ -85,6 +85,20 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("close-page", self.__close_page)
         self.closed_tabs = []
 
+        # Set up animations
+
+        target = Adw.PropertyAnimationTarget.new(self.trash_icon, "pixel-size")
+        params = Adw.SpringParams.new(0.4, 0.8, 250)
+        self.trash_animation = Adw.SpringAnimation.new(
+            self.trash_icon, 10, 16, params, target
+        )
+        self.trash_animation.props.epsilon = 0.01500
+
+        self.trash_empty_animation = Adw.SpringAnimation.new(
+            self.trash_icon, 22, 16, params, target
+        )
+        self.trash_empty_animation.props.epsilon = 0.02500
+
         # Create actions
 
         navigation_view = HypNavigationBin(
@@ -268,6 +282,24 @@ class HypWindow(Adw.ApplicationWindow):
     def get_visible_page(self) -> HypItemsPage:
         """Return the currently visible HypItemsPage."""
         return self.get_nav_bin().view.get_visible_page()
+
+    def zoom_in(self, *_args: Any) -> None:
+        """Increases the zoom level of all views."""
+
+        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
+            return
+
+        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
+        self.update_zoom()
+
+    def zoom_out(self, *_args: Any) -> None:
+        """Decreases the zoom level of all views."""
+
+        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
+            return
+
+        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
+        self.update_zoom()
 
     def update_zoom(self) -> None:
         """Update the zoom level of all items in the navigation stack"""
@@ -600,24 +632,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         nav_bin.view.push(nav_bin.next_pages[-1])
 
-    def zoom_in(self, *_args: Any) -> None:
-        """Increases the zoom level of all views."""
-
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
-        self.update_zoom()
-
-    def zoom_out(self, *_args: Any) -> None:
-        """Decreases the zoom level of all views."""
-
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
-            return
-
-        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
-        self.update_zoom()
-
     def __reset_zoom(self, *_args: Any) -> None:
         shared.state_schema.reset("zoom-level")
         self.update_zoom()
@@ -823,6 +837,7 @@ class HypWindow(Adw.ApplicationWindow):
         def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
             if response == "empty":
                 empty_trash()
+                self.get_root().trash_empty_animation.play()
 
         dialog.connect("response", handle_response)
         dialog.present()

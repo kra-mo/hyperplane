@@ -369,7 +369,8 @@ class HypItemsPage(Adw.NavigationPage):
                 "open-with",
             }
             if self.gfile.get_uri() == "trash:///":
-                items.add("empty-trash")
+                if shared.trash_list.get_n_items():
+                    items.add("empty-trash")
                 items.remove("paste")
                 items.remove("new-folder")
 
@@ -712,6 +713,8 @@ class HypItemsPage(Adw.NavigationPage):
         shared.undo_queue[toast] = ("trash", files)
         toast.connect("button-clicked", self.__undo)
 
+        self.get_root().trash_animation.play()
+
     def __trash_delete(self, *args: Any) -> None:
         gfiles = self.get_selected_gfiles()
 
@@ -764,6 +767,8 @@ class HypItemsPage(Adw.NavigationPage):
     ) -> None:
         if self.scroll.get_current_event_state() != Gdk.ModifierType.CONTROL_MASK:
             return
+
+        # TODO: Temporairily disallow scrolling in the ScrolledWindow here
 
         if dy < 0:
             self.get_root().zoom_in()
