@@ -92,12 +92,12 @@ class HypWindow(Adw.ApplicationWindow):
         self.trash_animation = Adw.SpringAnimation.new(
             self.trash_icon, 10, 16, params, target
         )
-        self.trash_animation.props.epsilon = 0.01500
+        self.trash_animation.props.epsilon = 0.015
 
         self.trash_empty_animation = Adw.SpringAnimation.new(
             self.trash_icon, 22, 16, params, target
         )
-        self.trash_empty_animation.props.epsilon = 0.02500
+        self.trash_empty_animation.props.epsilon = 0.026
 
         # Create actions
 

@@ -56,6 +56,7 @@ def generate_thumbnail(
         if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
             logging.debug("Cannot thumbnail: %s", error)
             callback(None, *args)
+            factory.create_failed_thumbnail(uri, mtime)
             return
 
         # If it cannot get a path for the URI, try the target URI
@@ -75,6 +76,9 @@ def generate_thumbnail(
         except GLib.Error as new_error:
             logging.debug("Cannot thumbnail: %s", new_error)
             callback(None, *args)
+            if not new_error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
+                factory.create_failed_thumbnail(uri, mtime)
+                factory.create_failed_thumbnail(target_uri, mtime)
             return
 
     if not thumbnail:
