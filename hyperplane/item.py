@@ -172,13 +172,12 @@ class HypItem(Adw.Bin):
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
-        return
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.Task) -> None:
         try:
             files = gfile.enumerate_children_finish(result)
         except GLib.Error:
-            self.__thumbnail_cb(shared.closed_folder_texture)
+            self.__thumbnail_cb()
             return
 
         def done(index) -> None:
@@ -188,9 +187,7 @@ class HypItem(Adw.Bin):
                     index + 1 >= thumbnail_index,
                 )
 
-            self.__thumbnail_cb(
-                shared.open_folder_texture if index else shared.closed_folder_texture
-            )
+            self.__thumbnail_cb(open_folder=bool(index))
 
         def next_files_cb(
             enumerator: Gio.FileEnumerator, result: Gio.Task, index: int
@@ -294,7 +291,9 @@ class HypItem(Adw.Bin):
 
         idle_add(picture.set_paintable, texture)
 
-    def __thumbnail_cb(self, texture: Optional[Gdk.Texture] = None) -> None:
+    def __thumbnail_cb(
+        self, texture: Optional[Gdk.Texture] = None, open_folder: bool = False
+    ) -> None:
         idle_add(
             self.play_button.set_visible,
             texture
@@ -304,6 +303,13 @@ class HypItem(Adw.Bin):
                 "audio",
             ),
         )
+
+        if self.is_dir:
+            texture = (
+                shared.open_folder_texture
+                if open_folder
+                else shared.closed_folder_texture
+            )
 
         idle_add(self.picture.set_visible, bool(texture))
         if not self.is_dir:
