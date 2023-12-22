@@ -34,8 +34,8 @@ menu primary_menu {
 }
 
 template $HypWindow : Adw.ApplicationWindow {
-  width-request: 281;
-  height-request: 126;
+  width-request: 194;
+  height-request: 146;
   content:
   Adw.TabOverview tab_overview {
     view: tab_view;
@@ -193,14 +193,14 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [start]
-            Button {
+            Button header_bar_back {
               icon-name: "go-previous-symbolic";
               action-name: "win.back";
               tooltip-text: _("Back");
             }
 
             [start]
-            Button {
+            Button header_bar_forward {
               icon-name: "go-next-symbolic";
               action-name: "win.forward";
               tooltip-text: _("Forward");
@@ -246,7 +246,24 @@ template $HypWindow : Adw.ApplicationWindow {
             view: tab_view;
           }
 
+
           Adw.TabView tab_view {
+          }
+
+          [bottom]
+          ActionBar action_bar {
+            revealed: false;
+            Button {
+              icon-name: "go-previous-symbolic";
+              action-name: "win.back";
+              tooltip-text: _("Back");
+            }
+
+            Button {
+              icon-name: "go-next-symbolic";
+              action-name: "win.forward";
+              tooltip-text: _("Forward");
+            }
           }
         }
 
@@ -267,6 +284,9 @@ template $HypWindow : Adw.ApplicationWindow {
       overlay_split_view.collapsed: true;
       show_sidebar_button.visible: true;
       hide_sidebar_button.visible: true;
+      header_bar_back.visible: false;
+      header_bar_forward.visible: false;
+      action_bar.revealed: true;
     }
   }
 }

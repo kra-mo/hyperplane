@@ -338,7 +338,7 @@ class HypItem(Adw.Bin):
     def __zoom(self, _obj: Any, zoom_level: int) -> None:
         self.clamp.set_maximum_size(50 * zoom_level)
 
-        box_margin = zoom_level * 4
+        box_margin = zoom_level * 3
         self.box.set_margin_start(box_margin)
         self.box.set_margin_end(box_margin)
         self.box.set_margin_top(box_margin)
@@ -355,7 +355,8 @@ class HypItem(Adw.Bin):
         match zoom_level:
             case 1:
                 # This is not the exact aspect ratio, but it is close enough.
-                # It's good for keeping the folder textures sharp
+                # It's good for keeping the folder textures sharp.
+                # Or not apparently. Whether they are sharp seems really random.
                 self.thumbnail.set_size_request(96, 74)
             case 2:
                 self.thumbnail.set_size_request(96, 96)
