@@ -900,7 +900,7 @@ class HypItemsPage(Adw.NavigationPage):
         gfiles = self.get_selected_gfiles()
 
         for gfile in gfiles:
-            restore(gfile)
+            restore(gfile=gfile)
 
     def __scroll(
         self, _scroll: Gtk.EventControllerScroll, _dx: float, dy: float
