@@ -113,15 +113,16 @@ class HypPathBar(Gtk.ScrolledWindow):
         self.separators[path_segment] = sep
         self.segments.append(path_segment)
 
-        if self.tags:
-            return
-
         segment = self.segments[-1]
-        segment.remove_css_class("inactive-segment")
 
         GLib.timeout_add(
             segment.get_transition_duration(), self.viewport.scroll_to, segment
         )
+
+        if self.tags:
+            return
+
+        segment.remove_css_class("inactive-segment")
 
         try:
             self.segments[-2].add_css_class("inactive-segment")
