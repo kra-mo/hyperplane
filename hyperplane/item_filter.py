@@ -23,7 +23,7 @@ from typing import Optional
 from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
-from hyperplane.utils.files import path_represents_tags
+from hyperplane.utils.tags import path_represents_tags
 
 
 class HypItemFilter(Gtk.Filter):

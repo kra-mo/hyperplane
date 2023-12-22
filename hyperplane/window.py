@@ -417,6 +417,9 @@ class HypWindow(Adw.ApplicationWindow):
             _("New Category"),
             (_("Cancel"), None, None, None, False),
             (_("Add"), None, Adw.ResponseAppearance.SUGGESTED, add_tag, True),
+            body=_(
+                "Existing folders with the same name will be added to the category."
+            ),
             extra_child=preferences_group,
         )
 

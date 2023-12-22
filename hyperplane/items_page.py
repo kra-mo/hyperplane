@@ -73,7 +73,8 @@ class HypItemsPage(Adw.NavigationPage):
         self,
         gfile: Optional[Gio.File] = None,
         tags: Optional[list[str]] = None,
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.gfile = gfile
         self.tags = tags
@@ -110,6 +111,7 @@ class HypItemsPage(Adw.NavigationPage):
         text_drop_target.connect("drop", self.__drop_text)
         self.grid_view.add_controller(text_drop_target)
 
+        shared.postmaster.connect("tags-changed", self.__tags_changed)
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
         self.file_attrs = ",".join(
@@ -145,7 +147,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.filter_list.connect("items-changed", self.__items_changed)
         self.__items_changed()
 
-        shared.postmaster.connect("tag-location-created", self.__tag_location_added)
+        shared.postmaster.connect("tag-location-created", self.__tag_location_created)
 
         # Set up the "page" action group
         self.shortcut_controller = Gtk.ShortcutController.new()
@@ -278,7 +280,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         return Gtk.FlattenListModel.new(list_store)
 
-    def __tag_location_added(
+    def __tag_location_created(
         self, _obj: Any, string_list: Gtk.StringList, new_location: Gio.File
     ):
         if not self.tags:
@@ -356,6 +358,11 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.get_child().unbind()
+
+    def __tags_changed(self, *_args: Any) -> None:
+        # There may be a way to check whether I actually need to reload here
+        # But it may actually be slower
+        self.reload()
 
     def __toggle_hidden(self, *_args: Any) -> None:
         if shared.show_hidden:

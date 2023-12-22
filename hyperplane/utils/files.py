@@ -29,21 +29,9 @@ from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
+from hyperplane.utils.tags import path_represents_tags
 
 # TODO: Handle errors better
-
-
-def path_represents_tags(path: PathLike | str) -> bool:
-    """Checks whether a given `path` represents tags or not."""
-    path = Path(path)
-
-    if path == shared.home:
-        return False
-
-    if not path.is_relative_to(shared.home):
-        return False
-
-    return all(part in shared.tags for part in path.relative_to(shared.home).parts)
 
 
 def copy(src: Gio.File, dst: Gio.File) -> None:
@@ -122,7 +110,7 @@ def move(src: Gio.File, dst: Gio.File) -> None:
         None,
         lambda *_: __emit_tags_changed(dst) if tags_changed else None,
         None,
-        None
+        None,
     )
     task.run_in_thread(lambda *_: shutil.move(src, dst))
 
