@@ -79,3 +79,5 @@ if (
     recent_manager = Gtk.RecentManager(filename=str(path))
 else:
     recent_manager = Gtk.RecentManager.get_default()
+
+icon_names = Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).get_icon_names()

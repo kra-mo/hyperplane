@@ -23,4 +23,5 @@ DOT_IS_NOT_EXTENSION = {
     "application/x-sharedlib",
     "application/x-executable",
     "application/x-pie-executable",
+    "inode/symlink",
 }

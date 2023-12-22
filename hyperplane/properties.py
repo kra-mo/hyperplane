@@ -117,6 +117,15 @@ class HypPropertiesWindow(Adw.Window):
                 )
 
             elif gicon:
+                for icon_name in gicon.get_names():
+                    if (
+                        icon_name.endswith("-symbolic")
+                        and icon_name in shared.icon_names
+                    ):
+                        break
+                else:
+                    gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+
                 icon_group.add(image := Gtk.Image(gicon=gicon, halign=Gtk.Align.CENTER))
                 image.set_icon_size(Gtk.IconSize.LARGE)
 

@@ -98,7 +98,15 @@ class HypItem(Adw.Bin):
         self.file_info = self.item.get_item()
 
         self.gfile = self.file_info.get_attribute_object("standard::file")
-        self.gicon = self.file_info.get_symbolic_icon()
+        gicon = self.file_info.get_symbolic_icon()
+
+        for icon_name in gicon.get_names():
+            if icon_name.endswith("-symbolic") and icon_name in shared.icon_names:
+                break
+        else:
+            gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+
+        self.gicon = gicon
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_content_type(self.content_type, self.gicon)
         self.edit_name = self.file_info.get_edit_name()
@@ -212,6 +220,15 @@ class HypItem(Adw.Bin):
             files.next_files_async(1, GLib.PRIORITY_DEFAULT, None, next_files_cb, index)
 
             if gicon := file_info.get_symbolic_icon():
+                for icon_name in gicon.get_names():
+                    if (
+                        icon_name.endswith("-symbolic")
+                        and icon_name in shared.icon_names
+                    ):
+                        break
+                else:
+                    gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+
                 idle_add(thumbnail.get_child().set_from_gicon, gicon)
 
             if content_type == "inode/directory":
