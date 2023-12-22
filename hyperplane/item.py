@@ -158,7 +158,13 @@ class HypItem(Adw.Bin):
                 )
                 != Gio.FilesystemPreviewType.NEVER
             ):
-                generate_thumbnail(self.gfile, self.content_type, self.__thumbnail_cb)
+                GLib.Thread.new(
+                    None,
+                    generate_thumbnail,
+                    self.gfile,
+                    self.content_type,
+                    self.__thumbnail_cb,
+                )
             else:
                 self.__thumbnail_cb()
 
@@ -264,8 +270,13 @@ class HypItem(Adw.Bin):
             # Maybe this is the proper way?
             child_gfile = gfile.get_child(file_info.get_name())
 
-            generate_thumbnail(
-                child_gfile, content_type, self.__dir_thumbnail_cb, picture
+            GLib.Thread.new(
+                None,
+                generate_thumbnail,
+                child_gfile,
+                content_type,
+                self.__dir_thumbnail_cb,
+                picture,
             )
 
         # TODO: Could be oprimized if I called next_files with 3 the first time

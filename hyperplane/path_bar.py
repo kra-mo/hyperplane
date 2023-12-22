@@ -20,7 +20,7 @@
 """The path bar in a HypWindow."""
 from typing import Optional
 
-from gi.repository import Gdk, GLib, Gtk
+from gi.repository import GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.path_segment import HypPathSegment
