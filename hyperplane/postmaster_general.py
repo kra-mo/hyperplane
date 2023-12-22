@@ -38,6 +38,26 @@ class HypPostmasterGeneral(GObject.Object):
     def toggle_hidden(self) -> None:
         """Emitted when the visibility of hidden files changes."""
 
+    @GObject.Signal(name="tags-added")
+    def tags_added(self) -> None:
+        """
+        Emitted whenever items have been removed from the list of tags.
+
+        You can connect to this instead of `tags-changed` for performance
+        reasons in an object like a filter or if you don't care about removed items.
+        """
+        self.emit("tags-changed")
+
+    @GObject.Signal(name="tags-removed")
+    def tags_removed(self) -> None:
+        """
+        Emitted whenever items have been removed from the list of tags.
+
+        You can connect to this instead of `tags-changed` for performance
+        reasons in an object like a filter or if you don't care about added items.
+        """
+        self.emit("tags-changed")
+
     @GObject.Signal(name="tags-changed")
     def tags_changed(self) -> None:
         """
@@ -45,6 +65,9 @@ class HypPostmasterGeneral(GObject.Object):
 
         All objects that keep an internal list of tags should connect to it
         and update their list accordingly.
+
+        You can connect to `tags-removed` and `tags-added` if you need more specificity
+        like when updating a filter.
         """
 
     @GObject.Signal(name="tag-location-created")

@@ -46,6 +46,7 @@ def add_tags(*tags: str) -> None:
     for tag in tags:
         shared.tags.append(tag)
     update_tags()
+    shared.postmaster.emit("tags-added")
 
 
 def remove_tags(*tags: str) -> None:
@@ -54,12 +55,12 @@ def remove_tags(*tags: str) -> None:
         if tag in shared.tags:
             shared.tags.remove(tag)
     update_tags()
+    shared.postmaster.emit("tags-removed")
 
 
 def update_tags() -> None:
     """Updates the list of tags."""
     (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
-    shared.postmaster.emit("tags-changed")
 
 
 def move_tag(tag: str, up: bool) -> None:

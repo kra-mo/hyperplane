@@ -111,7 +111,8 @@ class HypItemsPage(Adw.NavigationPage):
         text_drop_target.connect("drop", self.__drop_text)
         self.grid_view.add_controller(text_drop_target)
 
-        shared.postmaster.connect("tags-changed", self.__tags_changed)
+        shared.postmaster.connect("tags-removed", self.__tags_changed, False)
+        shared.postmaster.connect("tags-added", self.__tags_changed, True)
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
         self.file_attrs = ",".join(
@@ -359,10 +360,11 @@ class HypItemsPage(Adw.NavigationPage):
     def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.get_child().unbind()
 
-    def __tags_changed(self, *_args: Any) -> None:
-        # There may be a way to check whether I actually need to reload here
-        # But it may actually be slower
-        self.reload()
+    def __tags_changed(self, _obj: GObject.Object, added: bool) -> None:
+        # TODO: I could do less/more strict with adding/removing tags separately
+        self.item_filter.changed(
+            Gtk.FilterChange.MORE_STRICT if added else Gtk.FilterChange.LESS_STRICT
+        )
 
     def __toggle_hidden(self, *_args: Any) -> None:
         if shared.show_hidden:
