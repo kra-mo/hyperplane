@@ -44,6 +44,7 @@ def generate_thumbnail(
             .to_unix()
         )
     except (GLib.Error, AttributeError):
+        callback(None, *args)
         return
 
     if not factory.can_thumbnail(uri, content_type, mtime):

@@ -42,6 +42,8 @@ class HypPropertiesWindow(Adw.Window):
             )
         )
 
+        # TODO: Add trash date and origin path
+
         attributes = {
             # Basic info
             Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,

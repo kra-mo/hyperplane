@@ -29,6 +29,9 @@ def get_color_for_content_type(
 ) -> str:
     """Returns the color associated with a MIME type."""
 
+    if not content_type:
+        return "gray"
+
     if content_type == "inode/directory":
         return "blue"
 
