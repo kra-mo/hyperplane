@@ -32,7 +32,9 @@ class HypPathBar(Gtk.ScrolledWindow):
 
     __gtype_name__ = "HypPathBar"
 
+    viewport: Gtk.Viewport = Gtk.Template.Child()
     segments_box: Gtk.Box = Gtk.Template.Child()
+
     segments: list
     separators: dict
     tags: bool  # Whether the path bar represents tags or a file
@@ -114,8 +116,14 @@ class HypPathBar(Gtk.ScrolledWindow):
         if self.tags:
             return
 
+        segment = self.segments[-1]
+        segment.remove_css_class("inactive-segment")
+
+        GLib.timeout_add(
+            segment.get_transition_duration(), self.viewport.scroll_to, segment
+        )
+
         try:
-            self.segments[-1].remove_css_class("inactive-segment")
             self.segments[-2].add_css_class("inactive-segment")
         except IndexError:
             return

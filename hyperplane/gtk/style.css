@@ -23,10 +23,12 @@ rubberband {
 .path-bar > undershoot.left {
     background: linear-gradient(to right, alpha(@headerbar_shade_color, 0.5) 6px, alpha(@headerbar_shade_color, 0) 32px);
     border-left: solid 1px @borders;
+    border-radius: 6px 0px 0px 6px;
 }
 .path-bar > undershoot.right {
     background: linear-gradient(to left, alpha(@headerbar_shade_color, 0.5) 6px, alpha(@headerbar_shade_color, 0) 32px);
     border-right: solid 1px @borders;
+    border-radius: 0px 6px 6px 0px;
 }
 .path-bar > viewport > box > revealer > button {
     padding: 2px 9px;
