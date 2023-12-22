@@ -240,6 +240,10 @@ class HypItem(Adw.Bin):
                     self.dir_thumb_init_classes
                     + ["light-blue-background", "white-icon"],
                 )
+                idle_add(
+                    thumbnail.get_child().set_css_classes,
+                    self.dir_icon_init_classes,
+                )
                 self.__dir_thumbnail_cb(None, picture)
                 return
 
