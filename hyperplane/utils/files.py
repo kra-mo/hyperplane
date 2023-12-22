@@ -77,10 +77,9 @@ def copy(src: Gio.File, dst: Gio.File) -> None:
         task = Gio.Task.new(
             None,
             None,
-            __emit_tags_changed if tag_location_created else None,
+            lambda *_: __emit_tags_changed(dst) if tag_location_created else None,
             None,
             None,
-            dst if tag_location_created else None,
         )
         task.run_in_thread(lambda *_: shutil.copytree(src, dst))
         return
@@ -89,8 +88,7 @@ def copy(src: Gio.File, dst: Gio.File) -> None:
         Gio.File.new_for_path(str(dst)),
         Gio.FileCopyFlags.NONE,
         GLib.PRIORITY_DEFAULT,
-        callback=__emit_tags_changed if tag_location_created else None,
-        user_data=dst,
+        callback=lambda *_: __emit_tags_changed(dst) if tag_location_created else None,
     )
 
 
@@ -122,10 +120,9 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     task = Gio.Task.new(
         None,
         None,
-        __emit_tags_changed if tags_changed else None,
+        lambda *_: __emit_tags_changed(dst) if tags_changed else None,
         None,
-        None,
-        dst if tags_changed else None,
+        None
     )
     task.run_in_thread(lambda *_: shutil.move(src, dst))
 
@@ -468,7 +465,7 @@ def __remove_trashinfo(trash_path: PathLike | str, orig_path: PathLike | str) ->
             pass
 
 
-def __emit_tags_changed(_file: Gio.File, _result: Gio.Task, path: Path) -> None:
+def __emit_tags_changed(path: Path) -> None:
     tags = path.relative_to(shared.home).parent.parts
 
     shared.postmaster.emit(

@@ -614,7 +614,10 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.__hide_path_bar()
 
-        if gfile.get_uri() == self.get_visible_page().gfile.get_uri():
+        if (
+            self.get_visible_page().gfile
+            and gfile.get_uri() == self.get_visible_page().gfile.get_uri()
+        ):
             return
 
         nav_bin.new_page(gfile)

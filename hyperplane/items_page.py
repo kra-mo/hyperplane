@@ -409,17 +409,18 @@ class HypItemsPage(Adw.NavigationPage):
                 "open-with",
             }
 
-            if self.gfile.get_uri() == "trash:///":
-                if shared.trash_list.get_n_items():
-                    items.add("empty-trash")
-                items.remove("paste")
-                items.remove("new-folder")
+            if self.gfile:
+                if self.gfile.get_uri() == "trash:///":
+                    if shared.trash_list.get_n_items():
+                        items.add("empty-trash")
+                    items.remove("paste")
+                    items.remove("new-folder")
 
-            if self.gfile.get_uri() == "recent:///":
-                if bool(shared.recent_manager.get_items()):
-                    items.add("clear-recents")
-                items.remove("paste")
-                items.remove("new-folder")
+                if self.gfile.get_uri() == "recent:///":
+                    if bool(shared.recent_manager.get_items()):
+                        items.add("clear-recents")
+                    items.remove("paste")
+                    items.remove("new-folder")
 
             self.get_root().set_menu_items(items)
 
