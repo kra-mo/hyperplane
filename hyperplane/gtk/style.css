@@ -30,7 +30,7 @@ rubberband {
     border-right: solid 1px @borders;
     border-radius: 0px 6px 6px 0px;
 }
-.path-bar > viewport > box > revealer > button {
+.path-bar > viewport > overlay > box > revealer > button {
     padding: 2px 9px;
     margin: 3px;
     border-radius: 4px;

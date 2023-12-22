@@ -20,7 +20,7 @@
 """The path bar in a HypWindow."""
 from typing import Optional
 
-from gi.repository import GLib, Gtk
+from gi.repository import Gdk, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.path_segment import HypPathSegment
@@ -34,6 +34,8 @@ class HypPathBar(Gtk.ScrolledWindow):
 
     viewport: Gtk.Viewport = Gtk.Template.Child()
     segments_box: Gtk.Box = Gtk.Template.Child()
+    # A box for capturing left clicks on the bar itself, not a segment
+    dummy_box: Gtk.Box = Gtk.Template.Child()
 
     segments: list
     separators: dict
@@ -45,13 +47,12 @@ class HypPathBar(Gtk.ScrolledWindow):
         self.separators = {}
         self.tags = False
 
-    def __remove_child(self, parent: Gtk.Box, child: Gtk.Widget) -> None:
-        # This is so GTK doesn't freak out when the child isn't in the box anymore
-        if child.get_parent == parent:
-            parent.remove(child)
+        left_click = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        left_click.connect("released", self.__left_click)
+        self.dummy_box.add_controller(left_click)
 
     def remove(self, n: int) -> None:
-        """Removes n number of segments form self."""
+        """Removes `n` number of segments form self, animating them."""
         for _index in range(n):
             child = self.segments.pop()
             child.set_reveal_child(False)
@@ -90,7 +91,13 @@ class HypPathBar(Gtk.ScrolledWindow):
         uri: Optional[str] = None,
         tag: Optional[str] = None,
     ) -> None:
-        """Appends a HypPathSegment with `label` to self."""
+        """
+        Appends a HypPathSegment with `label` and `icon_name` to self.
+
+        `uri` or `tag` will be opened when the segment is clicked.
+
+        Adding an item is animated.
+        """
         if self.segments:
             # Add a separator only if there is more than one item
             sep_label = Gtk.Label.new("+" if self.tags else "/")
@@ -130,9 +137,17 @@ class HypPathBar(Gtk.ScrolledWindow):
             return
 
     def purge(self) -> None:
-        """Removes all segments from self."""
+        """Removes all segments from self, without animation."""
         while child := self.segments_box.get_first_child():
             self.segments_box.remove(child)
 
         self.segments = []
         self.separators = {}
+
+    def __remove_child(self, parent: Gtk.Box, child: Gtk.Widget) -> None:
+        # This is so GTK doesn't freak out when the child isn't in the parent anymore
+        if child.get_parent == parent:
+            parent.remove(child)
+
+    def __left_click(self, *_args) -> None:
+        self.get_root().lookup_action("toggle-path-bar").activate()
