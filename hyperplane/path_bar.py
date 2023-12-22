@@ -34,8 +34,6 @@ class HypPathBar(Gtk.ScrolledWindow):
 
     viewport: Gtk.Viewport = Gtk.Template.Child()
     segments_box: Gtk.Box = Gtk.Template.Child()
-    # A box for capturing left clicks on the bar itself, not a segment
-    dummy_box: Gtk.Box = Gtk.Template.Child()
 
     segments: list
     separators: dict
@@ -46,10 +44,6 @@ class HypPathBar(Gtk.ScrolledWindow):
         self.segments = []
         self.separators = {}
         self.tags = False
-
-        left_click = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
-        left_click.connect("released", self.__left_click)
-        self.dummy_box.add_controller(left_click)
 
     def remove(self, n: int) -> None:
         """Removes `n` number of segments form self, animating them."""
@@ -148,6 +142,3 @@ class HypPathBar(Gtk.ScrolledWindow):
         # This is so GTK doesn't freak out when the child isn't in the parent anymore
         if child.get_parent == parent:
             parent.remove(child)
-
-    def __left_click(self, *_args) -> None:
-        self.get_root().lookup_action("toggle-path-bar").activate()

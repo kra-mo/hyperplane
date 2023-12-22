@@ -5,18 +5,7 @@ template $HypPathBar : ScrolledWindow {
     hscrollbar-policy: external;
 
     Viewport viewport {
-        Overlay {
-            [overlay]
-            Box segments_box {
-                valign: start;
-                halign: start;
-            }
-
-            Box dummy_box {
-                vexpand: true;
-                hexpand: true;
-            }
-        }
+        Box segments_box {}
     }
 
     styles [
