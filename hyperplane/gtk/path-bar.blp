@@ -1,0 +1,15 @@
+using Gtk 4.0;
+
+template $HypPathBar : ScrolledWindow {
+    vscrollbar-policy: never;
+    hscrollbar-policy: external;
+    overflow: hidden;
+    window-placement: bottom_right;
+    Box segments_box {}
+
+    styles [
+        "undershoot-start",
+        "undershoot-end",
+        "path-bar",
+    ]
+}

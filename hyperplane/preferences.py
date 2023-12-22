@@ -33,7 +33,7 @@ class HypPreferencesWindow(Adw.PreferencesWindow):
 
     folders_switch_row = Gtk.Template.Child()
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
         # TODO: Refresh on change

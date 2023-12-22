@@ -1,3 +1,11 @@
+.thumbnail-picture {
+    filter: initial;
+}
+
+navigation-view > shadow {
+	background: radial-gradient(farthest-side at right, rgba(0,0,0,.15) 0%, rgba(0,0,0,0) 100%);
+}
+
 .blue-icon { color: @blue_1; }
 .blue-background { background: alpha(@blue_5, 0.5); }
 .blue-extension { background: @blue_1; color: @dark_5; }
@@ -25,11 +33,3 @@
 .gray-icon { color: @light_3; }
 .gray-background { background: alpha(@dark_2, 0.5); }
 .gray-extension { background: @light_4; color: @dark_5; }
-
-.thumbnail-picture {
-    filter: initial;
-}
-
-navigation-view > shadow {
-	background: radial-gradient(farthest-side at right, rgba(0,0,0,.15) 0%, rgba(0,0,0,0) 100%);
-}

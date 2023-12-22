@@ -1,3 +1,83 @@
+.item-thumbnail {
+    border-radius: 9px;
+}
+
+.small-thumbnail {
+    border-radius: 6px;
+}
+
+.hyperplane-grid-view {
+    padding: 15px;
+    border-spacing: 12px;
+}
+
+rubberband {
+    border-radius: 6px;
+}
+
+/* Stolen from Nautilus with some modifications */
+.path-bar {
+    background-color: alpha(currentColor, 0.1);
+    border-radius: 6px;
+}
+.path-bar > undershoot.left {
+    background: linear-gradient(to right, alpha(@headerbar_shade_color, 0.5) 6px, alpha(@headerbar_shade_color, 0) 32px);
+    border-left: solid 1px @borders;
+}
+.path-bar > undershoot.right {
+    background: linear-gradient(to left, alpha(@headerbar_shade_color, 0.5) 6px, alpha(@headerbar_shade_color, 0) 32px);
+    border-right: solid 1px @borders;
+}
+.path-bar > viewport > box > revealer > button {
+    padding: 2px 9px;
+    margin: 3px;
+    border-radius: 4px;
+}
+
+.inactive-segment {
+    opacity: 0.5;
+    transition-duration: 0.2s;
+}
+
+.inactive-segment:hover {
+    opacity: 1;
+}
+
+/* Darken thumbnails so pure white images don't look weird */
+.thumbnail-picture {
+    filter: brightness(.97);
+}
+
+.file-extension {
+    padding: 2px 5px;
+    font-weight: 700;
+    border-radius: 4px;
+    font-size: small;
+}
+
+.circular-box {
+    border-radius: 50%;
+}
+
+.circular-icon {
+    border-radius: 50%;
+    padding: 16px;
+}
+
+/* Remove the top margin since the header bar provides enough already */
+.properties-page > scrolledwindow > viewport > clamp > box {
+    margin-top: 0;
+}
+
+/* For flat header bars that don't look weird */
+navigation-view > dimming {
+    opacity: 0;
+}
+
+navigation-view > shadow {
+	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
+}
+
 .white-background { background: @light_1; }
 .white-icon { color: @light_1; }
 
@@ -45,55 +125,3 @@
 .gray-icon-light-only { color: @dark_2; }
 .gray-extension { background: @dark_2; color: @light_1; }
 .gray-extension-thumb { background: @dark_2; color: @light_1; }
-
-.item-thumbnail {
-    border-radius: 9px;
-}
-
-.small-thumbnail {
-    border-radius: 6px;
-}
-
-.hyperplane-grid-view {
-    padding: 15px;
-    border-spacing: 12px;
-}
-
-rubberband {
-    border-radius: 6px;
-}
-
-/* Darken thumbnails so pure white images don't look weird */
-.thumbnail-picture {
-    filter: brightness(.97);
-}
-
-.file-extension {
-    padding: 2px 5px;
-    font-weight: 700;
-    border-radius: 4px;
-    font-size: small;
-}
-
-.circular-box {
-    border-radius: 50%;
-}
-
-.circular-icon {
-    border-radius: 50%;
-    padding: 16px;
-}
-
-/* Remove the top margin since the header bar provides enough already */
-.properties-page > scrolledwindow > viewport > clamp > box {
-    margin-top: 0;
-}
-
-/* For flat header bars that don't look weird */
-navigation-view > dimming {
-    opacity: 0;
-}
-
-navigation-view > shadow {
-	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
-}

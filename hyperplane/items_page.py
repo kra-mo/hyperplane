@@ -73,8 +73,7 @@ class HypItemsPage(Adw.NavigationPage):
         self,
         gfile: Optional[Gio.File] = None,
         tags: Optional[list[str]] = None,
-        **kwargs: Any,
-    ) -> None:
+        **kwargs) -> None:
         super().__init__(**kwargs)
         self.gfile = gfile
         self.tags = tags

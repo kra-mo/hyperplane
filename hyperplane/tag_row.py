@@ -36,7 +36,7 @@ class HypTagRow(Gtk.Box):
 
     tag: str
 
-    def __init__(self, tag: str, icon_name: str, **kwargs: Any) -> None:
+    def __init__(self, tag: str, icon_name: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.tag = tag
 

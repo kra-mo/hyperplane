@@ -46,7 +46,7 @@ class HypNavigationBin(Adw.Bin):
         self,
         initial_gfile: Optional[Gio.File] = None,
         initial_tags: Optional[Iterable[str]] = None,
-        **kwargs: Any,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.view = Adw.NavigationView()

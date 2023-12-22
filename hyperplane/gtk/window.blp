@@ -211,12 +211,12 @@ template $HypWindow : Adw.ApplicationWindow {
               transition-type: crossfade;
               transition-duration: 100;
 
-              Adw.WindowTitle window_title {
-                title: bind template.title;
+              Adw.Clamp path_bar_clamp {
+                $HypPathBar path_bar {}
               }
 
-              Adw.Clamp path_bar_clamp {
-                Entry path_bar {
+              Adw.Clamp path_entry_clamp {
+                Entry path_entry {
                   hexpand: true;
 
                   ShortcutController {
