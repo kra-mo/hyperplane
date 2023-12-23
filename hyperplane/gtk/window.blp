@@ -454,7 +454,11 @@ menu right_click {
     }
   }
   section {
-    item (_("Properties"), "win.properties")
+    item {
+      label: _("Properties");
+      action: "win.properties";
+      hidden-when: "action-disabled";
+    }
   }
 }
 
@@ -475,6 +479,8 @@ menu tag_right_click {
       action: "win.move-tag-down";
       hidden-when: "action-disabled";
     }
+  }
+  section {
     item (_("Remove Category"), "win.remove-tag")
   }
 }
@@ -500,6 +506,10 @@ menu file_right_click {
     }
   }
   section {
-    item (_("Properties"), "win.properties-sidebar")
+    item {
+      label: _("Properties");
+      action: "win.properties";
+      hidden-when: "action-disabled";
+    }
   }
 }

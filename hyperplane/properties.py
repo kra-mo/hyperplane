@@ -26,6 +26,7 @@ from gi.repository import Adw, Gio, GLib, Gtk, Pango
 from hyperplane import shared
 from hyperplane.utils.files import clear_recent_files, empty_trash, get_gfile_path
 from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
+from hyperplane.utils.tags import path_represents_tags
 
 
 class HypPropertiesWindow(Adw.Window):
@@ -72,7 +73,7 @@ class HypPropertiesWindow(Adw.Window):
         content_type = file_info.get_content_type()
         gicon = file_info.get_symbolic_icon()
         thumbnail_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH)
-        size = file_info.get_size() if gfile.get_uri().startswith("file://") else None
+        size = file_info.get_size() if gfile.get_uri_scheme() == "file" else None
         file_type = file_info.get_file_type()
         access = file_info.get_access_date_time()
         modified = file_info.get_modification_date_time()
@@ -170,8 +171,9 @@ class HypPropertiesWindow(Adw.Window):
                         )
                     )
 
-                elif file_type == Gio.FileType.DIRECTORY and gfile.get_uri().startswith(
-                    "file://"
+                elif (
+                    file_type == Gio.FileType.DIRECTORY
+                    and gfile.get_uri_scheme() == "file"
                 ):
                     folder_size_box = Gtk.Box(
                         margin_top=6, spacing=6, halign=Gtk.Align.CENTER
@@ -314,6 +316,28 @@ class HypPropertiesWindow(Adw.Window):
                 clear_recents_button.set_sensitive(
                     bool(shared.recent_manager.get_items())
                 )
+
+            # If the item is tagged
+            elif (
+                gfile.get_uri_scheme() == "file"
+                and gfile.has_parent()
+                and (parent_path := (parent := gfile.get_parent()).get_path())
+                and path_represents_tags(parent_path)
+            ):
+                page.add(tags_group := Adw.PreferencesGroup())
+                tags_group.add(
+                    tags_row := Adw.ActionRow(
+                        title=_("Categories"),
+                        subtitle=", ".join(
+                            Gio.File.new_for_path(str(shared.home))
+                            .get_relative_path(parent)
+                            .strip("/")
+                            .split("/")
+                        ),
+                        subtitle_selectable=True,
+                    )
+                )
+                tags_row.add_css_class("property")
 
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())

@@ -395,7 +395,7 @@ class HypItemsPage(Adw.NavigationPage):
         Gio.AppInfo.launch_default_for_uri(uri)
 
         # Don't add trashed items to Recent
-        if gfile.get_uri().startswith("trash://"):
+        if gfile.get_uri_scheme() == "trash":
             return
 
         recent_data = Gtk.RecentData()
@@ -421,6 +421,7 @@ class HypItemsPage(Adw.NavigationPage):
 
             # Read-only special directories
             if self.gfile:
+                items.add("properties")
                 if (
                     (uri := self.gfile.get_uri()).startswith("trash://")
                     or uri.startswith("recent://")
@@ -848,7 +849,7 @@ class HypItemsPage(Adw.NavigationPage):
         gfiles = self.get_selected_gfiles()
 
         # When the Delete key is pressed but the user is in the trash
-        if gfiles and gfiles[0].get_uri().startswith("trash://"):
+        if gfiles and gfiles[0].get_uri_scheme() == "trash":
             self.__trash_delete(*args)
             return
 
@@ -883,7 +884,7 @@ class HypItemsPage(Adw.NavigationPage):
         gfiles = self.get_selected_gfiles()
 
         # When the Delete key is pressed but the user is not in the trash
-        if gfiles and (not gfiles[0].get_uri().startswith("trash://")):
+        if gfiles and (not gfiles[0].get_uri_scheme() == "trash"):
             self.__trash_delete(*args)
 
         def delete():

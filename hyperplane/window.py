@@ -376,6 +376,7 @@ class HypWindow(Adw.ApplicationWindow):
             "open-new-tab": page,
             "open-new-window": page,
             "open-with": page,
+            "properties": self,
         }
 
         for action, group in actions.items():
@@ -384,13 +385,20 @@ class HypWindow(Adw.ApplicationWindow):
     def __properties(self, *_args: Any) -> None:
         page = self.get_visible_page()
 
-        gfiles = [page.gfile] if page.right_click_view else page.get_selected_gfiles()
+        gfiles = (
+            [page.gfile]
+            if page.right_click_view and page.gfile
+            else page.get_selected_gfiles()
+        )
         page.right_click_view = False
 
         if (
             not gfiles
         ):  # If the keyboard shortcut was triggered, but no items are selected
-            gfiles = [page.gfile]
+            if page.gfile:
+                gfiles = [page.gfile]
+            else:
+                return
 
         # TODO: Allow viewing properties of multiple files
         properties = HypPropertiesWindow(gfiles[0])
@@ -839,6 +847,7 @@ class HypWindow(Adw.ApplicationWindow):
                 "open-new-tab",
                 "open-new-window",
                 "open-with",
+                "properties",
             }
         )
 

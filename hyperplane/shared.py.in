@@ -52,7 +52,7 @@ del path
 app = None  # pylint: disable=invalid-name
 search = ""  # pylint: disable=invalid-name
 cut_page = None  # pylint: disable=invalid-name
-right_clicked_file = None # pylint: disable=invalid-name
+right_clicked_file = None  # pylint: disable=invalid-name
 undo_queue = {}
 
 postmaster = HypPostmasterGeneral()
