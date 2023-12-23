@@ -381,7 +381,8 @@ class HypItemsPage(Adw.NavigationPage):
         gfile = file_info.get_attribute_object("standard::file")
 
         if file_info.get_content_type() == "inode/directory":
-            self.get_root().tab_view.get_selected_page().get_child().new_page(gfile)
+            # TODO: get_parent is ugly, but probably less ugly than the alternative
+            self.get_parent().get_parent().new_page(gfile)
             return
 
         if not (

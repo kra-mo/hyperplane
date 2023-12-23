@@ -71,7 +71,12 @@ class HypNavigationBin(Adw.Bin):
         tags: Optional[Iterable[str]] = None,
     ) -> None:
         """Push a new page with the given file or tag to the navigation stack."""
+        page = self.view.get_visible_page()
+
         if gfile:
+            if page.gfile and page.gfile.get_uri() == gfile.get_uri():
+                return
+
             self.tags = []
             page = HypItemsPage(gfile=gfile)
         elif tag:
@@ -80,7 +85,12 @@ class HypNavigationBin(Adw.Bin):
             self.tags.append(tag)
             page = HypItemsPage(tags=self.tags.copy())
         elif tags:
-            self.tags = list(tags)
+            tags = list(tags)
+
+            if page.tags == tags:
+                return
+
+            self.tags = tags
             page = HypItemsPage(tags=self.tags.copy())
         else:
             return

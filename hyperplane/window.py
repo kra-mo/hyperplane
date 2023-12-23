@@ -62,7 +62,6 @@ class HypWindow(Adw.ApplicationWindow):
     trash_icon: Gtk.Image = Gtk.Template.Child()
     volumes_box: HypVolumesBox = Gtk.Template.Child()
 
-
     title_stack: Gtk.Stack = Gtk.Template.Child()
     path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
     path_bar: HypPathBar = Gtk.Template.Child()
@@ -210,6 +209,17 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_entry.connect("entry-activated", self.__do_rename)
         self.rename_button.connect("clicked", self.__do_rename)
 
+        self.path_bar.connect("open-gfile", lambda _box, gfile: self.new_page(gfile))
+        self.path_bar.connect("open-tag", lambda _box, tag: self.new_page(tags=[tag]))
+        self.volumes_box.connect(
+            "open-gfile",
+            lambda _box, gfile, new_tab, new_window: self.new_window(gfile)
+            if new_window
+            else self.new_tab(gfile)
+            if new_tab
+            else self.new_page(gfile),
+        )
+
         # Set up search
 
         self.searched_page = self.get_visible_page()
@@ -222,8 +232,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.__trash_changed()
         shared.trash_list.connect("notify::n-items", self.__trash_changed)
-
-        self.volumes_box.connect("open-gfile", lambda _box, gfile: self.get_nav_bin().new_page(gfile))
 
         # Set up sidebar actions
 
@@ -255,6 +263,14 @@ class HypWindow(Adw.ApplicationWindow):
         self.toast_overlay.add_toast(toast)
 
         return toast
+
+    def new_page(self, *args, **kwargs) -> None:
+        """
+        Open a new page with the given file or tag.
+
+        All arguments are passed to `HypNavigationBin.new_page()` directly.
+        """
+        self.get_nav_bin().new_page(*args, **kwargs)
 
     def new_tab(
         self, gfile: Optional[Gio.File] = None, tags: Optional[Iterable[str]] = None
@@ -434,29 +450,21 @@ class HypWindow(Adw.ApplicationWindow):
         if self.overlay_split_view.get_collapsed():
             self.overlay_split_view.set_show_sidebar(False)
 
-        gfile = self.get_visible_page().gfile
-        if (not gfile) or (gfile.get_uri() != "trash:///"):
-            self.get_nav_bin().new_page(Gio.File.new_for_uri("trash://"))
+        self.new_page(Gio.File.new_for_uri("trash://"))
 
     def __row_activated(self, _box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         if self.overlay_split_view.get_collapsed():
             self.overlay_split_view.set_show_sidebar(False)
 
-        nav_bin = self.get_nav_bin()
-
         if (child := row.get_child()) == self.sidebar_home:
-            gfile = self.get_visible_page().gfile
-            if (not gfile) or (gfile.get_path() != str(shared.home)):
-                nav_bin.new_page(Gio.File.new_for_path(str(shared.home)))
+            self.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
         if child == self.sidebar_recent:
-            gfile = self.get_visible_page().gfile
-            if (not gfile) or (gfile.get_uri() != "recent:///"):
-                nav_bin.new_page(Gio.File.new_for_uri("recent://"))
+            self.new_page(Gio.File.new_for_uri("recent://"))
             return
 
-        nav_bin.new_page(tag=row.get_child().tag)
+        self.new_page(tag=row.get_child().tag)
 
     def __tab_changed(self, *_args: Any) -> None:
         if not self.tab_view.get_selected_page():
@@ -602,7 +610,6 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __path_bar_activated(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
-        nav_bin = self.get_nav_bin()
 
         if text.startswith("//"):
             self.__hide_path_bar()
@@ -611,11 +618,11 @@ class HypWindow(Adw.ApplicationWindow):
                 for tag in shared.tags
                 if tag in text.lstrip("/").rstrip("/").split("//")
             )
+
             if not tags:
                 self.send_toast(_("No such tags"))
-            if tags == self.get_visible_page().tags:
-                return
-            nav_bin.new_page(tags=tags)
+
+            self.new_page(tags=tags)
             return
 
         if "://" in text:
@@ -632,13 +639,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.__hide_path_bar()
 
-        if (
-            self.get_visible_page().gfile
-            and gfile.get_uri() == self.get_visible_page().gfile.get_uri()
-        ):
-            return
-
-        nav_bin.new_page(gfile)
+        self.new_page(gfile)
 
     def __title_stack_set_child(self, new: Gtk.Widget) -> None:
         old = self.title_stack.get_visible_child()
@@ -737,7 +738,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.__hide_path_bar()
 
     def __go_home(self, *_args: Any) -> None:
-        self.get_nav_bin().new_page(Gio.File.new_for_path(str(shared.home)))
+        self.new_page(Gio.File.new_for_path(str(shared.home)))
 
     def __close(self, *_args: Any) -> None:
         if self.tab_view.get_n_pages() > 1:
@@ -778,7 +779,7 @@ class HypWindow(Adw.ApplicationWindow):
         return page
 
     def __open_sidebar(self, *_args: Any) -> None:
-        self.get_nav_bin().new_page(self.right_clicked_file)
+        self.new_page(self.right_clicked_file)
 
     def __open_new_tab_sidebar(self, *_args: Any) -> None:
         self.new_tab(self.right_clicked_file)
@@ -792,7 +793,7 @@ class HypWindow(Adw.ApplicationWindow):
         properties.present()
 
     def __open_tag(self, *_args: Any) -> None:
-        self.get_nav_bin().new_page(tag=self.right_clicked_tag)
+        self.new_page(tag=self.right_clicked_tag)
 
     def __open_new_tab_tag(self, *_args: Any) -> None:
         self.new_tab(tags=[self.right_clicked_tag])

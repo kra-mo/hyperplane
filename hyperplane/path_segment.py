@@ -53,22 +53,23 @@ class HypPathSegment(Gtk.Revealer):
         self.button.connect("clicked", self.__navigate)
 
     def __navigate(self, *_args: Any) -> None:
-        # HACK: Do this properly
-        win = self.get_root()
-        nav_bin = win.get_nav_bin()
-        page = win.get_visible_page()
-
         if self.tag:
-            if page.tags == [self.tag]:
-                return
-            nav_bin.new_page(tags=[self.tag])
+            self.emit("open-tag", self.tag)
             return
 
         if self.uri:
             if self.active:  # pylint: disable=using-constant-test
                 return
 
-            nav_bin.new_page(Gio.File.new_for_uri(self.uri))
+            self.emit("open-gfile", Gio.File.new_for_uri(self.uri))
+
+    @GObject.Signal(name="open-tag")
+    def open_tag(self, _tag: str) -> None:
+        """Signals to the path bar that `tag` should be opened as the only tag."""
+
+    @GObject.Signal(name="open-gfile")
+    def open_gfile(self, _gfile: Gio.File) -> None:
+        """Signals to the path bar that `gfile` should be opened."""
 
     @GObject.Property(type=bool, default=True)
     def active(self) -> bool:
