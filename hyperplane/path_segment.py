@@ -34,6 +34,8 @@ class HypPathSegment(Gtk.Revealer):
     button: Gtk.Button = Gtk.Template.Child()
     button_content: Adw.ButtonContent = Gtk.Template.Child()
 
+    _active: bool
+
     def __init__(
         self,
         label: str,
@@ -52,14 +54,31 @@ class HypPathSegment(Gtk.Revealer):
 
     def __navigate(self, *_args: Any) -> None:
         # HACK: Do this properly
-        nav_bin = self.get_root().get_nav_bin()
+        win = self.get_root()
+        nav_bin = win.get_nav_bin()
+        page = win.get_visible_page()
 
         if self.tag:
+            if page.tags == [self.tag]:
+                return
             nav_bin.new_page(tags=[self.tag])
             return
 
         if self.uri:
+            if self.active:  # pylint: disable=using-constant-test
+                return
+
             nav_bin.new_page(Gio.File.new_for_uri(self.uri))
+
+    @GObject.Property(type=bool, default=True)
+    def active(self) -> bool:
+        """Whether the segment is the currently active one."""
+        return self._active
+
+    @active.setter
+    def set_active(self, active) -> None:
+        self._active = active
+        (self.remove_css_class if active else self.add_css_class)("inactive-segment")
 
     @GObject.Property(type=str)
     def icon_name(self) -> str:

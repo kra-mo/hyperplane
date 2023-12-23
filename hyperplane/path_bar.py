@@ -73,8 +73,8 @@ class HypPathBar(Gtk.ScrolledWindow):
             return
 
         try:
-            self.segments[-1].remove_css_class("inactive-segment")
-            self.segments[-2].add_css_class("inactive-segment")
+            self.segments[-1].active = True
+            self.segments[-2].active = False
         except IndexError:
             return
 
@@ -123,10 +123,10 @@ class HypPathBar(Gtk.ScrolledWindow):
         if self.tags:
             return
 
-        segment.remove_css_class("inactive-segment")
+        segment.active = True
 
         try:
-            self.segments[-2].add_css_class("inactive-segment")
+            self.segments[-2].active = False
         except IndexError:
             return
 
