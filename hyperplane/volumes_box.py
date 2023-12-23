@@ -128,7 +128,7 @@ class HypVolumesBox(Adw.Bin):
             self.actions[self.rows[volume]]()
             return
 
-        self.get_root().right_clicked_file = mount.get_root()
+        shared.right_clicked_file = mount.get_root()
 
         self.right_click_menu.unparent()
         self.right_click_menu.set_parent(gesture.get_widget())

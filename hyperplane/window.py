@@ -85,7 +85,6 @@ class HypWindow(Adw.ApplicationWindow):
     path_bar_connection: int
     sidebar_items: set
     right_clicked_tag: str
-    right_clicked_file: Gio.File
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -779,16 +778,16 @@ class HypWindow(Adw.ApplicationWindow):
         return page
 
     def __open_sidebar(self, *_args: Any) -> None:
-        self.new_page(self.right_clicked_file)
+        self.new_page(shared.right_clicked_file)
 
     def __open_new_tab_sidebar(self, *_args: Any) -> None:
-        self.new_tab(self.right_clicked_file)
+        self.new_tab(shared.right_clicked_file)
 
     def __open_new_window_sidebar(self, *_args: Any) -> None:
-        self.new_window(self.right_clicked_file)
+        self.new_window(shared.right_clicked_file)
 
     def __properties_sidebar(self, *_args: Any) -> None:
-        properties = HypPropertiesWindow(self.right_clicked_file)
+        properties = HypPropertiesWindow(shared.right_clicked_file)
         properties.set_transient_for(self)
         properties.present()
 
@@ -930,7 +929,7 @@ class HypWindow(Adw.ApplicationWindow):
     def __sidebar_right_click(
         self, gesture: Gtk.GestureClick, _n: int, x: float, y: float, gfile: Gio.File
     ) -> None:
-        self.right_clicked_file = gfile
+        shared.right_clicked_file = gfile
 
         self.lookup_action("empty-trash").set_enabled(
             gfile.get_uri() == "trash:///" and shared.trash_list.get_n_items()
