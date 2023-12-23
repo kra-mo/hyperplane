@@ -418,18 +418,24 @@ class HypItemsPage(Adw.NavigationPage):
                 "open-with",
             }
 
+            # Read-only special directories
             if self.gfile:
-                if self.gfile.get_uri() == "trash:///":
-                    if shared.trash_list.get_n_items():
-                        items.add("empty-trash")
+                if (
+                    (uri := self.gfile.get_uri()).startswith("trash://")
+                    or uri.startswith("recent://")
+                    or uri.startswith("burn://")
+                    or uri.startswith("network://")
+                ):
                     items.remove("paste")
                     items.remove("new-folder")
 
-                if self.gfile.get_uri() == "recent:///":
-                    if bool(shared.recent_manager.get_items()):
-                        items.add("clear-recents")
-                    items.remove("paste")
-                    items.remove("new-folder")
+                    if self.gfile.get_uri() == "trash:///":
+                        if shared.trash_list.get_n_items():
+                            items.add("empty-trash")
+
+                    if self.gfile.get_uri() == "recent:///":
+                        if bool(shared.recent_manager.get_items()):
+                            items.add("clear-recents")
 
             self.get_root().set_menu_items(items)
 
