@@ -40,6 +40,7 @@ from hyperplane.utils.files import (
     validate_name,
 )
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
+from hyperplane.volumes_box import HypVolumesBox
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
@@ -59,6 +60,8 @@ class HypWindow(Adw.ApplicationWindow):
     new_tag_box: Gtk.ListBox = Gtk.Template.Child()
     trash_box: Gtk.ListBox = Gtk.Template.Child()
     trash_icon: Gtk.Image = Gtk.Template.Child()
+    volumes_box: HypVolumesBox = Gtk.Template.Child()
+
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
     path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
@@ -198,6 +201,7 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
         self.right_click_menu.connect("closed", self.__set_actions)
+        self.__set_actions()
 
         self.can_rename = True
         self.rename_item = None
@@ -219,6 +223,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.__trash_changed()
         shared.trash_list.connect("notify::n-items", self.__trash_changed)
 
+        self.volumes_box.connect("open-gfile", lambda _box, gfile: self.get_nav_bin().new_page(gfile))
+
         # Set up sidebar actions
 
         sidebar_items = {
@@ -238,8 +244,6 @@ class HypWindow(Adw.ApplicationWindow):
 
             widget.add_controller(right_click)
             widget.add_controller(middle_click)
-
-        self.__set_actions()
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""

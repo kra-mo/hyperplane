@@ -173,7 +173,7 @@ class HypItem(Adw.Bin):
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
 
-    def __dir_children_cb(self, gfile: Gio.File, result: Gio.Task) -> None:
+    def __dir_children_cb(self, gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:
             files = gfile.enumerate_children_finish(result)
         except GLib.Error:
@@ -190,7 +190,7 @@ class HypItem(Adw.Bin):
             self.__thumbnail_cb(open_folder=bool(index))
 
         def next_files_cb(
-            enumerator: Gio.FileEnumerator, result: Gio.Task, index: int
+            enumerator: Gio.FileEnumerator, result: Gio.AsyncResult, index: int
         ) -> None:
             if index == 3:
                 done(index - 1)

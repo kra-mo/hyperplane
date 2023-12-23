@@ -745,7 +745,7 @@ class HypItemsPage(Adw.NavigationPage):
         else:
             dst = self.gfile
 
-        def paste_file_cb(clipboard: Gdk.Clipboard, result: Gio.Task) -> None:
+        def paste_file_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
             nonlocal paths
             nonlocal dst
 
@@ -795,7 +795,7 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.undo_queue[time()] = ("copy", paths)
             shared.cut_page = None
 
-        def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.Task) -> None:
+        def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
             nonlocal dst
 
             try:

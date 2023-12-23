@@ -1,0 +1,12 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $HypVolumesBox : Adw.Bin {
+    Gtk.ListBox list_box {
+        selection-mode: none;
+
+        styles [
+        "navigation-sidebar",
+        ]
+    }
+}
