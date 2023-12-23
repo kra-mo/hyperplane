@@ -489,19 +489,30 @@ class HypWindow(Adw.ApplicationWindow):
             segments = []
 
             # Do these automatically is shceme != "file"
-            match parse.scheme:
-                case "trash":
-                    segments.insert(
-                        0,
-                        (_("Trash"), "user-trash-symbolic", f"{parse.scheme}://", None),
+            if parse.scheme != "file":
+                scheme_uri = f"{parse.scheme}://"
+                try:
+                    file_info = Gio.File.new_for_uri(scheme_uri).query_info(
+                        ",".join(
+                            (
+                                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                            )
+                        ),
+                        Gio.FileQueryInfoFlags.NONE,
                     )
-                case "recent":
+                except GLib.Error:
+                    pass
+                else:
+                    display_name = file_info.get_display_name()
+                    symbolic = file_info.get_symbolic_icon()
+
                     segments.insert(
                         0,
                         (
-                            _("Recent"),
-                            "document-open-recent-symbolic",
-                            f"{parse.scheme}://",
+                            display_name,
+                            symbolic.get_names()[0] if symbolic else None,
+                            scheme_uri,
                             None,
                         ),
                     )
