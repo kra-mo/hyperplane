@@ -361,9 +361,7 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __tags_changed(self, _obj: GObject.Object, change: Gtk.FilterChange) -> None:
         # TODO: I could do less/more strict with adding/removing tags separately
-        self.item_filter.changed(
-            change
-        )
+        self.item_filter.changed(change)
 
     def __toggle_hidden(self, *_args: Any) -> None:
         if shared.show_hidden:
@@ -421,7 +419,12 @@ class HypItemsPage(Adw.NavigationPage):
             # Read-only special directories
             if self.gfile:
                 items.add("properties")
-                if (self.gfile.get_uri_scheme() in {"trash", "recent", "burn", "network"}):
+                if self.gfile.get_uri_scheme() in {
+                    "trash",
+                    "recent",
+                    "burn",
+                    "network",
+                }:
                     items.remove("paste")
                     items.remove("new-folder")
 
@@ -711,7 +714,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.choose()
 
     def __copy(self, *_args: Any) -> None:
-        shared.cut_page = None
+        shared.set_cut_widgets(set())
         clipboard = Gdk.Display.get_default().get_clipboard()
         if not (items := self.get_selected_gfiles()):
             return
@@ -722,7 +725,15 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __cut(self, _obj: Any, *args: Any) -> None:
         self.__copy(*args)
-        shared.cut_page = self
+
+        children = self.grid_view.observe_children()
+
+        cut_widgets = set()
+
+        for pos in self.get_selected_positions():
+            cut_widgets.add(children.get_item(pos).get_first_child())
+
+        shared.set_cut_widgets(cut_widgets)
 
     def __paste(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
@@ -748,7 +759,7 @@ class HypItemsPage(Adw.NavigationPage):
             try:
                 file_list = clipboard.read_value_finish(result)
             except GLib.Error:
-                shared.cut_page = None
+                shared.set_cut_widgets(set())
                 return
 
             for src in file_list:
@@ -759,7 +770,7 @@ class HypItemsPage(Adw.NavigationPage):
                 except (FileNotFoundError, TypeError):
                     continue
 
-                if shared.cut_page:
+                if shared.cut_widgets:
                     try:
                         move(src, dst)
                     except FileExistsError:
@@ -785,11 +796,11 @@ class HypItemsPage(Adw.NavigationPage):
 
                     paths.append(dst)
 
-            if shared.cut_page:
+            if shared.cut_widgets:
                 shared.undo_queue[time()] = ("cut", paths)
             else:
                 shared.undo_queue[time()] = ("copy", paths)
-            shared.cut_page = None
+            shared.set_cut_widgets(set())
 
         def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
             nonlocal dst

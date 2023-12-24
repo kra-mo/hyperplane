@@ -6,6 +6,10 @@ navigation-view > shadow {
 	background: radial-gradient(farthest-side at right, rgba(0,0,0,.15) 0%, rgba(0,0,0,0) 100%);
 }
 
+.cut-item {
+    filter: brightness(60%);
+}
+
 .blue-icon { color: @blue_1; }
 .blue-background { background: alpha(@blue_5, 0.5); }
 .blue-extension { background: @blue_1; color: @dark_5; }

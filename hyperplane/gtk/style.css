@@ -57,6 +57,15 @@ rubberband {
     font-size: small;
 }
 
+/*
+This makes it look like the opacity decreased
+The reason I cannot actually do that is that it reduces the opacity of widgets individually
+and that looks ugly.
+*/
+.cut-item {
+    filter: contrast(50%) brightness(130%);
+}
+
 .sidebar-check-button > check {
     color: @sidebar_fg_color;
     background-color: @sidebar_shade_color;

@@ -51,7 +51,6 @@ del path
 
 app = None  # pylint: disable=invalid-name
 search = ""  # pylint: disable=invalid-name
-cut_page = None  # pylint: disable=invalid-name
 right_clicked_file = None  # pylint: disable=invalid-name
 undo_queue = {}
 
@@ -82,3 +81,22 @@ else:
     recent_manager = Gtk.RecentManager.get_default()
 
 icon_names = Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).get_icon_names()
+
+cut_widgets = set()
+
+
+def set_cut_widgets(widgets: list[Gtk.Widget]) -> None:
+    """
+    Sets widgets representing files that are going to be moved after a paste operation.
+
+    This is so their "opacity" can be reduced.
+    """
+    global cut_widgets  # pylint: disable=global-statement
+
+    for widget in cut_widgets:
+        widget.remove_css_class("cut-item")
+
+    for widget in widgets:
+        widget.add_css_class("cut-item")
+
+    cut_widgets = widgets
