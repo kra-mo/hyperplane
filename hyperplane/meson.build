@@ -8,7 +8,6 @@ blueprints = custom_target('blueprints',
     'gtk/path-bar.blp',
     'gtk/path-segment.blp',
     'gtk/preferences.blp',
-    'gtk/tag-row.blp',
     'gtk/volumes-box.blp',
     'gtk/window.blp',
   ),
@@ -46,6 +45,7 @@ endif
 
 hyperplane_sources = [
   '__init__.py',
+  'editable_row.py',
   'file_properties.py',
   'item_filter.py',
   'item_sorter.py',

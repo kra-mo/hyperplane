@@ -53,9 +53,8 @@ class HypItemSorter(Gtk.Sorter):
 
         # Always sort recent items by date
         if (
-            file_info1.get_attribute_object("standard::file")
-            .get_uri()
-            .startswith("recent://")
+            file_info1.get_attribute_object("standard::file").get_uri_scheme()
+            == "recent"
         ):
             try:
                 recent_info1 = shared.recent_manager.lookup_item(

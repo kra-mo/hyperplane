@@ -21,7 +21,13 @@
 from os import PathLike
 from pathlib import Path
 
+from gi.repository import Gtk
+
 from hyperplane import shared
+
+
+def __update_tags() -> None:
+    (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
 
 
 def path_represents_tags(path: PathLike | str) -> bool:
@@ -45,8 +51,9 @@ def add_tags(*tags: str) -> None:
     """
     for tag in tags:
         shared.tags.append(tag)
-    update_tags()
-    shared.postmaster.emit("tags-added")
+    __update_tags()
+
+    shared.postmaster.emit("tags-changed", Gtk.FilterChange.MORE_STRICT)
 
 
 def remove_tags(*tags: str) -> None:
@@ -54,13 +61,9 @@ def remove_tags(*tags: str) -> None:
     for tag in tags:
         if tag in shared.tags:
             shared.tags.remove(tag)
-    update_tags()
-    shared.postmaster.emit("tags-removed")
+    __update_tags()
 
-
-def update_tags() -> None:
-    """Updates the list of tags."""
-    (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
+    shared.postmaster.emit("tags-changed", Gtk.FilterChange.LESS_STRICT)
 
 
 def move_tag(tag: str, up: bool) -> None:
@@ -78,7 +81,9 @@ def move_tag(tag: str, up: bool) -> None:
             shared.tags[index - 1],
             shared.tags[index],
         )
-        update_tags()
+        __update_tags()
+
+        shared.postmaster.emit("tags-changed", Gtk.FilterChange.DIFFERENT)
         return
 
     # Moving down
@@ -93,4 +98,6 @@ def move_tag(tag: str, up: bool) -> None:
         shared.tags[index],
     )
 
-    update_tags()
+    __update_tags()
+
+    shared.postmaster.emit("tags-changed", Gtk.FilterChange.DIFFERENT)

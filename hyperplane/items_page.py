@@ -111,8 +111,7 @@ class HypItemsPage(Adw.NavigationPage):
         text_drop_target.connect("drop", self.__drop_text)
         self.grid_view.add_controller(text_drop_target)
 
-        shared.postmaster.connect("tags-removed", self.__tags_changed, False)
-        shared.postmaster.connect("tags-added", self.__tags_changed, True)
+        shared.postmaster.connect("tags-changed", self.__tags_changed)
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
 
         self.file_attrs = ",".join(
@@ -360,10 +359,10 @@ class HypItemsPage(Adw.NavigationPage):
     def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         item.get_child().unbind()
 
-    def __tags_changed(self, _obj: GObject.Object, added: bool) -> None:
+    def __tags_changed(self, _obj: GObject.Object, change: Gtk.FilterChange) -> None:
         # TODO: I could do less/more strict with adding/removing tags separately
         self.item_filter.changed(
-            Gtk.FilterChange.MORE_STRICT if added else Gtk.FilterChange.LESS_STRICT
+            change
         )
 
     def __toggle_hidden(self, *_args: Any) -> None:
@@ -422,12 +421,7 @@ class HypItemsPage(Adw.NavigationPage):
             # Read-only special directories
             if self.gfile:
                 items.add("properties")
-                if (
-                    (uri := self.gfile.get_uri()).startswith("trash://")
-                    or uri.startswith("recent://")
-                    or uri.startswith("burn://")
-                    or uri.startswith("network://")
-                ):
+                if (self.gfile.get_uri_scheme() in {"trash", "recent", "burn", "network"}):
                     items.remove("paste")
                     items.remove("new-folder")
 

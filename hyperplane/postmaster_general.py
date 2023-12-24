@@ -38,36 +38,16 @@ class HypPostmasterGeneral(GObject.Object):
     def toggle_hidden(self) -> None:
         """Emitted when the visibility of hidden files changes."""
 
-    @GObject.Signal(name="tags-added")
-    def tags_added(self) -> None:
-        """
-        Emitted whenever items have been removed from the list of tags.
-
-        You can connect to this instead of `tags-changed` for performance
-        reasons in an object like a filter or if you don't care about removed items.
-        """
-        self.emit("tags-changed")
-
-    @GObject.Signal(name="tags-removed")
-    def tags_removed(self) -> None:
-        """
-        Emitted whenever items have been removed from the list of tags.
-
-        You can connect to this instead of `tags-changed` for performance
-        reasons in an object like a filter or if you don't care about added items.
-        """
-        self.emit("tags-changed")
-
     @GObject.Signal(name="tags-changed")
-    def tags_changed(self) -> None:
+    def tags_changed(self, change: Gtk.FilterChange) -> None:
         """
         Emitted whenever the list of tags changes.
 
         All objects that keep an internal list of tags should connect to it
         and update their list accordingly.
 
-        You can connect to `tags-removed` and `tags-added` if you need more specificity
-        like when updating a filter.
+        `change` represents whether tags were added, removed or just reordered.
+        This is only relevant for item filters.
         """
 
     @GObject.Signal(name="tag-location-created")
@@ -85,3 +65,7 @@ class HypPostmasterGeneral(GObject.Object):
     @GObject.Signal(name="trash-emptied")
     def trash_emptied(self) -> None:
         """Emitted when the trash is emptied by the app."""
+
+    @GObject.Signal(name="sidebar-edited")
+    def sidebar_changed(self) -> None:
+        """Emitted when the visibility of items in the sidebar has been edited."""

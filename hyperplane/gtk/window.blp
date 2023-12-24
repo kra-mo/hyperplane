@@ -31,6 +31,9 @@ menu primary_menu {
     item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
     item (_("_About Hyperplane"), "app.about")
   }
+  section {
+    item (_("Edit Locations"), "win.edit-sidebar")
+  }
 }
 
 template $HypWindow : Adw.ApplicationWindow {
@@ -101,29 +104,16 @@ template $HypWindow : Adw.ApplicationWindow {
 
                 ListBox sidebar {
                   selection-mode: none;
-                  Box sidebar_recent {
-                    spacing: 12;
-                    margin-start: 6;
-                    margin-end: 6;
-                    Image {
-                      icon-name: "document-open-recent-symbolic";
-                    }
-                    Label {
-                      ellipsize: end;
-                      label: _("Recent");
-                    }
+                  $HypEditableRow recent_row {
+                    icon-name: "document-open-recent-symbolic";
+                    title: _("Recent");
+                    identifier: "file_recent:///";
                   }
-                  Box sidebar_home {
-                    spacing: 12;
-                    margin-start: 6;
-                    margin-end: 6;
-                    Image {
-                      icon-name: "user-home-symbolic";
-                    }
-                    Label {
-                      ellipsize: end;
-                      label: _("Home");
-                    }
+                  $HypEditableRow home_row {
+                    icon-name: "user-home-symbolic";
+                    title: _("Home");
+                    editable: false;
+                    identifier: "special_home";
                   }
 
                   styles [
@@ -139,7 +129,6 @@ template $HypWindow : Adw.ApplicationWindow {
                   Box {
                     spacing: 12;
                     margin-start: 6;
-                    margin-end: 6;
                     Image {
                       icon-name: "bookmark-new-symbolic";
                     }
@@ -159,16 +148,10 @@ template $HypWindow : Adw.ApplicationWindow {
                 }
                 ListBox trash_box {
                   selection-mode: none;
-                  Box {
-                    margin-end: 6;
-                    Image trash_icon {
-                      width-request: 28;
-                    }
-                    Label {
-                      ellipsize: end;
-                      margin-start: 6;
-                      label: _("Trash");
-                    }
+                  $HypEditableRow trash_row {
+                    title: _("Trash");
+                    editable: false;
+                    identifier: "file_trash:///";
                   }
 
                   styles [
@@ -180,6 +163,24 @@ template $HypWindow : Adw.ApplicationWindow {
                   margin-end: 6;
                 }
                 $HypVolumesBox volumes_box {}
+              }
+            }
+
+            [bottom]
+            ActionBar sidebar_action_bar {
+              revealed: false;
+
+              Button {
+                margin-start: 6;
+                margin-top: 3;
+                margin-bottom: 3;
+                hexpand: true;
+                label: _("Done");
+                action-name: "win.end-edit-sidebar";
+
+                styles [
+                  "suggested-action"
+                ]
               }
             }
           }
@@ -231,7 +232,7 @@ template $HypWindow : Adw.ApplicationWindow {
                   ShortcutController {
                     Shortcut {
                       trigger: "Escape";
-                      action: "action(win.hide-path-bar)";
+                      action: "action(win.hide-path-entry)";
                     }
                   }
                 }
@@ -256,8 +257,7 @@ template $HypWindow : Adw.ApplicationWindow {
           }
 
 
-          Adw.TabView tab_view {
-          }
+          Adw.TabView tab_view {}
 
           [bottom]
           ActionBar action_bar {

@@ -17,12 +17,17 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""A self-updating ListBox of mountable volumes."""
+"""
+A self-updating `GtkListBox` (wrapped in an `AdwBin`) of mountable volumes.
+
+To be used in a sidebar.
+"""
 from typing import Optional
 
-from gi.repository import Adw, Gdk, Gio, GObject, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
+from hyperplane.editable_row import HypEditableRow
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/volumes-box.ui")
@@ -70,13 +75,12 @@ class HypVolumesBox(Adw.Bin):
         This is done automatically for any new volumes
         so in most cases, calling this should not be necessary.
         """
-        box = Gtk.Box(spacing=12, margin_start=6, margin_end=6)
-        box.append(Gtk.Image.new_from_gicon(volume.get_symbolic_icon()))
-        box.append(
-            Gtk.Label(ellipsize=Pango.EllipsizeMode.END, label=volume.get_name())
-        )
 
-        row = Gtk.ListBoxRow(child=box)
+        row = HypEditableRow(
+            identifier=f"volume_{volume.get_identifier(Gio.VOLUME_IDENTIFIER_KIND_UUID)}"
+        )
+        row.title = volume.get_name()
+        row.image.set_from_gicon(volume.get_symbolic_icon())
 
         self.rows[volume] = row
         self.__volume_changed(None, volume)

@@ -4,6 +4,9 @@
 		<key name="folders-before-files" type="b">
 			<default>true</default>
 		</key>
+		<key name="hidden-locations" type="as">
+			<default>[]</default>
+		</key>
 	</schema>
 	<schema id="@APP_ID@.State" path="@PREFIX@/State/">
 		<key name="width" type="i">

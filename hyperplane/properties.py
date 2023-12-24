@@ -430,7 +430,7 @@ class HypPropertiesWindow(Adw.Window):
                         exec_row := Adw.SwitchRow(title=_("Executable as Program"))
                     )
 
-                    # IF the active property was changed by the app.
+                    # If the active property was changed by the app.
                     # This is to avoid an infinite loop.
                     my_change = False
 

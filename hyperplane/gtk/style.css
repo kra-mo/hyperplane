@@ -57,6 +57,11 @@ rubberband {
     font-size: small;
 }
 
+.sidebar-check-button > check {
+    color: @sidebar_fg_color;
+    background-color: @sidebar_shade_color;
+}
+
 .circular-box {
     border-radius: 50%;
 }

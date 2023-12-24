@@ -23,25 +23,21 @@ from typing import Any
 from gi.repository import Gdk, Gtk
 
 from hyperplane import shared
+from hyperplane.editable_row import HypEditableRow
 
 
-@Gtk.Template(resource_path=shared.PREFIX + "/gtk/tag-row.ui")
-class HypTagRow(Gtk.Box):
+class HypTagRow(HypEditableRow):
     """A row in the sidebar representing a tag."""
 
     __gtype_name__ = "HypTagRow"
 
-    image: Gtk.Image = Gtk.Template.Child()
-    label: Gtk.Label = Gtk.Template.Child()
-
     tag: str
 
     def __init__(self, tag: str, icon_name: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.tag = tag
-
-        self.label.set_label(tag)
-        self.image.set_from_icon_name(icon_name)
+        super().__init__(identifier=f"tag_{tag}", **kwargs)
+        self.title = self.tag = tag
+        self.icon_name = icon_name
+        self.editable = False
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)

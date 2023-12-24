@@ -18,15 +18,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The main application window."""
+from itertools import chain
 from os import sep
 from pathlib import Path
 from time import time
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional, Self
 from urllib.parse import unquote, urlparse
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
+from hyperplane.editable_row import HypEditableRow
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.path_bar import HypPathBar
@@ -55,11 +57,12 @@ class HypWindow(Adw.ApplicationWindow):
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
     sidebar: Gtk.ListBox = Gtk.Template.Child()
-    sidebar_home: Gtk.Box = Gtk.Template.Child()
-    sidebar_recent: Gtk.Box = Gtk.Template.Child()
+    sidebar_action_bar: Gtk.ActionBar = Gtk.Template.Child()
+    home_row: Gtk.Box = Gtk.Template.Child()
+    recent_row: Gtk.Box = Gtk.Template.Child()
     new_tag_box: Gtk.ListBox = Gtk.Template.Child()
     trash_box: Gtk.ListBox = Gtk.Template.Child()
-    trash_icon: Gtk.Image = Gtk.Template.Child()
+    trash_row: HypEditableRow = Gtk.Template.Child()
     volumes_box: HypVolumesBox = Gtk.Template.Child()
 
     title_stack: Gtk.Stack = Gtk.Template.Child()
@@ -83,7 +86,7 @@ class HypWindow(Adw.ApplicationWindow):
     file_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
     path_bar_connection: int
-    sidebar_items: set
+    sidebar_tag_rows: set
     right_clicked_tag: str
 
     def __init__(self, **kwargs) -> None:
@@ -98,15 +101,21 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Set up animations
 
-        target = Adw.PropertyAnimationTarget.new(self.trash_icon, "pixel-size")
+        # Make the label not move around during animations
+        self.trash_row.box.set_spacing(0)
+        self.trash_row.box.set_margin_start(0)
+        self.trash_row.image.set_size_request(28, -1)
+        self.trash_row.label.set_margin_start(6)
+
+        target = Adw.PropertyAnimationTarget.new(self.trash_row.image, "pixel-size")
         params = Adw.SpringParams.new(0.4, 0.8, 250)
         self.trash_animation = Adw.SpringAnimation.new(
-            self.trash_icon, 10, 16, params, target
+            self.trash_row.image, 10, 16, params, target
         )
         self.trash_animation.props.epsilon = 0.015
 
         self.trash_empty_animation = Adw.SpringAnimation.new(
-            self.trash_icon, 22, 16, params, target
+            self.trash_row.image, 22, 16, params, target
         )
         self.trash_empty_animation.props.epsilon = 0.026
 
@@ -127,9 +136,9 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.create_action("home", self.__go_home, ("<alt>Home",))
         self.create_action(
-            "toggle-path-bar", self.__toggle_path_bar, ("F6", "<primary>l")
+            "toggle-path-entry", self.__toggle_path_entry, ("F6", "<primary>l")
         )
-        self.create_action("hide-path-bar", self.__hide_path_bar)
+        self.create_action("hide-path-entry", self.__hide_path_entry)
         self.create_action("close", self.__close, ("<primary>w",))
         self.create_action("reopen-tab", self.__reopen_tab, ("<primary><shift>t",))
         self.create_action("search", self.__toggle_search_entry, ("<primary>f",))
@@ -176,6 +185,9 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("empty-trash", self.__empty_trash)
         self.create_action("clear-recents", self.__clear_recents)
 
+        self.create_action("edit-sidebar", self.__edit_sidebar)
+        self.create_action("end-edit-sidebar", self.__end_edit_sidebar)
+
         # Connect signals
 
         self.sidebar.connect("row-activated", self.__row_activated)
@@ -186,7 +198,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("create-window", self.__create_window)
         self.tab_overview.connect("create-tab", self.__create_tab)
 
-        self.path_entry.connect("activate", self.__path_bar_activated)
+        self.path_entry.connect("activate", self.__path_entry_activated)
         self.search_entry.connect("search-started", self.__show_search_entry)
         self.search_entry.connect("search-changed", self.__search_changed)
         self.search_entry.connect("stop-search", self.__hide_search_entry)
@@ -194,6 +206,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.search_button.connect("clicked", self.__toggle_search_entry)
 
         shared.postmaster.connect("tags-changed", self.__update_tags)
+        shared.postmaster.connect("sidebar-edited", self.__sidebar_edited)
         shared.postmaster.connect(
             "trash-emptied", lambda *_: self.trash_empty_animation.play()
         )
@@ -226,7 +239,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Build sidebar
 
-        self.sidebar_items = set()
+        self.sidebar_tag_rows = set()
         self.__update_tags()
 
         self.__trash_changed()
@@ -234,13 +247,13 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Set up sidebar actions
 
-        sidebar_items = {
-            self.sidebar_recent: Gio.File.new_for_uri("recent://"),
-            self.sidebar_home: Gio.File.new_for_path(str(shared.home)),
-            self.trash_box.get_first_child(): Gio.File.new_for_uri("trash://"),
+        self.sidebar_rows = {
+            self.recent_row: Gio.File.new_for_uri("recent://"),
+            self.home_row: Gio.File.new_for_path(str(shared.home)),
+            self.trash_row: Gio.File.new_for_uri("trash://"),
         }
 
-        for widget, gfile in sidebar_items.items():
+        for widget, gfile in self.sidebar_rows.items():
             (right_click := Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)).connect(
                 "pressed", self.__sidebar_right_click, gfile
             )
@@ -406,13 +419,15 @@ class HypWindow(Adw.ApplicationWindow):
         properties.present()
 
     def __update_tags(self, *_args: Any) -> None:
-        for item in self.sidebar_items:
-            self.sidebar.remove(item.get_parent())
+        for tag_row in self.sidebar_tag_rows:
+            self.sidebar.remove(tag_row)
 
-        self.sidebar_items = set()
+        self.sidebar_tag_rows = set()
 
-        for tag in reversed(shared.tags):
-            self.sidebar_items.add(row := HypTagRow(tag, "user-bookmarks-symbolic"))
+        for tag_row in reversed(shared.tags):
+            self.sidebar_tag_rows.add(
+                row := HypTagRow(tag_row, "user-bookmarks-symbolic")
+            )
             self.sidebar.insert(row, 2)
 
     def __new_tag(self, *_args: Any) -> None:
@@ -463,15 +478,15 @@ class HypWindow(Adw.ApplicationWindow):
         if self.overlay_split_view.get_collapsed():
             self.overlay_split_view.set_show_sidebar(False)
 
-        if (child := row.get_child()) == self.sidebar_home:
+        if (child := row) == self.home_row:
             self.new_page(Gio.File.new_for_path(str(shared.home)))
             return
 
-        if child == self.sidebar_recent:
+        if child == self.recent_row:
             self.new_page(Gio.File.new_for_uri("recent://"))
             return
 
-        self.new_page(tag=row.get_child().tag)
+        self.new_page(tag=row.tag)
 
     def __tab_changed(self, *_args: Any) -> None:
         if not self.tab_view.get_selected_page():
@@ -615,11 +630,11 @@ class HypWindow(Adw.ApplicationWindow):
             return
         self.tab_view.append(page).set_title(title)
 
-    def __path_bar_activated(self, entry, *_args: Any) -> None:
+    def __path_entry_activated(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
 
         if text.startswith("//"):
-            self.__hide_path_bar()
+            self.__hide_path_entry()
             tags = list(
                 tag
                 for tag in shared.tags
@@ -644,7 +659,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.send_toast(_("Unable to find path"))
             return
 
-        self.__hide_path_bar()
+        self.__hide_path_entry()
 
         self.new_page(gfile)
 
@@ -694,7 +709,7 @@ class HypWindow(Adw.ApplicationWindow):
                 self.path_entry.select_region(-1, -1)
 
                 self.path_bar_connection = self.path_entry.connect(
-                    "notify::has-focus", self.__path_bar_focus
+                    "notify::has-focus", self.__path_entry_focus
                 )
             case self.path_bar_clamp:
                 # HACK: Keep track of the last focused item and scroll to that instead
@@ -727,22 +742,22 @@ class HypWindow(Adw.ApplicationWindow):
     def __show_path_bar(self, *_args: Any) -> None:
         self.__title_stack_set_child(self.path_entry_clamp)
 
-    def __hide_path_bar(self, *_args: Any) -> None:
+    def __hide_path_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.path_entry_clamp:
             return
 
         self.__title_stack_set_child(self.path_bar_clamp)
 
-    def __toggle_path_bar(self, *_args: Any) -> None:
+    def __toggle_path_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.path_entry_clamp:
             self.__show_path_bar()
             return
 
-        self.__hide_path_bar()
+        self.__hide_path_entry()
 
-    def __path_bar_focus(self, entry: Gtk.Entry, *_args: Any) -> None:
+    def __path_entry_focus(self, entry: Gtk.Entry, *_args: Any) -> None:
         if not entry.has_focus():
-            self.__hide_path_bar()
+            self.__hide_path_entry()
 
     def __go_home(self, *_args: Any) -> None:
         self.new_page(Gio.File.new_for_path(str(shared.home)))
@@ -866,7 +881,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.lookup_action("forward").set_enabled(bool(self.get_nav_bin().next_pages))
 
     def __trash_changed(self, *_args: Any) -> None:
-        self.trash_icon.set_from_icon_name(
+        self.trash_row.icon_name = (
             "user-trash-full-symbolic"
             if shared.trash_list.get_n_items()
             else "user-trash-symbolic"
@@ -976,3 +991,30 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __clear_recents(self, *_args: Any) -> None:
         clear_recent_files()
+
+    def __edit_sidebar(self, *_args: Any) -> None:
+        self.sidebar_action_bar.set_revealed(True)
+
+        for row in chain(
+            self.sidebar_rows, self.sidebar_tag_rows, self.volumes_box.rows.values()
+        ):
+            row.start_edit()
+
+    def __end_edit_sidebar(self, *_args: Any) -> None:
+        self.sidebar_action_bar.set_revealed(False)
+
+        for row in chain(
+            self.sidebar_rows, self.sidebar_tag_rows, self.volumes_box.rows.values()
+        ):
+            row.end_edit()
+
+        shared.postmaster.emit("sidebar-edited")
+
+    def __sidebar_edited(self, win: Self) -> None:
+        if win == self:
+            return
+
+        for row in chain(
+            self.sidebar_rows, self.sidebar_tag_rows, self.volumes_box.rows.values()
+        ):
+            row.set_active()
