@@ -764,7 +764,7 @@ class HypItemsPage(Adw.NavigationPage):
 
             for src in file_list:
                 try:
-                    dst = Gio.File.new_for_path(
+                    final_dst = Gio.File.new_for_path(
                         str(get_gfile_path(dst) / get_gfile_display_name(src))
                     )
                 except (FileNotFoundError, TypeError):
@@ -772,7 +772,7 @@ class HypItemsPage(Adw.NavigationPage):
 
                 if shared.cut_widgets:
                     try:
-                        move(src, dst)
+                        move(src, final_dst)
                     except FileExistsError:
                         self.get_root().send_toast(
                             _("A folder with that name already exists.")
@@ -782,19 +782,19 @@ class HypItemsPage(Adw.NavigationPage):
                         )
                         continue
                     else:
-                        paths.append((src, dst))
+                        paths.append((src, final_dst))
 
                 else:
                     try:
-                        copy(src, dst)
+                        copy(src, final_dst)
                     except FileExistsError:
                         try:
-                            dst = get_copy_gfile(dst)
-                            copy(src, dst)
+                            final_dst = get_copy_gfile(final_dst)
+                            copy(src, final_dst)
                         except (FileExistsError, FileNotFoundError):
                             continue
 
-                    paths.append(dst)
+                    paths.append(final_dst)
 
             if shared.cut_widgets:
                 shared.undo_queue[time()] = ("cut", paths)
