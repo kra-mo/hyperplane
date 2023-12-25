@@ -74,7 +74,7 @@ class HypEditableRow(Gtk.ListBoxRow):
         self.check_revealer.set_reveal_child(True)
 
     def end_edit(self) -> None:
-        """Saves the edits and updates self accordingly."""
+        """Saves the edits and updates the row accordingly."""
         self.check_revealer.set_reveal_child(False)
         GLib.timeout_add(
             self.check_revealer.get_transition_duration(),
@@ -136,7 +136,7 @@ class HypEditableRow(Gtk.ListBoxRow):
 
     @GObject.Property(type=str)
     def identifier(self) -> str:
-        """The identifier for self used in dconf."""
+        """The identifier for the row used in dconf."""
         return self._identifier
 
     @identifier.setter

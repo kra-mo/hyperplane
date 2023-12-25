@@ -46,7 +46,7 @@ class HypPostmasterGeneral(GObject.Object):
         All objects that keep an internal list of tags should connect to it
         and update their list accordingly.
 
-        `change` represents whether tags were added, removed or just reordered.
+        `change` indicates whether tags were added, removed or just reordered.
         This is only relevant for item filters.
         """
 

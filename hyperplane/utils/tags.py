@@ -26,10 +26,18 @@ from gi.repository import Gtk
 from hyperplane import shared
 
 
-def __update_tags() -> None:
+def update_tags(change: Gtk.FilterChange = Gtk.FilterChange.DIFFERENT) -> None:
+    """
+    Writes the list of tags from `shared.tags` to disk and notifies widgets.
+
+    `change` indicates whether tags were
+    added (more strict), removed (less strict) or just reordered (different).
+    """
     (shared.home_path / ".hyperplane").write_text(
         "\n".join(shared.tags), encoding="utf-8"
     )
+
+    shared.postmaster.emit("tags-changed", change)
 
 
 def path_represents_tags(path: PathLike | str) -> bool:
@@ -53,9 +61,7 @@ def add_tags(*tags: str) -> None:
     """
     for tag in tags:
         shared.tags.append(tag)
-    __update_tags()
-
-    shared.postmaster.emit("tags-changed", Gtk.FilterChange.MORE_STRICT)
+    update_tags(Gtk.FilterChange.MORE_STRICT)
 
 
 def remove_tags(*tags: str) -> None:
@@ -63,9 +69,7 @@ def remove_tags(*tags: str) -> None:
     for tag in tags:
         if tag in shared.tags:
             shared.tags.remove(tag)
-    __update_tags()
-
-    shared.postmaster.emit("tags-changed", Gtk.FilterChange.LESS_STRICT)
+    update_tags(Gtk.FilterChange.LESS_STRICT)
 
 
 def move_tag(tag: str, up: bool) -> None:
@@ -83,9 +87,7 @@ def move_tag(tag: str, up: bool) -> None:
             shared.tags[index - 1],
             shared.tags[index],
         )
-        __update_tags()
-
-        shared.postmaster.emit("tags-changed", Gtk.FilterChange.DIFFERENT)
+        update_tags()
         return
 
     # Moving down
@@ -100,6 +102,4 @@ def move_tag(tag: str, up: bool) -> None:
         shared.tags[index],
     )
 
-    __update_tags()
-
-    shared.postmaster.emit("tags-changed", Gtk.FilterChange.DIFFERENT)
+    update_tags()

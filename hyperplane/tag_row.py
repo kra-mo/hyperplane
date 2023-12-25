@@ -18,12 +18,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A row in the sidebar representing a tag."""
-from typing import Any
-
 from gi.repository import Gdk, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
+from hyperplane.utils.tags import update_tags
 
 
 class HypTagRow(HypEditableRow):
@@ -48,6 +47,48 @@ class HypTagRow(HypEditableRow):
             "pressed", lambda *_: self.get_root().new_tab(tags=[self.tag])
         )
         self.add_controller(middle_click)
+
+        # Drag and drop
+        drag_source = Gtk.DragSource.new()
+        drag_source.connect("prepare", self.__drag_prepare)
+        drag_source.connect("drag-begin", self.__drag_begin)
+        drag_source.set_actions(Gdk.DragAction.MOVE)
+        self.box.add_controller(drag_source)
+
+        drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+        drop_target.connect("enter", self.__drop_enter)
+        drop_target.connect("leave", self.__drop_leave)
+        drop_target.connect("drop", self.__drop)
+        self.add_controller(drop_target)
+
+    def __drag_prepare(self, _src: Gtk.DragSource, _x: float, _y: float) -> None:
+        return Gdk.ContentProvider.new_for_value(self.tag)
+
+    def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
+        src.set_icon(Gtk.WidgetPaintable.new(self), 0, 0)
+
+    def __drop_enter(self, _target: Gtk.DropTarget, _x: float, _y: float) -> None:
+        self.add_css_class("sidebar-drop-target")
+
+        return Gdk.DragAction.MOVE
+
+    def __drop_leave(self, _target: Gtk.DropTarget) -> None:
+        self.remove_css_class("sidebar-drop-target")
+
+    def __drop(
+        self, _target: Gtk.DropTarget, string: str, _x: float, _y: float
+    ) -> None:
+        if not string in shared.tags:
+            return
+
+        self_index = shared.tags.index(self.tag)
+        str_index = shared.tags.index(string)
+
+        shared.tags.insert(
+            self_index + int(self_index < str_index), shared.tags.pop(str_index)
+        )
+
+        update_tags()
 
     def __right_click(
         self, _gesture: Gtk.GestureClick, _n: int, x: float, y: float

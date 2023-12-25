@@ -446,7 +446,7 @@ class HypItemsPage(Adw.NavigationPage):
         GLib.timeout_add(10, self.__popup_menu)
 
     def __drop_file(
-        self, _drop_target: Gtk.DropTarget, file_list: GObject.Value, _x, _y
+        self, _drop_target: Gtk.DropTarget, file_list: Gdk.FileList, _x, _y
     ) -> None:
         # TODO: This is copy-paste from __paste()
         for src in file_list:
@@ -516,7 +516,7 @@ class HypItemsPage(Adw.NavigationPage):
         output.write_bytes(texture_bytes)
 
     def __drop_text(
-        self, _drop_target: Gtk.DropTarget, text: GObject.Value, _x, _y
+        self, _drop_target: Gtk.DropTarget, text: str, _x, _y
     ) -> None:
         # TODO: Again again, copy-paste from __paste()
         if not text:  # If text is an empty string
@@ -895,7 +895,6 @@ class HypItemsPage(Adw.NavigationPage):
             case 0:
                 return
             case 1:
-                # TODO: Blocking I/O for this? Really?
                 msg = _("Are you sure you want to permanently delete {}?").format(
                     f'"{get_gfile_display_name(gfiles[0])}"'
                 )

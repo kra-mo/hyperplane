@@ -18,9 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The path bar in a HypWindow."""
-from typing import Optional
+from os import sep
+from pathlib import Path
+from typing import Iterable, Optional
+from urllib.parse import unquote, urlparse
 
-from gi.repository import GLib, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.path_segment import HypPathSegment
@@ -57,15 +60,15 @@ class HypPathBar(Gtk.ScrolledWindow):
                 child,
             )
 
-            if not (sep := self.separators[child]):
+            if not (separator := self.separators[child]):
                 return
 
-            sep.set_reveal_child(False)
+            separator.set_reveal_child(False)
             GLib.timeout_add(
-                sep.get_transition_duration(),
+                separator.get_transition_duration(),
                 self.__remove_child,
                 self.segments_box,
-                sep,
+                separator,
             )
             self.separators.pop(child)
 
@@ -97,13 +100,13 @@ class HypPathBar(Gtk.ScrolledWindow):
             sep_label = Gtk.Label.new("+" if self.tags else "/")
             sep_label.add_css_class("heading" if self.tags else "dim-label")
 
-            sep = Gtk.Revealer(
+            separator = Gtk.Revealer(
                 child=sep_label, transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT
             )
-            self.segments_box.append(sep)
-            sep.set_reveal_child(True)
+            self.segments_box.append(separator)
+            separator.set_reveal_child(True)
         else:
-            sep = None
+            separator = None
 
         segment = HypPathSegment(label, icon_name, uri, tag)
         self.segments_box.append(segment)
@@ -111,7 +114,7 @@ class HypPathBar(Gtk.ScrolledWindow):
         segment.set_transition_type(Gtk.RevealerTransitionType.SLIDE_RIGHT)
         segment.set_reveal_child(True)
 
-        self.separators[segment] = sep
+        self.separators[segment] = separator
         self.segments.append(segment)
 
         last_segment = self.segments[-1]
@@ -139,6 +142,109 @@ class HypPathBar(Gtk.ScrolledWindow):
 
         self.segments = []
         self.separators = {}
+
+    def update(self, gfile: Optional[Gio.File], tags: Optional[Iterable[str]]) -> None:
+        """Updates the bar according to a new `gfile` or new `tags`."""
+        if gfile:
+            if self.tags:
+                self.purge()
+
+            self.tags = False
+
+            uri = gfile.get_uri()
+            parse = urlparse(uri)
+            segments = []
+
+            # Do these automatically is shceme != "file"
+            if parse.scheme != "file":
+                scheme_uri = f"{parse.scheme}://"
+                try:
+                    file_info = Gio.File.new_for_uri(scheme_uri).query_info(
+                        ",".join(
+                            (
+                                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
+                                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
+                            )
+                        ),
+                        Gio.FileQueryInfoFlags.NONE,
+                    )
+                except GLib.Error:
+                    pass
+                else:
+                    display_name = file_info.get_display_name()
+                    symbolic = file_info.get_symbolic_icon()
+
+                    segments.insert(
+                        0,
+                        (
+                            display_name,
+                            symbolic.get_names()[0] if symbolic else None,
+                            scheme_uri,
+                            None,
+                        ),
+                    )
+
+            parts = unquote(parse.path).split(sep)
+
+            for index, part in enumerate(parts):
+                if not part:
+                    continue
+
+                segments.append((part, "", f"file://{sep.join(parts[:index+1])}", None))
+
+            if (path := gfile.get_path()) and (
+                (path := Path(path)) == shared.home_path
+                or path.is_relative_to(shared.home_path)
+            ):
+                segments = segments[len(shared.home_path.parts) - 1 :]
+                segments.insert(
+                    0,
+                    (_("Home"), "user-home-symbolic", shared.home_path.as_uri(), None),
+                )
+            elif parse.scheme == "file":
+                # Not relative to home, so add a root segment
+                segments.insert(
+                    0,
+                    (
+                        "",
+                        "drive-harddisk-symbolic",
+                        # Fall back to sep if the GFile doesn't have a path
+                        Path(path.anchor if path else sep).as_uri(),
+                        None,
+                    ),
+                )
+
+        elif tags:
+            if not self.tags:
+                self.purge()
+
+            self.tags = True
+
+            segments = tuple((tag, "", None, tag) for tag in tags)
+
+        if (old_len := len(self.segments)) > (new_len := len(segments)):
+            self.remove(old_len - new_len)
+
+        append = False
+        for index, new_segment in enumerate(segments):
+            try:
+                old_segment = self.segments[index]
+            except IndexError:
+                old_segment = None
+
+            if (
+                not append
+                and old_segment
+                and new_segment[2] == old_segment.uri
+                and new_segment[3] == old_segment.tag
+            ):
+                continue
+
+            if not append:
+                self.remove(len(self.segments) - index)
+                append = True
+
+            self.append(*new_segment)
 
     def __remove_child(self, parent: Gtk.Box, child: Gtk.Widget) -> None:
         # This is so GTK doesn't freak out when the child isn't in the parent anymore

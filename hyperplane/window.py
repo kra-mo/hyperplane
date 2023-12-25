@@ -20,10 +20,8 @@
 """The main application window."""
 from itertools import chain
 from os import sep
-from pathlib import Path
 from time import time
 from typing import Any, Callable, Iterable, Optional, Self
-from urllib.parse import unquote, urlparse
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
@@ -32,6 +30,7 @@ from hyperplane.editable_row import HypEditableRow
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.path_bar import HypPathBar
+from hyperplane.path_entry import HypPathEntry
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.create_message_dialog import create_message_dialog
@@ -51,11 +50,14 @@ class HypWindow(Adw.ApplicationWindow):
 
     __gtype_name__ = "HypWindow"
 
+    # Main view
     tab_overview: Adw.TabOverview = Gtk.Template.Child()
     toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
     overlay_split_view: Adw.OverlaySplitView = Gtk.Template.Child()
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
+
+    # Sidebar
     sidebar: Gtk.ListBox = Gtk.Template.Child()
     sidebar_action_bar: Gtk.ActionBar = Gtk.Template.Child()
     home_row: Gtk.Box = Gtk.Template.Child()
@@ -65,15 +67,17 @@ class HypWindow(Adw.ApplicationWindow):
     trash_row: HypEditableRow = Gtk.Template.Child()
     volumes_box: HypVolumesBox = Gtk.Template.Child()
 
+    # Header bar
     title_stack: Gtk.Stack = Gtk.Template.Child()
     path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
     path_bar: HypPathBar = Gtk.Template.Child()
     path_entry_clamp: Adw.Clamp = Gtk.Template.Child()
-    path_entry: Gtk.Entry = Gtk.Template.Child()
+    path_entry: HypPathEntry = Gtk.Template.Child()
     search_entry_clamp: Adw.Clamp = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
     search_button: Gtk.ToggleButton = Gtk.Template.Child()
 
+    # Rename popover
     rename_popover: Gtk.Popover = Gtk.Template.Child()
     rename_label: Gtk.Label = Gtk.Template.Child()
     rename_entry: Adw.EntryRow = Gtk.Template.Child()
@@ -81,11 +85,12 @@ class HypWindow(Adw.ApplicationWindow):
     rename_revealer_label: Gtk.Label = Gtk.Template.Child()
     rename_button: Gtk.Button = Gtk.Template.Child()
 
+    # Right-click menus
     right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
     tag_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
     file_right_click_menu: Gtk.PopoverMenu = Gtk.Template.Child()
 
-    path_bar_connection: int
+    path_entry_connection: int
     sidebar_tag_rows: set
     right_clicked_tag: str
 
@@ -122,10 +127,12 @@ class HypWindow(Adw.ApplicationWindow):
         # Create actions
 
         navigation_view = HypNavigationBin(initial_gfile=shared.home)
+
         self.tab_view.append(navigation_view).set_title(
-            title := self.get_visible_page().get_title()
+            title := (page := self.get_visible_page()).get_title()
         )
-        self.__update_path_bar()
+
+        self.path_bar.update(page.gfile, page.tags)
         self.set_title(title)
 
         self.create_action(
@@ -196,12 +203,13 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.connect("create-window", self.__create_window)
         self.tab_overview.connect("create-tab", self.__create_tab)
 
-        self.path_entry.connect("activate", self.__path_entry_activated)
         self.search_entry.connect("search-started", self.__show_search_entry)
         self.search_entry.connect("search-changed", self.__search_changed)
         self.search_entry.connect("stop-search", self.__hide_search_entry)
         self.search_entry.connect("activate", self.__search_activate)
         self.search_button.connect("clicked", self.__toggle_search_entry)
+
+        self.path_entry.connect("hide-entry", self.__hide_path_entry)
 
         shared.postmaster.connect("tags-changed", self.__update_tags)
         shared.postmaster.connect("sidebar-edited", self.__sidebar_edited)
@@ -496,110 +504,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.__nav_stack_changed()
 
-    def __update_path_bar(self) -> None:
-        page = self.get_visible_page()
-
-        if page.gfile:
-            if self.path_bar.tags:
-                self.path_bar.purge()
-
-            self.path_bar.tags = False
-
-            uri = page.gfile.get_uri()
-            parse = urlparse(uri)
-            segments = []
-
-            # Do these automatically is shceme != "file"
-            if parse.scheme != "file":
-                scheme_uri = f"{parse.scheme}://"
-                try:
-                    file_info = Gio.File.new_for_uri(scheme_uri).query_info(
-                        ",".join(
-                            (
-                                Gio.FILE_ATTRIBUTE_STANDARD_SYMBOLIC_ICON,
-                                Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-                            )
-                        ),
-                        Gio.FileQueryInfoFlags.NONE,
-                    )
-                except GLib.Error:
-                    pass
-                else:
-                    display_name = file_info.get_display_name()
-                    symbolic = file_info.get_symbolic_icon()
-
-                    segments.insert(
-                        0,
-                        (
-                            display_name,
-                            symbolic.get_names()[0] if symbolic else None,
-                            scheme_uri,
-                            None,
-                        ),
-                    )
-
-            parts = unquote(parse.path).split(sep)
-
-            for index, part in enumerate(parts):
-                if not part:
-                    continue
-
-                segments.append((part, "", f"file://{sep.join(parts[:index+1])}", None))
-
-            if (path := page.gfile.get_path()) and (
-                (path := Path(path)) == shared.home_path
-                or path.is_relative_to(shared.home_path)
-            ):
-                segments = segments[len(shared.home_path.parts) - 1 :]
-                segments.insert(
-                    0,
-                    (_("Home"), "user-home-symbolic", shared.home_path.as_uri(), None),
-                )
-            elif parse.scheme == "file":
-                # Not relative to home, so add a root segment
-                segments.insert(
-                    0,
-                    (
-                        "",
-                        "drive-harddisk-symbolic",
-                        # Fall back to sep if the GFile doesn't have a path
-                        Path(path.anchor if path else sep).as_uri(),
-                        None,
-                    ),
-                )
-
-        elif page.tags:
-            if not self.path_bar.tags:
-                self.path_bar.purge()
-
-            self.path_bar.tags = True
-
-            segments = tuple((tag, "", None, tag) for tag in page.tags)
-
-        if (old_len := len(self.path_bar.segments)) > (new_len := len(segments)):
-            self.path_bar.remove(old_len - new_len)
-
-        append = False
-        for index, new_segment in enumerate(segments):
-            try:
-                old_segment = self.path_bar.segments[index]
-            except IndexError:
-                old_segment = None
-
-            if (
-                not append
-                and old_segment
-                and new_segment[2] == old_segment.uri
-                and new_segment[3] == old_segment.tag
-            ):
-                continue
-
-            if not append:
-                self.path_bar.remove(len(self.path_bar.segments) - index)
-                append = True
-
-            self.path_bar.append(*new_segment)
-
     def __page_attached(self, _view: Adw.TabView, page: Adw.TabPage, _pos: int) -> None:
         page.get_child().view.connect("popped", self.__navigation_changed)
         page.get_child().view.connect("pushed", self.__navigation_changed)
@@ -619,39 +523,6 @@ class HypWindow(Adw.ApplicationWindow):
             return
         self.tab_view.append(page).set_title(title)
 
-    def __path_entry_activated(self, entry, *_args: Any) -> None:
-        text = entry.get_text().strip()
-
-        if text.startswith("//"):
-            self.__hide_path_entry()
-            tags = list(
-                tag
-                for tag in shared.tags
-                if tag in text.lstrip("/").rstrip("/").split("//")
-            )
-
-            if not tags:
-                self.send_toast(_("No such tags"))
-
-            self.new_page(tags=tags)
-            return
-
-        if "://" in text:
-            gfile = Gio.File.new_for_uri(text)
-        else:
-            gfile = Gio.File.new_for_path(text)
-
-        if (
-            not gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
-            == Gio.FileType.DIRECTORY
-        ):
-            self.send_toast(_("Unable to find path"))
-            return
-
-        self.__hide_path_entry()
-
-        self.new_page(gfile)
-
     def __title_stack_set_child(self, new: Gtk.Widget) -> None:
         old = self.title_stack.get_visible_child()
         if old == new:
@@ -666,9 +537,9 @@ class HypWindow(Adw.ApplicationWindow):
                 shared.search = ""
                 self.searched_page.item_filter.changed(Gtk.FilterChange.LESS_STRICT)
             case self.path_entry_clamp:
-                if self.path_bar_connection:
-                    self.path_entry.disconnect(self.path_bar_connection)
-                    self.path_bar_connection = None
+                if self.path_entry_connection:
+                    self.path_entry.disconnect(self.path_entry_connection)
+                    self.path_entry_connection = None
 
         match new:
             case self.search_entry_clamp:
@@ -697,7 +568,7 @@ class HypWindow(Adw.ApplicationWindow):
                 self.set_focus(self.path_entry)
                 self.path_entry.select_region(-1, -1)
 
-                self.path_bar_connection = self.path_entry.connect(
+                self.path_entry_connection = self.path_entry.connect(
                     "notify::has-focus", self.__path_entry_focus
                 )
             case self.path_bar_clamp:
@@ -854,7 +725,9 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
     def __nav_stack_changed(self) -> None:
-        self.__update_path_bar()
+        page = self.get_visible_page()
+
+        self.path_bar.update(page.gfile, page.tags)
 
         self.lookup_action("back").set_enabled(
             bool(

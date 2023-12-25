@@ -1,0 +1,12 @@
+using Gtk 4.0;
+
+template $HypPathEntry : Entry {
+    hexpand: true;
+
+    ShortcutController {
+        Shortcut {
+            trigger: "Escape";
+            action: "action(win.hide-path-entry)";
+        }
+    }
+}

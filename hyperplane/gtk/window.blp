@@ -226,16 +226,7 @@ template $HypWindow : Adw.ApplicationWindow {
               }
 
               Adw.Clamp path_entry_clamp {
-                Entry path_entry {
-                  hexpand: true;
-
-                  ShortcutController {
-                    Shortcut {
-                      trigger: "Escape";
-                      action: "action(win.hide-path-entry)";
-                    }
-                  }
-                }
+                $HypPathEntry path_entry {}
               }
 
               Adw.Clamp search_entry_clamp {

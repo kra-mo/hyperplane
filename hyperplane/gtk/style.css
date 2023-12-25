@@ -66,6 +66,10 @@ and that looks ugly.
     filter: contrast(50%) brightness(130%);
 }
 
+.sidebar-drop-target {
+    border-bottom: @accent_bg_color 3px solid;
+}
+
 .sidebar-check-button > check {
     color: @sidebar_fg_color;
     background-color: @sidebar_shade_color;
