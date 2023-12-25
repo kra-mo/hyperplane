@@ -43,8 +43,6 @@ class HypPropertiesWindow(Adw.Window):
             )
         )
 
-        # TODO: Add trash date and origin path
-
         attributes = {
             # Basic info
             Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
@@ -64,6 +62,9 @@ class HypPropertiesWindow(Adw.Window):
             Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
             Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE,
             Gio.FILE_ATTRIBUTE_SELINUX_CONTEXT,
+            # Trashed files
+            Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE,
+            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
         }
 
         file_info = gfile.query_info(",".join(attributes), Gio.FileQueryInfoFlags.NONE)
@@ -84,6 +85,8 @@ class HypPropertiesWindow(Adw.Window):
         can_write = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE)
         can_execute = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE)
         security_context = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_SELINUX_CONTEXT)
+        deletion_date = file_info.get_deletion_date()
+        orig_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH)
         # fmt: on
 
         page = Adw.PreferencesPage()
@@ -257,11 +260,12 @@ class HypPropertiesWindow(Adw.Window):
 
                 trash_group.add(
                     trash_items_row := Adw.ActionRow(
-                        title=_("Items"), subtitle=str(shared.trash_list.get_n_items())
+                        title=_("Items"),
+                        subtitle=str(shared.trash_list.get_n_items()),
+                        subtitle_selectable=True,
                     )
                 )
                 trash_items_row.add_css_class("property")
-                trash_items_row.set_subtitle_selectable(True)
 
                 trash_group.add(
                     empty_trash_button := Gtk.Button(
@@ -287,10 +291,10 @@ class HypPropertiesWindow(Adw.Window):
                     recent_items_row := Adw.ActionRow(
                         title=_("Items"),
                         subtitle=str(len(shared.recent_manager.get_items())),
+                        subtitle_selectable=True,
                     )
                 )
                 recent_items_row.add_css_class("property")
-                recent_items_row.set_subtitle_selectable(True)
 
                 recent_group.add(
                     clear_recents_button := Gtk.Button(
@@ -329,6 +333,48 @@ class HypPropertiesWindow(Adw.Window):
                 )
                 tags_row.add_css_class("property")
 
+            if deletion_date or orig_path:
+                page.add(deleted_group := Adw.PreferencesGroup())
+
+                if orig_path:
+                    if (
+                        orig_gfile := Gio.File.new_for_path(orig_path)
+                    ).has_parent() and path_represents_tags(
+                        orig_gfile.get_parent().get_path()
+                    ):
+                        deleted_group.add(
+                            orig_tags_row := Adw.ActionRow(
+                                title=_("Original Categories"),
+                                subtitle=", ".join(
+                                    shared.home.get_relative_path(
+                                        orig_gfile.get_parent()
+                                    )
+                                    .strip("/")
+                                    .split("/")
+                                ),
+                                subtitle_selectable=True,
+                            )
+                        )
+                        orig_tags_row.add_css_class("property")
+                    else:
+                        deleted_group.add(
+                            orig_path_row := Adw.ActionRow(
+                                title=_("Original Path"),
+                                subtitle=orig_path,
+                                subtitle_selectable=True,
+                            )
+                        )
+                        orig_path_row.add_css_class("property")
+
+                if deletion_date:
+                    trashed_row = Adw.ActionRow(
+                        title=_("Trashed On"),
+                        subtitle=access.format(r"%c"),
+                        subtitle_selectable=True,
+                    )
+                    trashed_row.add_css_class("property")
+                    deleted_group.add(trashed_row)
+
             if access or modified or created:
                 page.add(history_group := Adw.PreferencesGroup())
 
@@ -338,13 +384,13 @@ class HypPropertiesWindow(Adw.Window):
                     created: _("Created"),
                 }.items():
                     if date:
-                        access_row = Adw.ActionRow(
+                        date_row = Adw.ActionRow(
                             title=title,
                             subtitle=access.format(r"%c"),
                             subtitle_selectable=True,
                         )
-                        access_row.add_css_class("property")
-                        history_group.add(access_row)
+                        date_row.add_css_class("property")
+                        history_group.add(date_row)
 
             can_be_executable = content_type and Gio.content_type_can_be_executable(
                 content_type
