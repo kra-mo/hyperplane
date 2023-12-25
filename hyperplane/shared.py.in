@@ -78,21 +78,17 @@ if (
 else:
     recent_manager = Gtk.RecentManager.get_default()
 
-cut_widgets = set()
+cut_uris = set()
 
 
-def set_cut_widgets(widgets: list[Gtk.Widget]) -> None:
+def set_cut_uris(uris: set[str]) -> None:
     """
-    Sets widgets representing files that are going to be moved after a paste operation.
+    Sets URIs representing files that are going to be moved after a paste operation.
 
-    This is so their "opacity" can be reduced.
+    This is so the widgets' "opacities" can be reduced.
     """
-    global cut_widgets  # pylint: disable=global-statement
+    global cut_uris  # pylint: disable=global-statement
 
-    for widget in cut_widgets:
-        widget.remove_css_class("cut-item")
+    cut_uris = uris
 
-    for widget in widgets:
-        widget.add_css_class("cut-item")
-
-    cut_widgets = widgets
+    postmaster.emit("cut-uris-changed")

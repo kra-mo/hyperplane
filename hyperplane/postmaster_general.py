@@ -69,3 +69,12 @@ class HypPostmasterGeneral(GObject.Object):
     @GObject.Signal(name="sidebar-edited")
     def sidebar_changed(self) -> None:
         """Emitted when the visibility of items in the sidebar has been edited."""
+
+    @GObject.Signal(name="cut-uris-changed")
+    def cut_files_changed(self) -> None:
+        """
+        Emitted whenever a cut operation starts, finishes or is cancelled.
+
+        Widgets represeting files should connect to this, and
+        if the URI of the file they represent is in `shared.cut_uris`, react accordingly.
+        """

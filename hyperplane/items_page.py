@@ -446,7 +446,7 @@ class HypItemsPage(Adw.NavigationPage):
         GLib.timeout_add(10, self.__popup_menu)
 
     def __drop_file(
-        self, _drop_target: Gtk.DropTarget, file_list: Gdk.FileList, _x, _y
+        self, _drop_target: Gtk.DropTarget, file_list: Gdk.FileList, _x: float, _y: float
     ) -> None:
         # TODO: This is copy-paste from __paste()
         for src in file_list:
@@ -480,7 +480,7 @@ class HypItemsPage(Adw.NavigationPage):
                         continue
 
     def __drop_texture(
-        self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x, _y
+        self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x: float, _y: float
     ) -> None:
         # TODO: Again, copy-paste from __paste()
         if self.tags:
@@ -516,7 +516,7 @@ class HypItemsPage(Adw.NavigationPage):
         output.write_bytes(texture_bytes)
 
     def __drop_text(
-        self, _drop_target: Gtk.DropTarget, text: str, _x, _y
+        self, _drop_target: Gtk.DropTarget, text: str, _x: float, _y: float
     ) -> None:
         # TODO: Again again, copy-paste from __paste()
         if not text:  # If text is an empty string
@@ -709,7 +709,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.choose()
 
     def __copy(self, *_args: Any) -> None:
-        shared.set_cut_widgets(set())
+        shared.set_cut_uris(set())
         clipboard = Gdk.Display.get_default().get_clipboard()
         if not (items := self.get_selected_gfiles()):
             return
@@ -720,15 +720,9 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __cut(self, _obj: Any, *args: Any) -> None:
         self.__copy(*args)
-
-        children = self.grid_view.observe_children()
-
-        cut_widgets = set()
-
-        for pos in self.get_selected_positions():
-            cut_widgets.add(children.get_item(pos).get_first_child())
-
-        shared.set_cut_widgets(cut_widgets)
+        shared.set_cut_uris(
+            set(gfile.get_uri() for gfile in self.get_selected_gfiles())
+        )
 
     def __paste(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
@@ -754,7 +748,7 @@ class HypItemsPage(Adw.NavigationPage):
             try:
                 file_list = clipboard.read_value_finish(result)
             except GLib.Error:
-                shared.set_cut_widgets(set())
+                shared.set_cut_uris(set())
                 return
 
             for src in file_list:
@@ -795,7 +789,7 @@ class HypItemsPage(Adw.NavigationPage):
                 shared.undo_queue[time()] = ("cut", paths)
             else:
                 shared.undo_queue[time()] = ("copy", paths)
-            shared.set_cut_widgets(set())
+            shared.set_cut_uris(set())
 
         def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
             nonlocal dst

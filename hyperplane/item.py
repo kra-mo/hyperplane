@@ -93,8 +93,48 @@ class HypItem(Adw.Bin):
         self.dir_thumb_init_classes = self.dir_thumbnail_1.get_css_classes()
         self.dir_icon_init_classes = self.dir_thumbnail_1.get_child().get_css_classes()
 
+        shared.postmaster.connect("cut-uris-changed", self.__cut_uris_changed)
+
+    @GObject.Property(type=str)
+    def display_name(self) -> str:
+        """The name of the item visible to the user."""
+        return self._display_name
+
+    @display_name.setter
+    def set_display_name(self, name: str) -> None:
+        self._display_name = name
+
+    @GObject.Property(type=str)
+    def extension(self) -> str:
+        """The extension of the file or None."""
+        return self._extension
+
+    @extension.setter
+    def set_extension(self, extension: str) -> None:
+        self._extension = extension
+
+    @GObject.Property(type=Gio.Icon)
+    def gicon(self) -> Gio.Icon:
+        """The icon of the item displayed to the user if no thumbnail is available."""
+        return self._gicon
+
+    @gicon.setter
+    def set_gicon(self, gicon: Gio.Icon) -> None:
+        self._gicon = gicon
+
+    @GObject.Property(type=Gdk.Paintable)
+    def thumbnail_paintable(self) -> Gdk.Paintable:
+        """The paintable used for the thumbnail."""
+        return self._thumbnail_paintable
+
+    @thumbnail_paintable.setter
+    def set_thumbnail_paintable(self, thumbnail_paintable: Gdk.Paintable) -> None:
+        self._thumbnail_paintable = thumbnail_paintable
+
     def bind(self) -> None:
         """Build the icon after the object has been bound."""
+        idle_add(self.__cut_uris_changed)
+
         self.file_info = self.item.get_item()
 
         self.gfile = self.file_info.get_attribute_object("standard::file")
@@ -440,38 +480,9 @@ class HypItem(Adw.Bin):
         for gfile in self.page.get_selected_gfiles():
             self.get_root().new_tab(gfile)
 
-    @GObject.Property(type=str)
-    def display_name(self) -> str:
-        """The name of the item visible to the user."""
-        return self._display_name
-
-    @display_name.setter
-    def set_display_name(self, name: str) -> None:
-        self._display_name = name
-
-    @GObject.Property(type=str)
-    def extension(self) -> str:
-        """The extension of the file or None."""
-        return self._extension
-
-    @extension.setter
-    def set_extension(self, extension: str) -> None:
-        self._extension = extension
-
-    @GObject.Property(type=Gio.Icon)
-    def gicon(self) -> Gio.Icon:
-        """The icon of the item displayed to the user if no thumbnail is available."""
-        return self._gicon
-
-    @gicon.setter
-    def set_gicon(self, gicon: Gio.Icon) -> None:
-        self._gicon = gicon
-
-    @GObject.Property(type=Gdk.Paintable)
-    def thumbnail_paintable(self) -> Gdk.Paintable:
-        """The paintable used for the thumbnail."""
-        return self._thumbnail_paintable
-
-    @thumbnail_paintable.setter
-    def set_thumbnail_paintable(self, thumbnail_paintable: Gdk.Paintable) -> None:
-        self._thumbnail_paintable = thumbnail_paintable
+    def __cut_uris_changed(self, *_args: Any) -> None:
+        (
+            self.add_css_class
+            if self.gfile.get_uri() in shared.cut_uris
+            else self.remove_css_class
+        )("cut-item")

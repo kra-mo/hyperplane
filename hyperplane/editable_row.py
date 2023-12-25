@@ -65,6 +65,47 @@ class HypEditableRow(Gtk.ListBoxRow):
         self.editable = True
         self.identifier = identifier
 
+    @GObject.Property(type=str)
+    def identifier(self) -> str:
+        """The identifier for the row used in dconf."""
+        return self._identifier
+
+    @identifier.setter
+    def set_identifier(self, identifier: str) -> None:
+        if not identifier:
+            return
+
+        self._identifier = identifier
+
+        self.set_active()
+
+    @GObject.Property(type=bool, default=True)
+    def editable(self) -> str:
+        """Whether the row is actually editable."""
+        return self._editable
+
+    @editable.setter
+    def set_editable(self, editable: bool) -> None:
+        self._editable = editable
+
+    @GObject.Property(type=str)
+    def icon_name(self) -> str:
+        """The icon name for self."""
+        return self.image.get_icon_name()
+
+    @icon_name.setter
+    def set_icon_name(self, icon_name: str) -> None:
+        self.image.set_from_icon_name(icon_name)
+
+    @GObject.Property(type=str)
+    def title(self) -> str:
+        """The title for self."""
+        self.label.get_label()
+
+    @title.setter
+    def set_title(self, title: str) -> None:
+        self.label.set_label(title)
+
     def start_edit(self) -> None:
         """Reveals the check button for editing."""
         self.set_visible(True)
@@ -133,44 +174,3 @@ class HypEditableRow(Gtk.ListBoxRow):
         # If we are not in edit mode
         if not self.check_revealer.get_reveal_child():
             self.set_visible(self.check.get_active())
-
-    @GObject.Property(type=str)
-    def identifier(self) -> str:
-        """The identifier for the row used in dconf."""
-        return self._identifier
-
-    @identifier.setter
-    def set_identifier(self, identifier: str) -> None:
-        if not identifier:
-            return
-
-        self._identifier = identifier
-
-        self.set_active()
-
-    @GObject.Property(type=bool, default=True)
-    def editable(self) -> str:
-        """Whether the row is actually editable."""
-        return self._editable
-
-    @editable.setter
-    def set_editable(self, editable: bool) -> None:
-        self._editable = editable
-
-    @GObject.Property(type=str)
-    def icon_name(self) -> str:
-        """The icon name for self."""
-        return self.image.get_icon_name()
-
-    @icon_name.setter
-    def set_icon_name(self, icon_name: str) -> None:
-        self.image.set_from_icon_name(icon_name)
-
-    @GObject.Property(type=str)
-    def title(self) -> str:
-        """The title for self."""
-        self.label.get_label()
-
-    @title.setter
-    def set_title(self, title: str) -> None:
-        self.label.set_label(title)

@@ -62,17 +62,6 @@ class HypPathSegment(Gtk.Revealer):
 
         self.button.connect("clicked", self.__navigate)
 
-    def __navigate(self, *_args: Any) -> None:
-        if self.tag:
-            self.get_root().new_page(tags=[self.tag])
-            return
-
-        if self.uri:
-            if self.active:  # pylint: disable=using-constant-test
-                return
-
-            self.get_root().new_page(Gio.File.new_for_uri(self.uri))
-
     @GObject.Property(type=bool, default=True)
     def active(self) -> bool:
         """Whether the segment is the currently active one."""
@@ -107,3 +96,14 @@ class HypPathSegment(Gtk.Revealer):
     @label.setter
     def set_label(self, label: str) -> None:
         (self.button_content if self.icon_name else self.button).set_label(label)
+
+    def __navigate(self, *_args: Any) -> None:
+        if self.tag:
+            self.get_root().new_page(tags=[self.tag])
+            return
+
+        if self.uri:
+            if self.active:  # pylint: disable=using-constant-test
+                return
+
+            self.get_root().new_page(Gio.File.new_for_uri(self.uri))

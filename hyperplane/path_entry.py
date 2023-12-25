@@ -35,6 +35,14 @@ class HypPathEntry(Gtk.Entry):
         super().__init__(**kwargs)
         self.connect("activate", self.__activate)
 
+    @GObject.Signal(name="hide-entry")
+    def hide(self) -> None:
+        """
+        Emitted to indicate that the entry is done and should be hidden.
+
+        Containers of this widget should connect to it and react accordingly.
+        """
+
     def __activate(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
 
@@ -68,11 +76,3 @@ class HypPathEntry(Gtk.Entry):
         self.emit("hide-entry")
 
         self.get_root().new_page(gfile)
-
-    @GObject.Signal(name="hide-entry")
-    def hide(self) -> None:
-        """
-        Emitted to indicate that the entry is done and should be hidden.
-
-        Containers of this widget should connect to it and react accordingly.
-        """
