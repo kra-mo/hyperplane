@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""An item represeting a file to be set up thorugh a `GtkSignalListItemFactory`."""
+"""An item representing a file to be set up through a `GtkSignalListItemFactory`."""
 from pathlib import Path
 from typing import Any, Optional
 
@@ -32,7 +32,7 @@ from hyperplane.utils.thumbnail import generate_thumbnail
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
 class HypItem(Adw.Bin):
-    """An item represeting a file to be set up thorugh a `GtkSignalListItemFactory`."""
+    """An item representing a file to be set up through a `GtkSignalListItemFactory`."""
 
     __gtype_name__ = "HypItem"
 
@@ -263,7 +263,7 @@ class HypItem(Adw.Bin):
                 picture,
             )
 
-        # TODO: Could be oprimized if I called next_files with 3 the first time
+        # TODO: Could be optimized if I called next_files with 3 the first time
         files.next_files_async(1, GLib.PRIORITY_DEFAULT, None, next_files_cb, 0)
 
     def __dir_thumbnail_cb(
@@ -451,7 +451,7 @@ class HypItem(Adw.Bin):
 
     @GObject.Property(type=str)
     def extension(self) -> str:
-        """The extnesion of the file or None."""
+        """The extension of the file or None."""
         return self._extension
 
     @extension.setter

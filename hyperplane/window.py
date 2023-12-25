@@ -973,7 +973,7 @@ class HypWindow(Adw.ApplicationWindow):
                 empty_trash,
                 True,
             ),
-            body=_("All items in the Trash will be permamently deleted."),
+            body=_("All items in the Trash will be permanently deleted."),
         ).choose()
 
     def __clear_recents(self, *_args: Any) -> None:

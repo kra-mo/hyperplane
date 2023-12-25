@@ -17,12 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""A singleton class for sending signals throughtout the app."""
+"""A singleton class for sending signals throughout the app."""
 from gi.repository import Gio, GObject, Gtk
 
 
 class HypPostmasterGeneral(GObject.Object):
-    """A singleton class for sending signals throughtout the app."""
+    """A singleton class for sending signals throughout the app."""
 
     __gtype_name__ = "HypPostmasterGeneral"
 
