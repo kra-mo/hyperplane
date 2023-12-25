@@ -44,7 +44,9 @@ class HypTagRow(HypEditableRow):
         self.add_controller(right_click)
 
         middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
-        middle_click.connect("pressed", self.__middle_click)
+        middle_click.connect(
+            "pressed", lambda *_: self.get_root().new_tab(tags=[self.tag])
+        )
         self.add_controller(middle_click)
 
     def __right_click(
@@ -66,6 +68,3 @@ class HypTagRow(HypEditableRow):
         rectangle.x, rectangle.y, rectangle.width, rectangle.height = x, y, 0, 0
         self.get_root().tag_right_click_menu.set_pointing_to(rectangle)
         self.get_root().tag_right_click_menu.popup()
-
-    def __middle_click(self, *_args: Any) -> None:
-        self.get_root().new_tab(tags=[self.tag])

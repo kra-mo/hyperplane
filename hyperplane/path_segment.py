@@ -20,7 +20,7 @@
 """A segment in a HypPathBar."""
 from typing import Any, Optional
 
-from gi.repository import Adw, Gio, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
 
@@ -50,26 +50,28 @@ class HypPathSegment(Gtk.Revealer):
         self.uri = uri
         self.tag = tag
 
+        middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
+        middle_click.connect(
+            "pressed",
+            lambda *_: self.get_root().new_tab(
+                Gio.File.new_for_uri(self.uri) if self.uri else None,
+                tags=[self.tag] if self.tag else None,
+            ),
+        )
+        self.add_controller(middle_click)
+
         self.button.connect("clicked", self.__navigate)
 
     def __navigate(self, *_args: Any) -> None:
         if self.tag:
-            self.emit("open-tag", self.tag)
+            self.get_root().new_page(tags=[self.tag])
             return
 
         if self.uri:
             if self.active:  # pylint: disable=using-constant-test
                 return
 
-            self.emit("open-gfile", Gio.File.new_for_uri(self.uri))
-
-    @GObject.Signal(name="open-tag")
-    def open_tag(self, _tag: str) -> None:
-        """Signals to the path bar that `tag` should be opened as the only tag."""
-
-    @GObject.Signal(name="open-gfile")
-    def open_gfile(self, _gfile: Gio.File) -> None:
-        """Signals to the path bar that `gfile` should be opened."""
+            self.get_root().new_page(Gio.File.new_for_uri(self.uri))
 
     @GObject.Property(type=bool, default=True)
     def active(self) -> bool:

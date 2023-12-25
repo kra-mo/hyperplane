@@ -121,9 +121,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Create actions
 
-        navigation_view = HypNavigationBin(
-            initial_gfile=Gio.File.new_for_path(str(shared.home))
-        )
+        navigation_view = HypNavigationBin(initial_gfile=shared.home)
         self.tab_view.append(navigation_view).set_title(
             title := self.get_visible_page().get_title()
         )
@@ -221,17 +219,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_entry.connect("entry-activated", self.__do_rename)
         self.rename_button.connect("clicked", self.__do_rename)
 
-        self.path_bar.connect("open-gfile", lambda _box, gfile: self.new_page(gfile))
-        self.path_bar.connect("open-tag", lambda _box, tag: self.new_page(tags=[tag]))
-        self.volumes_box.connect(
-            "open-gfile",
-            lambda _box, gfile, new_tab, new_window: self.new_window(gfile)
-            if new_window
-            else self.new_tab(gfile)
-            if new_tab
-            else self.new_page(gfile),
-        )
-
         # Set up search
 
         self.searched_page = self.get_visible_page()
@@ -249,7 +236,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.sidebar_rows = {
             self.recent_row: Gio.File.new_for_uri("recent://"),
-            self.home_row: Gio.File.new_for_path(str(shared.home)),
+            self.home_row: shared.home,
             self.trash_row: Gio.File.new_for_uri("trash://"),
         }
 
@@ -479,7 +466,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.overlay_split_view.set_show_sidebar(False)
 
         if (child := row) == self.home_row:
-            self.new_page(Gio.File.new_for_path(str(shared.home)))
+            self.new_page(shared.home)
             return
 
         if child == self.recent_row:
@@ -560,11 +547,13 @@ class HypWindow(Adw.ApplicationWindow):
                 segments.append((part, "", f"file://{sep.join(parts[:index+1])}", None))
 
             if (path := page.gfile.get_path()) and (
-                (path := Path(path)) == shared.home or path.is_relative_to(shared.home)
+                (path := Path(path)) == shared.home_path
+                or path.is_relative_to(shared.home_path)
             ):
-                segments = segments[len(shared.home.parts) - 1 :]
+                segments = segments[len(shared.home_path.parts) - 1 :]
                 segments.insert(
-                    0, (_("Home"), "user-home-symbolic", shared.home.as_uri(), None)
+                    0,
+                    (_("Home"), "user-home-symbolic", shared.home_path.as_uri(), None),
                 )
             elif parse.scheme == "file":
                 # Not relative to home, so add a root segment
@@ -760,7 +749,7 @@ class HypWindow(Adw.ApplicationWindow):
             self.__hide_path_entry()
 
     def __go_home(self, *_args: Any) -> None:
-        self.new_page(Gio.File.new_for_path(str(shared.home)))
+        self.new_page(shared.home)
 
     def __close(self, *_args: Any) -> None:
         if self.tab_view.get_n_pages() > 1:
@@ -793,9 +782,7 @@ class HypWindow(Adw.ApplicationWindow):
         return win.tab_view
 
     def __create_tab(self, *_args: Any) -> Adw.TabPage:
-        page = self.tab_view.append(
-            HypNavigationBin(initial_gfile=Gio.File.new_for_path(str(shared.home)))
-        )
+        page = self.tab_view.append(HypNavigationBin(initial_gfile=shared.home))
 
         page.set_title(_("Home"))
         return page

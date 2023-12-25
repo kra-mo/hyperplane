@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Miscallenious variables for determining file properties."""
+"""Miscellaneous variables for determining file properties."""
 
 DOT_IS_NOT_EXTENSION = {
     "application/x-sharedlib",

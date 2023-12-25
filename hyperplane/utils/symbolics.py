@@ -1,4 +1,4 @@
-# get_color_for_content_type.py
+# symbolics.py
 #
 # Copyright 2023 kramo
 #
@@ -17,16 +17,29 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Returns the color associated with a MIME type."""
+"""Miscellaneous utilities for symbolic icons."""
 from typing import Optional
 
-from gi.repository import Gio
+from gi.repository import Gdk, Gio, Gtk
+
+icon_names = Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).get_icon_names()
+fallback_icon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+
+
+def get_symbolic(themed_icon: Optional[Gio.ThemedIcon]) -> Gio.Icon:
+    """Gets the symbolic icon for a file with a fallback to `text-x-generic-symbolic`."""
+    if not themed_icon:
+        return fallback_icon
+
+    for icon_name in themed_icon.get_names():
+        if icon_name.endswith("-symbolic") and icon_name in icon_names:
+            return themed_icon
+
+    return fallback_icon
 
 
 # pylint: disable=too-many-return-statements
-def get_color_for_content_type(
-    content_type: str, gicon: Optional[Gio.Icon] = None
-) -> str:
+def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) -> str:
     """Returns the color associated with a MIME type."""
 
     if not content_type:

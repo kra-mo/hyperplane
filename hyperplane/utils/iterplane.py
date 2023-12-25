@@ -31,7 +31,7 @@ def iterplane(filter_tags: Iterable[str]) -> Generator:
 
     tags = {tag: tag in filter_tags for tag in shared.tags}
 
-    yield from __walk(shared.home, tags)
+    yield from __walk(shared.home_path, tags)
 
 
 def __walk(node: Path, tags: dict[str, bool]) -> Generator:

@@ -25,7 +25,7 @@ from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from hyperplane import shared
 from hyperplane.utils.files import clear_recent_files, empty_trash, get_gfile_path
-from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
+from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 from hyperplane.utils.tags import path_represents_tags
 
 
@@ -117,20 +117,13 @@ class HypPropertiesWindow(Adw.Window):
                     )
                 )
 
-            elif gicon:
-                for icon_name in gicon.get_names():
-                    if (
-                        icon_name.endswith("-symbolic")
-                        and icon_name in shared.icon_names
-                    ):
-                        break
-                else:
-                    gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+            else:
+                gicon = get_symbolic(gicon)
 
                 icon_group.add(image := Gtk.Image(gicon=gicon, halign=Gtk.Align.CENTER))
                 image.set_icon_size(Gtk.IconSize.LARGE)
 
-                color = get_color_for_content_type(content_type, gicon)
+                color = get_color_for_symbolic(content_type, gicon)
 
                 image.add_css_class(color + "-icon")
                 image.add_css_class(color + "-background")
@@ -329,10 +322,7 @@ class HypPropertiesWindow(Adw.Window):
                     tags_row := Adw.ActionRow(
                         title=_("Categories"),
                         subtitle=", ".join(
-                            Gio.File.new_for_path(str(shared.home))
-                            .get_relative_path(parent)
-                            .strip("/")
-                            .split("/")
+                            shared.home.get_relative_path(parent).strip("/").split("/")
                         ),
                         subtitle_selectable=True,
                     )

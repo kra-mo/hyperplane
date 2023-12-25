@@ -37,7 +37,6 @@ from hyperplane.utils.files import (
     move,
     restore,
     rm,
-    trash_rm,
     validate_name,
 )
 from hyperplane.utils.iterplane import iterplane
@@ -80,7 +79,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.tags = tags
 
         if self.gfile:
-            if self.gfile.get_path() == str(shared.home):
+            if self.gfile.get_path() == str(shared.home_path):
                 self.set_title(_("Home"))
             else:
                 self.set_title(get_gfile_display_name(self.gfile))
@@ -190,8 +189,6 @@ class HypItemsPage(Adw.NavigationPage):
             self.dir_list.set_monitored(True)
             return
 
-        # TODO: This works, but it would be best if instead of manually refreshing,
-        # tags would be monitored for changes too. I don't know how I would do that though.
         if isinstance(self.dir_list, Gtk.FlattenListModel):
             self.dir_list = self.__get_list(tags=self.tags)
             self.filter_list.set_model(self.dir_list)
@@ -360,7 +357,6 @@ class HypItemsPage(Adw.NavigationPage):
         item.get_child().unbind()
 
     def __tags_changed(self, _obj: GObject.Object, change: Gtk.FilterChange) -> None:
-        # TODO: I could do less/more strict with adding/removing tags separately
         self.item_filter.changed(change)
 
     def __toggle_hidden(self, *_args: Any) -> None:
@@ -378,8 +374,7 @@ class HypItemsPage(Adw.NavigationPage):
         gfile = file_info.get_attribute_object("standard::file")
 
         if file_info.get_content_type() == "inode/directory":
-            # TODO: get_parent is ugly, but probably less ugly than the alternative
-            self.get_parent().get_parent().new_page(gfile)
+            self.get_root().new_page(gfile)
             return
 
         if not (
@@ -460,7 +455,7 @@ class HypItemsPage(Adw.NavigationPage):
                 dst = Gio.File.new_for_path(
                     str(
                         Path(
-                            shared.home,
+                            shared.home_path,
                             *tags,
                         )
                     )
@@ -493,7 +488,7 @@ class HypItemsPage(Adw.NavigationPage):
             dst = Gio.File.new_for_path(
                 str(
                     Path(
-                        shared.home,
+                        shared.home_path,
                         *tags,
                     )
                 )
@@ -532,7 +527,7 @@ class HypItemsPage(Adw.NavigationPage):
             dst = Gio.File.new_for_path(
                 str(
                     Path(
-                        shared.home,
+                        shared.home_path,
                         *tags,
                     )
                 )
@@ -633,7 +628,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __new_folder(self, *_args: Any) -> None:
         if self.tags:
             tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            gfile = Gio.File.new_for_path(str(Path(shared.home, *tags)))
+            gfile = Gio.File.new_for_path(str(Path(shared.home_path, *tags)))
         else:
             gfile = self.gfile
 
@@ -744,7 +739,7 @@ class HypItemsPage(Adw.NavigationPage):
             dst = Gio.File.new_for_path(
                 str(
                     Path(
-                        shared.home,
+                        shared.home_path,
                         *tags,
                     )
                 )
@@ -894,7 +889,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         def delete():
             for gfile in gfiles:
-                trash_rm(gfile)
+                rm(gfile)
 
         match len(gfiles):
             case 0:

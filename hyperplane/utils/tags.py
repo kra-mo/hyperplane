@@ -27,20 +27,22 @@ from hyperplane import shared
 
 
 def __update_tags() -> None:
-    (shared.home / ".hyperplane").write_text("\n".join(shared.tags), encoding="utf-8")
+    (shared.home_path / ".hyperplane").write_text(
+        "\n".join(shared.tags), encoding="utf-8"
+    )
 
 
 def path_represents_tags(path: PathLike | str) -> bool:
     """Checks whether a given `path` represents tags or not."""
     path = Path(path)
 
-    if path == shared.home:
+    if path == shared.home_path:
         return False
 
-    if not path.is_relative_to(shared.home):
+    if not path.is_relative_to(shared.home_path):
         return False
 
-    return all(part in shared.tags for part in path.relative_to(shared.home).parts)
+    return all(part in shared.tags for part in path.relative_to(shared.home_path).parts)
 
 
 def add_tags(*tags: str) -> None:

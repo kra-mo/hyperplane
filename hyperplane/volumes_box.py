@@ -113,10 +113,6 @@ class HypVolumesBox(Adw.Bin):
         self.list_box.remove(row)
         self.actions.pop(row)
 
-    @GObject.Signal(name="open-gfile")
-    def open_gfile(self, _gfile: Gio.File, _new_tab: bool, _new_window: bool) -> None:
-        """Signals to the main window that it should open `gfile`."""
-
     def __right_click(
         self,
         gesture: Gtk.GestureClick,
@@ -155,7 +151,7 @@ class HypVolumesBox(Adw.Bin):
             self.actions[self.rows[volume]]()
             return
 
-        self.emit("open-gfile", mount.get_root(), True, False)
+        self.get_root().new_tab(mount.get_root())
 
     def __volume_changed(
         self,
@@ -167,8 +163,8 @@ class HypVolumesBox(Adw.Bin):
             return
 
         if mount := volume.get_mount():
-            self.actions[row] = lambda *_, mount=mount: self.emit(
-                "open-gfile", mount.get_root(), False, False
+            self.actions[row] = lambda *_, mount=mount: self.get_root().new_page(
+                mount.get_root()
             )
         else:
             self.actions[row] = lambda *_, volume=volume, row=row: volume.mount(
@@ -181,4 +177,4 @@ class HypVolumesBox(Adw.Bin):
         # TODO: I have no idea how PyGObject handles errors here
         # https://docs.gtk.org/gio/method.Volume.mount_finish.html
 
-        self.emit("open-gfile", volume.get_mount().get_root(), False, False)
+        self.get_root().new_page(volume.get_mount().get_root())

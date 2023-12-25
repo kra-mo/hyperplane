@@ -22,7 +22,7 @@ import logging
 import shutil
 from os import PathLike, getenv
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 from urllib.parse import quote
 
 from gi.repository import Gio, GLib, Gtk
@@ -34,7 +34,7 @@ from hyperplane.utils.tags import path_represents_tags
 # TODO: Handle errors better
 
 
-def copy(src: Gio.File, dst: Gio.File) -> None:
+def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> None:
     """
     Asynchronously copies a file or directory from `src` to `dst`.
 
@@ -42,42 +42,47 @@ def copy(src: Gio.File, dst: Gio.File) -> None:
 
     If a file or directory with the same name already exists at `dst`,
     FileExistsError will be raised.
+
+    Calls `callback` if the operation was successful.
     """
 
     if dst.query_exists():
         raise FileExistsError
 
+    def copy_cb(*_args: Any) -> None:
+        if tag_location_created:
+            __emit_tags_changed(dst)
+
+        if callback:
+            callback()
+
+    tag_location_created = (
+        (path := dst.get_path())
+        and path_represents_tags((path_parent := Path(path).parent))
+        and (not path_parent.is_dir())
+    )
+
+    if src.query_file_type(Gio.FileQueryInfoFlags.NONE) == Gio.FileType.REGULAR:
+        src.copy_async(
+            dst, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, callback=copy_cb
+        )
+        return
+
     try:
-        src = Path(get_gfile_path(src))
-        dst = Path(get_gfile_path(dst))
+        src_path = Path(get_gfile_path(src))
+        dst_path = Path(get_gfile_path(dst))
     except FileNotFoundError:
         return
 
-    tag_location_created = path_represents_tags(dst.parent) and (
-        not dst.parent.is_dir()
-    )
-
-    if not (parent := Path(dst).parent).is_dir():
+    if not (parent := Path(dst_path).parent).is_dir():
         parent.mkdir(parents=True)
 
-    if src.is_dir():
+    if src_path.is_dir():
         # Gio doesn't support recursive copies
-        task = Gio.Task.new(
-            None,
-            None,
-            lambda *_: __emit_tags_changed(dst) if tag_location_created else None,
-            None,
-            None,
+        Gio.Task.new(callback=copy_cb).run_in_thread(
+            lambda *_: shutil.copytree(src_path, dst_path)
         )
-        task.run_in_thread(lambda *_: shutil.copytree(src, dst))
         return
-
-    Gio.File.new_for_path(str(src)).copy_async(
-        Gio.File.new_for_path(str(dst)),
-        Gio.FileCopyFlags.NONE,
-        GLib.PRIORITY_DEFAULT,
-        callback=lambda *_: __emit_tags_changed(dst) if tag_location_created else None,
-    )
 
 
 def move(src: Gio.File, dst: Gio.File) -> None:
@@ -93,26 +98,45 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     if dst.query_exists():
         raise FileExistsError
 
-    try:
-        src = Path(get_gfile_path(src))
-        dst = Path(get_gfile_path(dst))
-    except FileNotFoundError:
+    if not (parent := dst.get_parent()):
         return
 
-    tags_changed = path_represents_tags(dst.parent) and (not dst.parent.is_dir())
+    if not parent.query_exists():
+        try:
+            parent.make_directory_with_parents()
+        except GLib.Error:
+            return
 
-    if not (parent := dst.parent).is_dir():
-        parent.mkdir(parents=True)
+    def emit_tags_changed() -> None:
+        if (
+            (path := dst.get_path())
+            and path_represents_tags((path_parent := Path(path).parent))
+            and (not path_parent.is_dir())
+        ):
+            __emit_tags_changed(dst)
 
-    # Gio doesn't seem to work with trashed items
-    task = Gio.Task.new(
-        None,
-        None,
-        lambda *_: __emit_tags_changed(dst) if tags_changed else None,
-        None,
-        None,
+    def delete_src() -> None:
+        try:
+            rm(src)
+        except FileNotFoundError:
+            return
+
+    def move_finish(_gfile: Gio.File, result: Gio.Task = None):
+        if result.had_error():
+            # Try copy and delete myself as Gio doesn't support recursive copes
+            try:
+                copy(src, dst, delete_src)
+            except FileExistsError:
+                return
+        else:
+            emit_tags_changed()
+
+    src.move_async(
+        dst,
+        Gio.FileCopyFlags.NONE,
+        GLib.PRIORITY_DEFAULT,
+        callback=move_finish,
     )
-    task.run_in_thread(lambda *_: shutil.move(src, dst))
 
 
 def restore(
@@ -128,17 +152,12 @@ def restore(
     if path:
         path = Path(path)
 
-    def do_restore(trash_path, orig_path):
+    def do_restore(trash_file, orig_file):
         # Move the item in Trash/files back to the original location
         try:
-            move(
-                Gio.File.new_for_path(str(trash_path)),
-                Gio.File.new_for_path(str(orig_path)),
-            )
+            move(trash_file, orig_file)
         except FileExistsError:
             return
-
-        __remove_trashinfo(trash_path, orig_path)
 
     def query_cb(gfile, result):
         try:
@@ -146,37 +165,26 @@ def restore(
         except GLib.Error:
             return
 
-        orig_path = file_info.get_attribute_byte_string(
-            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+        do_restore(
+            gfile,
+            Gio.File.new_for_path(
+                file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH)
+            ),
         )
-
-        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
-
-        try:
-            trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
-        except FileNotFoundError:
-            return
-
-        do_restore(trash_path, orig_path)
 
     if path and t:
         try:
             # Look up the trashed file's path and original path
-            trash_path, orig_path = __trash_lookup(path, t)
+            trash_file, orig_file = __trash_lookup(path, t)
         except FileNotFoundError:
             return
 
-        do_restore(trash_path, orig_path)
+        do_restore(trash_file, orig_file)
         return
 
     if gfile:
         gfile.query_info_async(
-            ",".join(
-                (
-                    Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
-                    Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
-                )
-            ),
+            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
             Gio.FileQueryInfoFlags.NONE,
             GLib.PRIORITY_DEFAULT,
             None,
@@ -205,47 +213,6 @@ def clear_recent_files() -> None:
     shared.recent_manager.purge_items()
 
 
-def trash_rm(gfile: Gio.File) -> None:
-    """
-    Tries to asynchronously remove a file or directory that is in the trash.
-
-    Directories are removed recursively.
-    """
-
-    def query_cb(gfile, result):
-        try:
-            file_info = gfile.query_info_finish(result)
-        except GLib.Error:
-            return
-
-        orig_path = file_info.get_attribute_byte_string(
-            Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
-        )
-
-        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
-
-        try:
-            trash_gfile = Gio.File.new_for_uri(uri)
-        except FileNotFoundError:
-            return
-
-        rm(trash_gfile)
-        __remove_trashinfo(get_gfile_path(trash_gfile), orig_path)
-
-    gfile.query_info_async(
-        ",".join(
-            (
-                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
-            )
-        ),
-        Gio.FileQueryInfoFlags.NONE,
-        GLib.PRIORITY_DEFAULT,
-        None,
-        query_cb,
-    )
-
-
 def rm(gfile: Gio.File) -> None:
     """
     Tries to asynchronously remove `gfile`.
@@ -255,12 +222,30 @@ def rm(gfile: Gio.File) -> None:
     try:
         path = Path(get_gfile_path(gfile))
     except FileNotFoundError:
-        return
+        path = None
 
-    if path.is_dir():
-        GLib.Thread.new(None, shutil.rmtree, path, True)
+    if path and path.is_dir():
+        # Remove the .trashinfo file if the file is in the trash
+        # This needs to be done synchronously because Gio won't find the file
+        # if it is already removed by rmtree
+        if gfile.get_uri_scheme() == "trash":
+            file_info = gfile.query_info(
+                Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH, Gio.FileQueryInfoFlags.NONE
+            )
+
+            if not (
+                orig_path := file_info.get_attribute_byte_string(
+                    Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
+                )
+            ):
+                return
+
+            __remove_trashinfo(gfile, Gio.File.new_for_path(orig_path))
+
+        # Gio doesn't allow for recursive deletion
+        Gio.Task.new().run_in_thread(lambda *_: shutil.rmtree(path, True))
     else:
-        Gio.File.new_for_path(str(path)).delete_async(GLib.PRIORITY_DEFAULT)
+        gfile.delete_async(GLib.PRIORITY_DEFAULT)
 
 
 def get_copy_gfile(gfile: Gio.File) -> Gio.File:
@@ -301,7 +286,6 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
 
 def get_gfile_display_name(gfile: Gio.File) -> str:
     """Gets the display name for `gfile`."""
-    # HACK: Don't call this. Store this info somewhere instead.
     return gfile.query_info(
         Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
     ).get_display_name()
@@ -393,13 +377,13 @@ def validate_name(
     return True, None
 
 
-def __trash_lookup(path: PathLike | str, t: int) -> (PathLike, PathLike):
+def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
     trash = Gio.File.new_for_uri("trash://")
 
     files = trash.enumerate_children(
         ",".join(
             (
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                Gio.FILE_ATTRIBUTE_STANDARD_NAME,
                 Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE,
                 Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH,
             )
@@ -414,7 +398,6 @@ def __trash_lookup(path: PathLike | str, t: int) -> (PathLike, PathLike):
             Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH
         )
         del_date = file_info.get_deletion_date()
-        uri = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
 
         if not orig_path == path:
             continue
@@ -422,15 +405,17 @@ def __trash_lookup(path: PathLike | str, t: int) -> (PathLike, PathLike):
         if not GLib.DateTime.new_from_unix_utc(t).equal(del_date):
             continue
 
-        trash_path = get_gfile_path(Gio.File.new_for_uri(uri))
-        return trash_path, orig_path
+        return trash.get_child(file_info.get_name()), Gio.File.new_for_path(orig_path)
 
     raise FileNotFoundError
 
 
-def __remove_trashinfo(trash_path: PathLike | str, orig_path: PathLike | str) -> None:
-    trash_path = Path(trash_path)
-    orig_path = Path(orig_path)
+def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
+    try:
+        trash_path = get_gfile_path(trash_file)
+        orig_path = get_gfile_path(orig_file)
+    except FileNotFoundError:
+        return
 
     trashinfo = (
         Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
@@ -453,11 +438,14 @@ def __remove_trashinfo(trash_path: PathLike | str, orig_path: PathLike | str) ->
             pass
 
 
-def __emit_tags_changed(path: Path) -> None:
-    tags = path.relative_to(shared.home).parent.parts
+def __emit_tags_changed(gfile: Gio.File) -> None:
+    if not (relative_path := (shared.home.get_relative_path(gfile))):
+        return
+
+    tags = Path(relative_path).parent.parts
 
     shared.postmaster.emit(
         "tag-location-created",
         Gtk.StringList.new(tags),
-        Gio.File.new_for_path(str(Path(shared.home, *tags))),
+        Gio.File.new_for_path(str(Path(shared.home_path, *tags))),
     )

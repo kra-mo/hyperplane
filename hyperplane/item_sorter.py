@@ -99,12 +99,7 @@ class HypItemSorter(Gtk.Sorter):
 
     def __ordering_from_cmpfunc(self, cmpfunc_result: int) -> Gtk.Ordering:
         """Converts the result of a `GCompareFunc` like `strcmp()` to a `GtkOrdering` value."""
-        # HACK: Gtk.Ordering.from_cmpfunc seems to not work
-        # gi.repository.GLib.GError: g-invoke-error-quark:
-        # Could not locate gtk_ordering_from_cmpfunc:
-        # 'gtk_ordering_from_cmpfunc': /usr/lib/x86_64-linux-gnu/libgtk-4.so.1:
-        # undefined symbol: gtk_ordering_from_cmpfunc (1)
-
+        # HACK: https://gitlab.gnome.org/GNOME/gtk/-/issues/6298
         if cmpfunc_result > 0:
             return Gtk.Ordering.LARGER
         if cmpfunc_result < 0:

@@ -26,7 +26,7 @@ from gi.repository.GLib import idle_add
 
 from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
-from hyperplane.utils.get_color_for_content_type import get_color_for_content_type
+from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 from hyperplane.utils.thumbnail import generate_thumbnail
 
 
@@ -98,17 +98,10 @@ class HypItem(Adw.Bin):
         self.file_info = self.item.get_item()
 
         self.gfile = self.file_info.get_attribute_object("standard::file")
-        gicon = self.file_info.get_symbolic_icon()
 
-        for icon_name in gicon.get_names():
-            if icon_name.endswith("-symbolic") and icon_name in shared.icon_names:
-                break
-        else:
-            gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
-
-        self.gicon = gicon
+        self.gicon = get_symbolic(self.file_info.get_symbolic_icon())
         self.content_type = self.file_info.get_content_type()
-        self.color = get_color_for_content_type(self.content_type, self.gicon)
+        self.color = get_color_for_symbolic(self.content_type, self.gicon)
         self.edit_name = self.file_info.get_edit_name()
 
         self.is_dir = self.content_type == "inode/directory"
@@ -222,17 +215,9 @@ class HypItem(Adw.Bin):
             index += 1
             files.next_files_async(1, GLib.PRIORITY_DEFAULT, None, next_files_cb, index)
 
-            if gicon := file_info.get_symbolic_icon():
-                for icon_name in gicon.get_names():
-                    if (
-                        icon_name.endswith("-symbolic")
-                        and icon_name in shared.icon_names
-                    ):
-                        break
-                else:
-                    gicon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+            gicon = get_symbolic(file_info.get_symbolic_icon())
 
-                idle_add(thumbnail.get_child().set_from_gicon, gicon)
+            idle_add(thumbnail.get_child().set_from_gicon, gicon)
 
             if content_type == "inode/directory":
                 idle_add(
@@ -252,7 +237,7 @@ class HypItem(Adw.Bin):
                 self.dir_thumb_init_classes + ["white-background"],
             )
 
-            color = get_color_for_content_type(content_type, gicon)
+            color = get_color_for_symbolic(content_type, gicon)
 
             idle_add(
                 thumbnail.get_child().set_css_classes,
@@ -267,8 +252,6 @@ class HypItem(Adw.Bin):
                 )
                 return
 
-            # HACK: I don't know how else to get a GFile for file_info.
-            # Maybe this is the proper way?
             child_gfile = gfile.get_child(file_info.get_name())
 
             GLib.Thread.new(
@@ -449,7 +432,6 @@ class HypItem(Adw.Bin):
                 menu_items.add("trash-restore")
                 menu_items.add("trash-delete")
 
-        # TODO: Ugly
         self.page.menu_items = menu_items
 
     def __middle_click(self, *_args: Any) -> None:

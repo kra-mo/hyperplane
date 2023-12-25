@@ -33,16 +33,14 @@ PROFILE = "@PROFILE@"
 schema = Gio.Settings.new(APP_ID)
 state_schema = Gio.Settings.new(APP_ID + ".State")
 
-data_dir = Path(GLib.get_user_data_dir())
-config_dir = Path(GLib.get_user_config_dir())
-cache_dir = Path(GLib.get_user_cache_dir())
+home_path = Path(GLib.get_user_data_dir(), "hyperplane", "home")
+home = Gio.File.new_for_path(str(home_path))
 
-home = data_dir / "hyperplane" / "home"
 show_hidden = state_schema.get_boolean("show-hidden")
 
 tags = []
 
-if (path := home / ".hyperplane").is_file():
+if (path := home_path / ".hyperplane").is_file():
     tags = list(
         tag for tag in path.read_text(encoding="utf-8").strip().split("\n") if tag
     )
@@ -79,8 +77,6 @@ if (
     recent_manager = Gtk.RecentManager(filename=str(path))
 else:
     recent_manager = Gtk.RecentManager.get_default()
-
-icon_names = Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).get_icon_names()
 
 cut_widgets = set()
 

@@ -20,7 +20,7 @@
 """The path bar in a HypWindow."""
 from typing import Optional
 
-from gi.repository import Gio, GLib, GObject, Gtk
+from gi.repository import GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.path_segment import HypPathSegment
@@ -42,7 +42,6 @@ class HypPathBar(Gtk.ScrolledWindow):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.segments = []
-        self.connections = {}
         self.separators = {}
         self.tags = False
 
@@ -69,9 +68,6 @@ class HypPathBar(Gtk.ScrolledWindow):
                 sep,
             )
             self.separators.pop(child)
-
-            for connection in self.connections.pop(child):
-                child.disconnect(connection)
 
         if self.tags:
             return
@@ -117,16 +113,6 @@ class HypPathBar(Gtk.ScrolledWindow):
 
         self.separators[segment] = sep
         self.segments.append(segment)
-        self.connections[segment] = {
-            segment.connect(
-                "open-gfile",
-                lambda *args: self.emit("open-gfile", *args[1:]),
-            ),
-            segment.connect(
-                "open-tag",
-                lambda *args: self.emit("open-tag", *args[1:]),
-            ),
-        }
 
         last_segment = self.segments[-1]
 
@@ -151,23 +137,10 @@ class HypPathBar(Gtk.ScrolledWindow):
         while child := self.segments_box.get_first_child():
             self.segments_box.remove(child)
 
-        for segment, connections in self.connections.items():
-            for connection in connections:
-                segment.disconnect(connection)
-
         self.segments = []
         self.separators = {}
-        self.connections = {}
 
     def __remove_child(self, parent: Gtk.Box, child: Gtk.Widget) -> None:
         # This is so GTK doesn't freak out when the child isn't in the parent anymore
         if child.get_parent == parent:
             parent.remove(child)
-
-    @GObject.Signal(name="open-tag")
-    def open_tag(self, _tag: str) -> None:
-        """Signals to the main window that it should open `tag` as the only tag."""
-
-    @GObject.Signal(name="open-gfile")
-    def open_gfile(self, _gfile: Gio.File) -> None:
-        """Signals to the main window that it should open `gfile`."""
