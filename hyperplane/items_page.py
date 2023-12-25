@@ -667,7 +667,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.set_response_enabled("create", False)
         can_create = False
 
-        def set_inative(*_args: Any) -> None:
+        def set_inactive(*_args: Any) -> None:
             nonlocal can_create
 
             if not (text := entry.get_text().strip()):
@@ -704,7 +704,7 @@ class HypItemsPage(Adw.NavigationPage):
             )
 
         entry.connect("entry-activated", create_folder)
-        entry.connect("changed", set_inative)
+        entry.connect("changed", set_inactive)
 
         dialog.choose()
 
