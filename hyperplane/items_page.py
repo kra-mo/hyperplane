@@ -482,7 +482,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __drop_texture(
         self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x, _y
     ) -> None:
-        # TODO: Agian, copy-paste from __paste()
+        # TODO: Again, copy-paste from __paste()
         if self.tags:
             tags = tuple(tag for tag in shared.tags if tag in self.tags)
             dst = Gio.File.new_for_path(
@@ -518,7 +518,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __drop_text(
         self, _drop_target: Gtk.DropTarget, text: GObject.Value, _x, _y
     ) -> None:
-        # TODO: Agian again, copy-paste from __paste()
+        # TODO: Again again, copy-paste from __paste()
         if not text:  # If text is an empty string
             return
 
@@ -667,7 +667,7 @@ class HypItemsPage(Adw.NavigationPage):
         dialog.set_response_enabled("create", False)
         can_create = False
 
-        def set_incative(*_args: Any) -> None:
+        def set_inactive(*_args: Any) -> None:
             nonlocal can_create
 
             if not (text := entry.get_text().strip()):
@@ -704,7 +704,7 @@ class HypItemsPage(Adw.NavigationPage):
             )
 
         entry.connect("entry-activated", create_folder)
-        entry.connect("changed", set_incative)
+        entry.connect("changed", set_inactive)
 
         dialog.choose()
 

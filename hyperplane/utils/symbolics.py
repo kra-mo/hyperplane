@@ -49,7 +49,7 @@ def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) 
         return "blue"
 
     # TODO: Certificates don't have a standard mime type
-    # TODO: I don't think addon, firmware or applicance are a thing for files
+    # TODO: I don't think addon, firmware or appliance are a thing for files
     # TODO: Add special cases like Flatpak
 
     detailed = {

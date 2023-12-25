@@ -295,7 +295,7 @@ def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
     """
     Gets a pathlib.Path to represent a `GFile`.
 
-    If `uri_fallback` is true and no path can be retreived but the `GFile`
+    If `uri_fallback` is true and no path can be retrieved but the `GFile`
     has a valid URI, returns that instead.
     """
 
@@ -340,7 +340,7 @@ def validate_name(
     is_dir = path.is_dir()
     is_file = (not is_dir) and (path.exists())
 
-    # TODO: More elegant (cross-platfrom) way to check for invalid paths
+    # TODO: More elegant (cross-platform) way to check for invalid paths
     if name in (".", ".."):
         if is_dir:
             error = _('A folder cannot be called "{}".').format(name)
