@@ -65,7 +65,7 @@ class HypTagRow(HypEditableRow):
         return Gdk.ContentProvider.new_for_value(self.tag)
 
     def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
-        src.set_icon(Gtk.WidgetPaintable.new(self), 0, 0)
+        src.set_icon(Gtk.WidgetPaintable.new(self.box), -30, 0)
 
     def __drop_enter(self, _target: Gtk.DropTarget, _x: float, _y: float) -> None:
         self.add_css_class("sidebar-drop-target")
