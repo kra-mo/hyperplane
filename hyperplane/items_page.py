@@ -18,9 +18,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A view of `HypItem`s to be added to an `AdwNavigationView`."""
+from collections import namedtuple
 from pathlib import Path
 from time import time
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Generator, Iterable, Optional
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Xdp, XdpGtk4
 
@@ -420,33 +421,6 @@ class HypItemsPage(Adw.NavigationPage):
 
         return self.grid_view
 
-    def __get_property_factory(self, property_name: str) -> Gtk.ListItemFactory:
-        # TODO: Make this less ugly
-
-        factory = Gtk.SignalListItemFactory()
-        factory.connect(
-            "setup",
-            lambda _factory, item: item.set_child(Gtk.Label(css_classes=["dim-label"])),
-        )
-        factory.connect(
-            "bind",
-            lambda _factory, item: item.get_child().set_label(
-                relative_date(item.get_item().get_creation_date_time())
-                if property_name == "create"
-                and item.get_item().get_creation_date_time()
-                else relative_date(item.get_item().get_modification_date_time())
-                if property_name == "modify"
-                and item.get_item().get_modification_date_time()
-                else _("Folder")
-                if property_name == "size"
-                and item.get_item().get_content_type() == "inode/directory"
-                else GLib.format_size(item.get_item().get_size())
-                if property_name == "size" and item.get_item().get_size()
-                else "-"
-            ),
-        )
-        return factory
-
     def __get_column_view(self) -> Gtk.ColumnView:
         # Only set up the view once
         if not self.column_view.get_model():
@@ -458,31 +432,62 @@ class HypItemsPage(Adw.NavigationPage):
                     expand=True,
                 )
             )
-            self.column_view.append_column(
-                Gtk.ColumnViewColumn(
-                    title=_("Size"),
-                    factory=self.__get_property_factory("size"),
-                    resizable=True,
-                )
-            )
-            self.column_view.append_column(
-                Gtk.ColumnViewColumn(
-                    title=_("Modified"),
-                    factory=self.__get_property_factory("modify"),
-                    resizable=True,
-                )
-            )
-            self.column_view.append_column(
-                Gtk.ColumnViewColumn(
-                    title=_("Created"),
-                    factory=self.__get_property_factory("create"),
-                    resizable=True,
-                )
-            )
+            for column in self.__get_property_columns():
+                self.column_view.append_column(column)
+
             self.column_view.set_model(self.multi_selection)
             self.column_view.connect("activate", self.activate)
 
         return self.column_view
+
+    def __get_property_columns(self) -> Generator:
+        Prop = namedtuple("Prop", ("title", "bind_func"))
+        properties = (
+            Prop(
+                _("Size"),
+                lambda _factory, item: item.get_child().set_label(
+                    _("Folder")
+                    if item.get_item().get_content_type() == "inode/directory"
+                    else GLib.format_size(item.get_item().get_size())
+                    if item.get_item().get_size()
+                    else "-"
+                ),
+            ),
+            Prop(
+                _("Modified"),
+                lambda _factory, item: item.get_child().set_label(
+                    relative_date(item.get_item().get_modification_date_time())
+                    if item.get_item().get_modification_date_time()
+                    else "-"
+                ),
+            ),
+            Prop(
+                _("Created"),
+                lambda _factory, item: item.get_child().set_label(
+                    relative_date(item.get_item().get_creation_date_time())
+                    if item.get_item().get_creation_date_time()
+                    else "-"
+                ),
+            ),
+        )
+
+        for prop in properties:
+            factory = Gtk.SignalListItemFactory()
+            factory.connect("setup", self.__prop_setup)
+            factory.connect("bind", prop.bind_func)
+
+            yield Gtk.ColumnViewColumn(
+                title=prop.title,
+                factory=factory,
+                resizable=True,
+            )
+
+    def __prop_setup(
+        self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
+        label = Gtk.Label()
+        label.add_css_class("dim-label")
+        list_item.set_child(label)
 
     def __view_changed(self, *_args: Any) -> None:
         change = self.scrolled_window.get_child() == self.view
