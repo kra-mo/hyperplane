@@ -21,7 +21,7 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango
 from gi.repository.GLib import idle_add
 
 from hyperplane import shared
@@ -36,7 +36,6 @@ class HypItem(Adw.Bin):
 
     __gtype_name__ = "HypItem"
 
-    clamp: Adw.Clamp = Gtk.Template.Child()
     box: Gtk.Box = Gtk.Template.Child()
     label: Gtk.Label = Gtk.Template.Child()
 
@@ -78,6 +77,9 @@ class HypItem(Adw.Bin):
 
         self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         shared.postmaster.connect("zoom", self.__zoom)
+
+        shared.postmaster.connect("view-changed", self.__view_changed)
+        self.__view_changed()
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
@@ -380,8 +382,6 @@ class HypItem(Adw.Bin):
         )
 
     def __zoom(self, _obj: Any, zoom_level: int) -> None:
-        self.clamp.set_maximum_size(50 * zoom_level)
-
         box_margin = zoom_level * 3
         self.box.set_margin_start(box_margin)
         self.box.set_margin_end(box_margin)
@@ -444,11 +444,30 @@ class HypItem(Adw.Bin):
         else:
             self.icon.set_pixel_size(32)
 
+    def __view_changed(self, *_args: Any) -> None:
+        if shared.state_schema.get_boolean("grid-view"):
+            self.box.set_orientation(Gtk.Orientation.VERTICAL)
+            self.label.set_wrap(True)
+            self.label.set_lines(3)
+            self.label.set_justify(Pango.Alignment.CENTER)
+            self.label.set_halign(Gtk.Align.CENTER)
+            self.label.set_margin_top(12)
+            self.label.set_margin_start(0)
+            self.label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            return
+
+        self.box.set_orientation(Gtk.Orientation.HORIZONTAL)
+        self.label.set_wrap(False)
+        self.label.set_lines(0)
+        self.label.set_justify(Pango.Alignment.LEFT)
+        self.label.set_halign(Gtk.Align.START)
+        self.label.set_margin_top(0)
+        self.label.set_margin_start(12)
+        self.label.set_ellipsize(Pango.EllipsizeMode.END)
+
     def __select_self(self) -> None:
-        if not (
-            multi_selection := self.get_parent().get_parent().get_model()
-        ).is_selected(pos := self.item.get_position()):
-            multi_selection.select_item(pos, True)
+        if not self.page.multi_selection.is_selected(pos := self.item.get_position()):
+            self.page.multi_selection.select_item(pos, True)
 
     def __right_click(self, *_args: Any) -> None:
         self.__select_self()

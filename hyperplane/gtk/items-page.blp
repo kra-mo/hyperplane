@@ -2,15 +2,23 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypItemsPage : Adw.NavigationPage {
-  ScrolledWindow scrolled_window {
-    GridView grid_view {
-      enable-rubberband: true;
+  ScrolledWindow scrolled_window {}
+}
 
-      styles [
-        "hyperplane-grid-view"
-      ]
-    }
-  }
+GridView grid_view {
+  enable-rubberband: true;
+
+  styles [
+    "hyperplane-grid-view"
+  ]
+}
+
+ColumnView column_view {
+  enable-rubberband: true;
+
+  styles [
+    "hyperplane-column-view"
+  ]
 }
 
 Adw.StatusPage empty_folder {

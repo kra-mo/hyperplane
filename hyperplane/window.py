@@ -67,7 +67,7 @@ class HypWindow(Adw.ApplicationWindow):
     trash_row: HypEditableRow = Gtk.Template.Child()
     volumes_box: HypVolumesBox = Gtk.Template.Child()
 
-    # Header bar
+    # Header bar, action bar
     title_stack: Gtk.Stack = Gtk.Template.Child()
     path_bar_clamp: Adw.Clamp = Gtk.Template.Child()
     path_bar: HypPathBar = Gtk.Template.Child()
@@ -76,6 +76,8 @@ class HypWindow(Adw.ApplicationWindow):
     search_entry_clamp: Adw.Clamp = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
     search_button: Gtk.ToggleButton = Gtk.Template.Child()
+    header_bar_view_button: Gtk.Button = Gtk.Template.Child()
+    action_bar_view_button: Gtk.Button = Gtk.Template.Child()
 
     # Rename popover
     rename_popover: Gtk.Popover = Gtk.Template.Child()
@@ -170,6 +172,21 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
         self.create_action("rename", self.__rename, ("F2",))
+        self.create_action("toggle-view", self.__toggle_view)
+        self.create_action(
+            "list-view",
+            lambda *_: self.__toggle_view()
+            if shared.state_schema.get_boolean("grid-view")
+            else None,
+            ("<primary>1",),
+        )
+        self.create_action(
+            "grid-view",
+            lambda *_: self.__toggle_view()
+            if not shared.state_schema.get_boolean("grid-view")
+            else None,
+            ("<primary>2",),
+        )
 
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-sidebar", self.__open_sidebar)
@@ -216,6 +233,8 @@ class HypWindow(Adw.ApplicationWindow):
         shared.postmaster.connect(
             "trash-emptied", lambda *_: self.trash_empty_animation.play()
         )
+        shared.postmaster.connect("view-changed", self.__view_changed)
+        self.__view_changed()
 
         self.right_click_menu.connect("closed", self.__set_actions)
         self.__set_actions()
@@ -573,8 +592,14 @@ class HypWindow(Adw.ApplicationWindow):
                 )
             case self.path_bar_clamp:
                 # HACK: Keep track of the last focused item and scroll to that instead
-                self.set_focus(grid_view := self.get_visible_page().grid_view)
-                grid_view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
+                if shared.state_schema.get_boolean("grid-view"):
+                    self.get_visible_page().view.scroll_to(
+                        0, Gtk.ListScrollFlags.FOCUS
+                    )
+                else:
+                    self.get_visible_page().view.scroll_to(
+                        0, None, Gtk.ListScrollFlags.FOCUS
+                    )
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
@@ -757,12 +782,12 @@ class HypWindow(Adw.ApplicationWindow):
 
         page.multi_selection.select_item(position, True)
 
-        children = page.grid_view.observe_children()
-
-        child = children.get_item(position)
-        self.rename_popover.set_parent(child)
-
-        item = child.get_first_child()
+        item = (
+            page.grid_items
+            if shared.state_schema.get_boolean("grid-view")
+            else page.list_items
+        )[position]
+        self.rename_popover.set_parent(item)
 
         if item.is_dir:
             self.rename_label.set_label(_("Rename Folder"))
@@ -809,6 +834,21 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_revealer.set_reveal_child(bool(message))
         if message:
             self.rename_revealer_label.set_label(message)
+
+    def __toggle_view(self, *_args: Any) -> None:
+        shared.state_schema.set_boolean(
+            "grid-view", not shared.state_schema.get_boolean("grid-view")
+        )
+        shared.postmaster.emit("view-changed")
+
+    def __view_changed(self, *_args: Any) -> None:
+        grid_view = shared.state_schema.get_boolean("grid-view")
+
+        for button in {self.header_bar_view_button, self.action_bar_view_button}:
+            button.set_icon_name(
+                "view-list-symbolic" if grid_view else "view-grid-symbolic"
+            )
+            button.set_tooltip_text(_("List View") if grid_view else _("Grid View"))
 
     def __sidebar_right_click(
         self, gesture: Gtk.GestureClick, _n: int, x: float, y: float, gfile: Gio.File

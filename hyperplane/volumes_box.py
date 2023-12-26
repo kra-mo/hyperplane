@@ -90,7 +90,9 @@ class HypVolumesBox(Adw.Bin):
             eject_button.add_css_class("flat")
             eject_button.add_css_class("sidebar-button")
 
-            def eject_with_operation_finish(volume, result) -> None:
+            def eject_with_operation_finish(
+                volume: Gio.Volume, result: Gio.AsyncResult
+            ) -> None:
                 try:
                     volume.eject_with_operation_finish(result)
                 except GLib.Error:

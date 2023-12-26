@@ -78,3 +78,7 @@ class HypPostmasterGeneral(GObject.Object):
         Widgets represeting files should connect to this, and
         if the URI of the file they represent is in `shared.cut_uris`, react accordingly.
         """
+
+    @GObject.Signal(name="view-changed")
+    def view_changed(self) -> None:
+        """Emitted when the view changes from grid to list or vice versa."""
