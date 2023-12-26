@@ -485,7 +485,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __property_setup(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
-        label = Gtk.Label(halign=Gtk.Align.END)
+        label = Gtk.Label(halign=Gtk.Align.START)
         label.add_css_class("dim-label")
         list_item.set_child(label)
 
