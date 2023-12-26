@@ -85,7 +85,7 @@ class HypItemsPage(Adw.NavigationPage):
         gesture_click.connect("pressed", self.__right_click)
         self.add_controller(gesture_click)
         self.menu_items = None
-        self.right_click_view = False
+        self.view_right_clicked = False
 
         # Drag and drop
         # TODO: Accept more actions than just copy
@@ -508,7 +508,7 @@ class HypItemsPage(Adw.NavigationPage):
             self.get_root().set_menu_items(self.menu_items)
             self.menu_items = None
         else:
-            self.right_click_view = True
+            self.view_right_clicked = True
             items = {
                 "paste",
                 "new-folder",
@@ -726,8 +726,8 @@ class HypItemsPage(Adw.NavigationPage):
     def __open_with(self, *_args: Any) -> None:
         portal = Xdp.Portal()
         parent = XdpGtk4.parent_new_gtk(self.get_root())
-        gfiles = [self.gfile] if self.right_click_view else self.get_selected_gfiles()
-        self.right_click_view = False
+        gfiles = [self.gfile] if self.view_right_clicked else self.get_selected_gfiles()
+        self.view_right_clicked = False
         if not gfiles:
             return
 

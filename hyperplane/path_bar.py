@@ -20,10 +20,10 @@
 """The path bar in a HypWindow."""
 from os import sep
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 from urllib.parse import unquote, urlparse
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.path_segment import HypPathSegment
@@ -47,6 +47,14 @@ class HypPathBar(Gtk.ScrolledWindow):
         self.segments = []
         self.separators = {}
         self.tags = False
+
+        # Left-click
+        self.segment_clicked = False
+        left_click = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        left_click.connect(
+            "pressed", lambda *_: GLib.timeout_add(100, self.__left_click)
+        )
+        self.add_controller(left_click)
 
     def remove(self, n: int) -> None:
         """Removes `n` number of segments form self, animating them."""
@@ -250,3 +258,11 @@ class HypPathBar(Gtk.ScrolledWindow):
         # This is so GTK doesn't freak out when the child isn't in the parent anymore
         if child.get_parent == parent:
             parent.remove(child)
+
+    def __left_click(self, *_args: Any) -> None:
+        # Do nothing if a segment has been clicked recently
+        if self.segment_clicked:
+            self.segment_clicked = False
+            return
+
+        self.get_root().show_path_entry()

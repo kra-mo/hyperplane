@@ -400,6 +400,10 @@ class HypWindow(Adw.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
+    def show_path_entry(self) -> None:
+        """Shows the path entry in the header bar."""
+        self.__title_stack_set_child(self.path_entry_clamp)
+
     def set_menu_items(self, menu_items: Iterable[str]) -> None:
         """Disables all right-click menu items not in `menu_items`."""
         page = self.get_visible_page().action_group
@@ -431,10 +435,10 @@ class HypWindow(Adw.ApplicationWindow):
 
         gfiles = (
             [page.gfile]
-            if page.right_click_view and page.gfile
+            if page.view_right_clicked and page.gfile
             else page.get_selected_gfiles()
         )
-        page.right_click_view = False
+        page.view_right_clicked = False
 
         if (
             not gfiles
@@ -639,9 +643,6 @@ class HypWindow(Adw.ApplicationWindow):
         shared.search = entry.get_text().strip()
         self.searched_page.item_filter.changed(Gtk.FilterChange.DIFFERENT)
 
-    def __show_path_bar(self, *_args: Any) -> None:
-        self.__title_stack_set_child(self.path_entry_clamp)
-
     def __hide_path_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.path_entry_clamp:
             return
@@ -650,7 +651,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __toggle_path_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.path_entry_clamp:
-            self.__show_path_bar()
+            self.show_path_entry()
             return
 
         self.__hide_path_entry()

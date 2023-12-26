@@ -98,6 +98,9 @@ class HypPathSegment(Gtk.Revealer):
         (self.button_content if self.icon_name else self.button).set_label(label)
 
     def __navigate(self, *_args: Any) -> None:
+        # TODO: Ugly but simpler than the alternative
+        self.get_parent().get_parent().get_parent().segment_clicked = True
+
         if self.tag:
             self.get_root().new_page(tags=[self.tag])
             return
