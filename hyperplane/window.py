@@ -176,14 +176,14 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action(
             "list-view",
             lambda *_: self.__toggle_view()
-            if shared.state_schema.get_boolean("grid-view")
+            if isinstance(self.get_visible_page().view, Gtk.GridView)
             else None,
             ("<primary>1",),
         )
         self.create_action(
             "grid-view",
             lambda *_: self.__toggle_view()
-            if not shared.state_schema.get_boolean("grid-view")
+            if not isinstance(self.get_visible_page().view, Gtk.GridView)
             else None,
             ("<primary>2",),
         )
@@ -592,14 +592,10 @@ class HypWindow(Adw.ApplicationWindow):
                 )
             case self.path_bar_clamp:
                 # HACK: Keep track of the last focused item and scroll to that instead
-                if shared.state_schema.get_boolean("grid-view"):
-                    self.get_visible_page().view.scroll_to(
-                        0, Gtk.ListScrollFlags.FOCUS
-                    )
+                if isinstance(view := self.get_visible_page().view, Gtk.GridView):
+                    view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
                 else:
-                    self.get_visible_page().view.scroll_to(
-                        0, None, Gtk.ListScrollFlags.FOCUS
-                    )
+                    view.scroll_to(0, None, Gtk.ListScrollFlags.FOCUS)
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
@@ -782,11 +778,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         page.multi_selection.select_item(position, True)
 
-        item = (
-            page.grid_items
-            if shared.state_schema.get_boolean("grid-view")
-            else page.list_items
-        )[position]
+        item = page.items[position]
         self.rename_popover.set_parent(item)
 
         if item.is_dir:
@@ -837,14 +829,14 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __toggle_view(self, *_args: Any) -> None:
         shared.state_schema.set_boolean(
-            "grid-view", not shared.state_schema.get_boolean("grid-view")
+            "grid-view", not isinstance(self.get_visible_page().view, Gtk.GridView)
         )
         shared.postmaster.emit("view-changed")
 
     def __view_changed(self, *_args: Any) -> None:
-        grid_view = shared.state_schema.get_boolean("grid-view")
+        grid_view = isinstance(self.get_visible_page().view, Gtk.GridView)
 
-        for button in {self.header_bar_view_button, self.action_bar_view_button}:
+        for button in (self.header_bar_view_button, self.action_bar_view_button):
             button.set_icon_name(
                 "view-list-symbolic" if grid_view else "view-grid-symbolic"
             )

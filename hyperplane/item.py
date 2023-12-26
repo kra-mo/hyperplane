@@ -78,8 +78,9 @@ class HypItem(Adw.Bin):
         self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
         shared.postmaster.connect("zoom", self.__zoom)
 
-        shared.postmaster.connect("view-changed", self.__view_changed)
-        self.__view_changed()
+        # Set up properties that are dependent on whether
+        # the item is in a grid or lsit view
+        self.__view_setup()
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
@@ -444,8 +445,8 @@ class HypItem(Adw.Bin):
         else:
             self.icon.set_pixel_size(32)
 
-    def __view_changed(self, *_args: Any) -> None:
-        if shared.state_schema.get_boolean("grid-view"):
+    def __view_setup(self, *_args: Any) -> None:
+        if isinstance(self.page.view, Gtk.GridView):
             self.box.set_orientation(Gtk.Orientation.VERTICAL)
             self.label.set_wrap(True)
             self.label.set_lines(3)
