@@ -24,10 +24,11 @@ To be used in a sidebar.
 """
 from typing import Optional
 
-from gi.repository import Adw, Gdk, Gio, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
+from hyperplane.navigation_bin import HypNavigationBin
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/volumes-box.ui")
@@ -82,6 +83,81 @@ class HypVolumesBox(Adw.Bin):
         row.title = volume.get_name()
         row.image.set_from_gicon(volume.get_symbolic_icon())
 
+        if volume.can_eject():
+            eject_button = Gtk.Button(
+                icon_name="media-eject-symbolic", valign=Gtk.Align.CENTER
+            )
+            eject_button.add_css_class("flat")
+            eject_button.add_css_class("sidebar-button")
+
+            def do_eject(volume: Gio.Volume) -> None:
+                volume.eject_with_operation(
+                    Gio.MountUnmountFlags.NONE,
+                    Gtk.MountOperation.new(),
+                    # You might be asking:
+                    # Why the fuck am I creating a useless lambda
+                    # instead of just setting the arg to None?
+                    # Ask Gio why it crashes if I don't do that.
+                    callback=lambda *_: None,
+                )
+
+            def eject() -> None:
+                # TODO: This sucks so much
+
+                if not (mount := volume.get_mount()):
+                    return
+
+                root = mount.get_root()
+
+                # What if you wanted to itertools.chain but Alice said:
+                # Return Value
+                # Type: GtkSelectionModel
+                store = Gio.ListStore.new(Gtk.SelectionModel)
+                for model in (
+                    window.tab_view.get_pages() for window in shared.app.get_windows()
+                ):
+                    store.append(model)
+                tabs = Gtk.FlattenListModel.new(store)
+
+                tab_index = 0
+                while tab := tabs.get_item(tab_index):
+                    nav_bin = tab.get_child()
+                    stack = nav_bin.view.get_navigation_stack()
+
+                    # This nesting is hell.
+                    nav_index = 0
+                    while page := stack.get_item(nav_index):
+                        nav_index += 1
+                        if not page.gfile:
+                            continue
+
+                        if not (
+                            root.get_relative_path(page.gfile)
+                            or root.get_uri() == page.gfile.get_uri()
+                        ):
+                            continue
+
+                        tab_view = page.get_root().tab_view
+
+                        tab_view.insert(
+                            navigation_bin := HypNavigationBin(shared.home),
+                            tab_view.get_page_position(tab),
+                        ).set_title(navigation_bin.view.get_visible_page().get_title())
+                        tab_view.close_page(tab)
+                        break
+
+                    tab_index += 1
+
+                    # Why the fuck does this work but not timeout_add on the
+                    # fucking method itself?????????
+
+                    # Add half a second of delay to make sure all fds are closed by Hyperplane
+                    GLib.timeout_add(500, do_eject, volume)
+
+            eject_button.connect("clicked", lambda *_: eject())
+
+            row.box.insert_child_after(eject_button, row.label)
+
         self.rows[volume] = row
         self.__volume_changed(None, volume)
 
@@ -96,7 +172,7 @@ class HypVolumesBox(Adw.Bin):
         row.add_controller(right_click)
         row.add_controller(middle_click)
 
-        self.list_box.append(row)
+        (self.list_box.prepend if volume.can_eject() else self.list_box.append)(row)
 
     def remove_volume(self, volume: Gio.Volume) -> None:
         """

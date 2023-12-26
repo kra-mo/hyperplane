@@ -84,6 +84,11 @@ and that looks ugly.
     padding: 16px;
 }
 
+.sidebar-button {
+    border-radius: 50%;
+    padding: 2px;
+}
+
 /* Remove the top margin since the header bar provides enough already */
 .properties-page > scrolledwindow > viewport > clamp > box {
     margin-top: 0;
