@@ -85,7 +85,9 @@ class HypTagRow(HypEditableRow):
         str_index = shared.tags.index(string)
 
         shared.tags.insert(
-            self_index + int(self_index < str_index), shared.tags.pop(str_index)
+            # Offset the index by 1 if `string` is at a larger index than `self.tag`
+            self_index + int(self_index < str_index),
+            shared.tags.pop(str_index),
         )
 
         update_tags()

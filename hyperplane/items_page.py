@@ -67,7 +67,7 @@ class HypItemsPage(Adw.NavigationPage):
         super().__init__(**kwargs)
         self.gfile = gfile
         self.tags = tags
-        self.grid_items = {}
+        self.items = {}
         self.list_items = {}
 
         if self.gfile:
@@ -138,27 +138,12 @@ class HypItemsPage(Adw.NavigationPage):
         self.item_factory.connect("bind", self.__item_bind)
         self.item_factory.connect("unbind", self.__item_unbind)
 
-        # Grid view
-        self.grid_view.set_factory(self.item_factory)
-        self.grid_view.set_model(self.multi_selection)
-        self.grid_view.connect("activate", self.activate)
-
-        # Column view
-        self.column_view.append_column(
-            Gtk.ColumnViewColumn(
-                title=_("Item"), factory=self.item_factory, resizable=True
-            )
-        )
-        self.column_view.set_model(self.multi_selection)
-        self.column_view.connect("activate", self.activate)
-
         self.view = (
-            self.grid_view
+            self.__get_grid_view()
             if shared.state_schema.get_boolean("grid-view")
-            else self.column_view
+            else self.__get_column_view()
         )
 
-        # TODO: Only start building the pages when the view actually changed
         shared.postmaster.connect("view-changed", self.__view_changed)
 
         self.__items_changed()
@@ -405,7 +390,7 @@ class HypItemsPage(Adw.NavigationPage):
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         GLib.Thread.new(None, list_item.get_child().bind)
-        self.grid_items[list_item.get_position()] = list_item.get_child()
+        self.items[list_item.get_position()] = list_item.get_child()
 
     def __item_unbind(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
@@ -421,14 +406,36 @@ class HypItemsPage(Adw.NavigationPage):
         else:
             self.item_filter.changed(Gtk.FilterChange.MORE_STRICT)
 
+    def __get_grid_view(self) -> Gtk.GridView:
+        if not self.grid_view.get_model():
+            # Only set up the view once
+            self.grid_view.set_factory(self.item_factory)
+            self.grid_view.set_model(self.multi_selection)
+            self.grid_view.connect("activate", self.activate)
+
+        return self.grid_view
+
+    def __get_column_view(self) -> Gtk.ColumnView:
+        if not self.column_view.get_model():
+            # Only set up the view once
+            self.column_view.append_column(
+                Gtk.ColumnViewColumn(
+                    title=_("Item"), factory=self.item_factory, resizable=True
+                )
+            )
+            self.column_view.set_model(self.multi_selection)
+            self.column_view.connect("activate", self.activate)
+
+        return self.column_view
+
     def __view_changed(self, *_args: Any) -> None:
         if self.scrolled_window.get_child() == self.view:
             change = True
 
         self.view = (
-            self.grid_view
+            self.__get_grid_view()
             if shared.state_schema.get_boolean("grid-view")
-            else self.column_view
+            else self.__get_column_view()
         )
 
         if not change:
