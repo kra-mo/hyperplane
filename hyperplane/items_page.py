@@ -29,6 +29,7 @@ from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
 from hyperplane.utils.create_message_dialog import create_message_dialog
+from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
     copy,
     get_copy_gfile,
@@ -115,6 +116,10 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
                 Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
+                # For list view
+                Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
+                Gio.FILE_ATTRIBUTE_TIME_MODIFIED,
+                Gio.FILE_ATTRIBUTE_TIME_CREATED,
             )
         )
 
@@ -149,7 +154,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.__items_changed()
         shared.postmaster.connect("tag-location-created", self.__tag_location_created)
 
-        # Set up the "page" action group
+        # Set up the `page`` action group
         self.shortcut_controller = Gtk.ShortcutController.new()
         self.add_controller(self.shortcut_controller)
 
@@ -407,20 +412,71 @@ class HypItemsPage(Adw.NavigationPage):
             self.item_filter.changed(Gtk.FilterChange.MORE_STRICT)
 
     def __get_grid_view(self) -> Gtk.GridView:
+        # Only set up the view once
         if not self.grid_view.get_model():
-            # Only set up the view once
             self.grid_view.set_factory(self.item_factory)
             self.grid_view.set_model(self.multi_selection)
             self.grid_view.connect("activate", self.activate)
 
         return self.grid_view
 
+    def __get_property_factory(self, property_name: str) -> Gtk.ListItemFactory:
+        # TODO: Make this less ugly
+
+        factory = Gtk.SignalListItemFactory()
+        factory.connect(
+            "setup",
+            lambda _factory, item: item.set_child(Gtk.Label(css_classes=["dim-label"])),
+        )
+        factory.connect(
+            "bind",
+            lambda _factory, item: item.get_child().set_label(
+                relative_date(item.get_item().get_creation_date_time())
+                if property_name == "create"
+                and item.get_item().get_creation_date_time()
+                else relative_date(item.get_item().get_modification_date_time())
+                if property_name == "modify"
+                and item.get_item().get_modification_date_time()
+                else _("Folder")
+                if property_name == "size"
+                and item.get_item().get_content_type() == "inode/directory"
+                else GLib.format_size(item.get_item().get_size())
+                if property_name == "size" and item.get_item().get_size()
+                else "-"
+            ),
+        )
+        return factory
+
     def __get_column_view(self) -> Gtk.ColumnView:
+        # Only set up the view once
         if not self.column_view.get_model():
-            # Only set up the view once
             self.column_view.append_column(
                 Gtk.ColumnViewColumn(
-                    title=_("Item"), factory=self.item_factory, resizable=True
+                    title=_("Item"),
+                    factory=self.item_factory,
+                    resizable=True,
+                    expand=True,
+                )
+            )
+            self.column_view.append_column(
+                Gtk.ColumnViewColumn(
+                    title=_("Size"),
+                    factory=self.__get_property_factory("size"),
+                    resizable=True,
+                )
+            )
+            self.column_view.append_column(
+                Gtk.ColumnViewColumn(
+                    title=_("Modified"),
+                    factory=self.__get_property_factory("modify"),
+                    resizable=True,
+                )
+            )
+            self.column_view.append_column(
+                Gtk.ColumnViewColumn(
+                    title=_("Created"),
+                    factory=self.__get_property_factory("create"),
+                    resizable=True,
                 )
             )
             self.column_view.set_model(self.multi_selection)
