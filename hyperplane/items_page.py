@@ -473,7 +473,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         for prop in properties:
             factory = Gtk.SignalListItemFactory()
-            factory.connect("setup", self.__prop_setup)
+            factory.connect("setup", self.__property_setup)
             factory.connect("bind", prop.bind_func)
 
             yield Gtk.ColumnViewColumn(
@@ -482,10 +482,10 @@ class HypItemsPage(Adw.NavigationPage):
                 resizable=True,
             )
 
-    def __prop_setup(
+    def __property_setup(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
-        label = Gtk.Label()
+        label = Gtk.Label(halign=Gtk.Align.END)
         label.add_css_class("dim-label")
         list_item.set_child(label)
 
