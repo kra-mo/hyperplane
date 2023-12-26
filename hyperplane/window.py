@@ -612,13 +612,7 @@ class HypWindow(Adw.ApplicationWindow):
                     "notify::has-focus", self.__path_entry_focus
                 )
             case self.path_bar_clamp:
-                # HACK: Keep track of the last focused item and scroll to that instead
-                if shared.grid_view:
-                    self.get_visible_page().view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
-                else:
-                    self.get_visible_page().view.scroll_to(
-                        0, None, Gtk.ListScrollFlags.FOCUS
-                    )
+                self.set_focus(self.get_visible_page().view)
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
