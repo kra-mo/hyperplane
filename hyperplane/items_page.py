@@ -50,23 +50,13 @@ class HypItemsPage(Adw.NavigationPage):
 
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
+    column_view: Gtk.ColumnView = Gtk.Template.Child()
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     no_matching_items: Adw.StatusPage = Gtk.Template.Child()
     empty_trash: Adw.StatusPage = Gtk.Template.Child()
     no_recents: Adw.StatusPage = Gtk.Template.Child()
     no_results: Adw.StatusPage = Gtk.Template.Child()
     loading: Gtk.Viewport = Gtk.Template.Child()
-
-    multi_selection: Gtk.MultiSelection
-    item_filter: HypItemFilter
-    filter_list: Gtk.FilterListModel
-    sorter: HypItemSorter
-    sorter: Gtk.CustomSorter
-    sort_list: Gtk.SortListModel
-    dir_list: Gtk.FlattenListModel | Gtk.DirectoryList
-    factory: Gtk.SignalListItemFactory
-
-    action_group: Gio.SimpleActionGroup
 
     def __init__(
         self,
@@ -77,6 +67,8 @@ class HypItemsPage(Adw.NavigationPage):
         super().__init__(**kwargs)
         self.gfile = gfile
         self.tags = tags
+        self.grid_items = {}
+        self.list_items = {}
 
         if self.gfile:
             if self.gfile.get_path() == str(shared.home_path):
@@ -98,17 +90,17 @@ class HypItemsPage(Adw.NavigationPage):
         # TODO: Provide DragSource (why is it so hard with rubberbanding TwT)
         file_drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         file_drop_target.connect("drop", self.__drop_file)
-        self.grid_view.add_controller(file_drop_target)
+        self.scrolled_window.add_controller(file_drop_target)
 
         texture_drop_target = Gtk.DropTarget.new(Gdk.Texture, Gdk.DragAction.COPY)
         texture_drop_target.connect(
             "drop", lambda *args: GLib.Thread.new(None, self.__drop_texture, *args)
         )
-        self.grid_view.add_controller(texture_drop_target)
+        self.scrolled_window.add_controller(texture_drop_target)
 
         text_drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.COPY)
         text_drop_target.connect("drop", self.__drop_text)
-        self.grid_view.add_controller(text_drop_target)
+        self.scrolled_window.add_controller(text_drop_target)
 
         shared.postmaster.connect("tags-changed", self.__tags_changed)
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
@@ -127,25 +119,53 @@ class HypItemsPage(Adw.NavigationPage):
         )
 
         self.dir_list = self.__get_list(self.gfile, self.tags)
+
+        # Filtering
         self.item_filter = HypItemFilter()
         self.filter_list = Gtk.FilterListModel.new(self.dir_list, self.item_filter)
+        self.filter_list.connect("items-changed", self.__items_changed)
 
+        # Sorting
         self.sorter = HypItemSorter()
         self.sort_list = Gtk.SortListModel.new(self.filter_list, self.sorter)
 
+        # Selection
         self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
-        self.factory = Gtk.SignalListItemFactory()
-        self.grid_view.set_model(self.multi_selection)
-        self.grid_view.set_factory(self.factory)
 
-        self.factory.connect("setup", self.__setup)
-        self.factory.connect("bind", self.__bind)
-        self.factory.connect("unbind", self.__unbind)
+        # Grid view
+        self.grid_factory = Gtk.SignalListItemFactory()
+        self.grid_factory.connect("setup", self.__grid_setup)
+        self.grid_factory.connect("bind", self.__grid_bind)
+        self.grid_factory.connect("unbind", self.__grid_unbind)
+
+        self.grid_view.set_factory(self.grid_factory)
+        self.grid_view.set_model(self.multi_selection)
         self.grid_view.connect("activate", self.activate)
 
-        self.filter_list.connect("items-changed", self.__items_changed)
-        self.__items_changed()
+        # Column view
+        self.item_column_factory = Gtk.SignalListItemFactory()
+        self.item_column_factory.connect("setup", self.__item_column_setup)
+        self.item_column_factory.connect("bind", self.__item_column_bind)
+        self.item_column_factory.connect("unbind", self.__item_column_unbind)
+        self.column_view.append_column(
+            Gtk.ColumnViewColumn(
+                title=_("Item"), factory=self.item_column_factory, resizable=True
+            )
+        )
 
+        self.column_view.set_model(self.multi_selection)
+        self.column_view.connect("activate", self.activate)
+
+        self.view = (
+            self.grid_view
+            if shared.state_schema.get_boolean("grid-view")
+            else self.column_view
+        )
+
+        # TODO: Only start building the pages when the view actually changed
+        shared.postmaster.connect("view-changed", self.__view_changed)
+
+        self.__items_changed()
         shared.postmaster.connect("tag-location-created", self.__tag_location_created)
 
         # Set up the "page" action group
@@ -232,6 +252,39 @@ class HypItemsPage(Adw.NavigationPage):
         """
         return self.get_gfiles_from_positions(self.get_selected_positions())
 
+    def activate(self, _list: Gtk.ListBase, pos: int) -> None:
+        """Activates an item at the given position."""
+        file_info = self.multi_selection.get_item(pos)
+        if not file_info:
+            return
+
+        gfile = file_info.get_attribute_object("standard::file")
+
+        if file_info.get_content_type() == "inode/directory":
+            self.get_root().new_page(gfile)
+            return
+
+        if not (
+            uri := file_info.get_attribute_string(
+                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
+            )
+        ):
+            uri = gfile.get_uri()
+
+        Gio.AppInfo.launch_default_for_uri(uri)
+
+        # Don't add trashed items to Recent
+        if gfile.get_uri_scheme() == "trash":
+            return
+
+        recent_data = Gtk.RecentData()
+        recent_data.display_name = file_info.get_display_name()
+        recent_data.mime_type = file_info.get_content_type()
+        recent_data.app_name = "hyperplane"
+        recent_data.app_exec = r"hyperplane %u"
+
+        shared.recent_manager.add_full(uri, recent_data)
+
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
     ) -> None:
@@ -304,11 +357,11 @@ class HypItemsPage(Adw.NavigationPage):
         page = self.scrolled_window.get_child()
         n_items = self.filter_list.get_n_items()
 
-        if added and n_items and (page != self.grid_view):
+        if added and n_items and (page != self.view):
             if page == self.loading:
                 self.loading.get_child().stop()
 
-            self.scrolled_window.set_child(self.grid_view)
+            self.scrolled_window.set_child(self.view)
             return
 
         if removed and (not n_items):
@@ -347,14 +400,37 @@ class HypItemsPage(Adw.NavigationPage):
                 self.scrolled_window.set_child(self.no_matching_items)
                 return
 
-    def __setup(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        item.set_child(HypItem(item, self))
+    def __grid_setup(
+        self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
+        list_item.set_child(HypItem(list_item, self))
 
-    def __bind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        GLib.Thread.new(None, item.get_child().bind)
+    def __grid_bind(
+        self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
+        GLib.Thread.new(None, list_item.get_child().bind)
+        self.grid_items[list_item.get_position()] = list_item.get_child()
 
-    def __unbind(self, _factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        item.get_child().unbind()
+    def __grid_unbind(
+        self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
+        list_item.get_child().unbind()
+
+    def __item_column_setup(
+        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
+    ) -> None:
+        cell.set_child(HypItem(cell, self))
+
+    def __item_column_bind(
+        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
+    ) -> None:
+        GLib.Thread.new(None, cell.get_child().bind)
+        self.list_items[cell.get_position()] = cell.get_child()
+
+    def __item_column_unbind(
+        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
+    ) -> None:
+        cell.get_child().unbind()
 
     def __tags_changed(self, _obj: GObject.Object, change: Gtk.FilterChange) -> None:
         self.item_filter.changed(change)
@@ -365,38 +441,20 @@ class HypItemsPage(Adw.NavigationPage):
         else:
             self.item_filter.changed(Gtk.FilterChange.MORE_STRICT)
 
-    def activate(self, _grid_view: Gtk.GridView, pos: int) -> None:
-        """Activates an item at the given position."""
-        file_info = self.multi_selection.get_item(pos)
-        if not file_info:
+    def __view_changed(self, *_args: Any) -> None:
+        if self.scrolled_window.get_child() == self.view:
+            change = True
+
+        self.view = (
+            self.grid_view
+            if shared.state_schema.get_boolean("grid-view")
+            else self.column_view
+        )
+
+        if not change:
             return
 
-        gfile = file_info.get_attribute_object("standard::file")
-
-        if file_info.get_content_type() == "inode/directory":
-            self.get_root().new_page(gfile)
-            return
-
-        if not (
-            uri := file_info.get_attribute_string(
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
-            )
-        ):
-            uri = gfile.get_uri()
-
-        Gio.AppInfo.launch_default_for_uri(uri)
-
-        # Don't add trashed items to Recent
-        if gfile.get_uri_scheme() == "trash":
-            return
-
-        recent_data = Gtk.RecentData()
-        recent_data.display_name = file_info.get_display_name()
-        recent_data.mime_type = file_info.get_content_type()
-        recent_data.app_name = "hyperplane"
-        recent_data.app_exec = r"hyperplane %u"
-
-        shared.recent_manager.add_full(uri, recent_data)
+        self.scrolled_window.set_child(self.view)
 
     def __popup_menu(self) -> None:
         if self.menu_items:
@@ -446,7 +504,11 @@ class HypItemsPage(Adw.NavigationPage):
         GLib.timeout_add(10, self.__popup_menu)
 
     def __drop_file(
-        self, _drop_target: Gtk.DropTarget, file_list: Gdk.FileList, _x: float, _y: float
+        self,
+        _drop_target: Gtk.DropTarget,
+        file_list: Gdk.FileList,
+        _x: float,
+        _y: float,
     ) -> None:
         # TODO: This is copy-paste from __paste()
         for src in file_list:
@@ -759,7 +821,7 @@ class HypItemsPage(Adw.NavigationPage):
                 except (FileNotFoundError, TypeError):
                     continue
 
-                if shared.cut_widgets:
+                if shared.cut_uris:
                     try:
                         move(src, final_dst)
                     except FileExistsError:
@@ -785,7 +847,7 @@ class HypItemsPage(Adw.NavigationPage):
 
                     paths.append(final_dst)
 
-            if shared.cut_widgets:
+            if shared.cut_uris:
                 shared.undo_queue[time()] = ("cut", paths)
             else:
                 shared.undo_queue[time()] = ("copy", paths)

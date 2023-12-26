@@ -18,6 +18,9 @@
 		<key name="is-maximized" type="b">
 			<default>false</default>
 		</key>
+		<key name="grid-view" type="b">
+			<default>true</default>
+		</key>
 		<key name="show-hidden" type="b">
 			<default>false</default>
 		</key>

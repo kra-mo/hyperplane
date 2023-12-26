@@ -2,135 +2,126 @@ using Gtk 4.0;
 using Adw 1;
 
 template $HypItem : Adw.Bin {
-  Adw.Clamp clamp {
-    Box box {
-      orientation: vertical;
+  Box box {
+    Overlay thumbnail {
+      overflow: hidden;
+      halign: center;
 
-      Overlay thumbnail {
-        overflow: hidden;
-        halign: center;
+      [overlay]
+      Box dir_thumbnails {
+        halign: start;
+        valign: start;
+        margin-end: 6;
 
-        [overlay]
-        Box dir_thumbnails {
-          halign: start;
-          valign: start;
-          margin-end: 6;
+        Overlay dir_thumbnail_1 {
+          overflow: hidden;
 
-          Overlay dir_thumbnail_1 {
-            overflow: hidden;
-
-            [overlay]
-            Picture dir_picture_1 {
-              visible: false;
-              content-fit: cover;
-            }
-
-            Image {
-              visible: bind dir_picture_1.visible inverted;
-            }
-
-            styles [
-              "small-thumbnail",
-            ]
+          [overlay]
+          Picture dir_picture_1 {
+            visible: false;
+            content-fit: cover;
           }
 
-          Overlay dir_thumbnail_2 {
-            overflow: hidden;
-
-            [overlay]
-            Picture dir_picture_2 {
-              visible: false;
-              content-fit: cover;
-            }
-
-            Image {
-              visible: bind dir_picture_2.visible inverted;
-            }
-
-            styles [
-              "small-thumbnail",
-            ]
-          }
-
-          Overlay dir_thumbnail_3 {
-            overflow: hidden;
-
-            [overlay]
-            Picture dir_picture_3 {
-              visible: false;
-              content-fit: cover;
-            }
-
-            Image {
-              visible: bind dir_picture_3.visible inverted;
-            }
-
-            styles [
-              "small-thumbnail",
-            ]
-          }
-        }
-
-        [overlay]
-        Picture picture {
-          content-fit: cover;
-          paintable: bind template.thumbnail-paintable;
-
-          styles [
-            "thumbnail-picture",
-          ]
-        }
-
-        [overlay]
-        Box play_button {
-          halign: center;
-          valign: center;
-          visible: false;
-
-          Image play_button_icon {
-            icon-name: 'media-playback-start-symbolic';
+          Image {
+            visible: bind dir_picture_1.visible inverted;
           }
 
           styles [
-            "osd",
-            "circular-box",
+            "small-thumbnail",
           ]
         }
 
-        [overlay]
-        Label extension_label {
-          valign: end;
-          halign: end;
-          margin-bottom: 5;
-          margin-end: 5;
-          margin-start: 5;
-          ellipsize: end;
-          label: bind template.extension;
+        Overlay dir_thumbnail_2 {
+          overflow: hidden;
+
+          [overlay]
+          Picture dir_picture_2 {
+            visible: false;
+            content-fit: cover;
+          }
+
+          Image {
+            visible: bind dir_picture_2.visible inverted;
+          }
 
           styles [
-            "file-extension",
+            "small-thumbnail",
           ]
         }
 
-        Image icon {
-          gicon: bind template.gicon;
-          visible: bind picture.visible inverted;
+        Overlay dir_thumbnail_3 {
+          overflow: hidden;
+
+          [overlay]
+          Picture dir_picture_3 {
+            visible: false;
+            content-fit: cover;
+          }
+
+          Image {
+            visible: bind dir_picture_3.visible inverted;
+          }
+
+          styles [
+            "small-thumbnail",
+          ]
         }
+      }
+
+      [overlay]
+      Picture picture {
+        content-fit: cover;
+        paintable: bind template.thumbnail-paintable;
 
         styles [
-          "item-thumbnail",
+          "thumbnail-picture",
         ]
       }
 
-      Label label {
-        margin-top: 12;
-        justify: center;
-        wrap: true;
-        wrap-mode: word_char;
-        ellipsize: middle;
-        lines: 3;
-        label: bind template.display-name;
+      [overlay]
+      Box play_button {
+        halign: center;
+        valign: center;
+        visible: false;
+
+        Image play_button_icon {
+          icon-name: 'media-playback-start-symbolic';
+        }
+
+        styles [
+          "osd",
+          "circular-box",
+        ]
       }
+
+      [overlay]
+      Label extension_label {
+        valign: end;
+        halign: end;
+        margin-bottom: 5;
+        margin-end: 5;
+        margin-start: 5;
+        ellipsize: end;
+        label: bind template.extension;
+
+        styles [
+          "file-extension",
+        ]
+      }
+
+      Image icon {
+        gicon: bind template.gicon;
+        visible: bind picture.visible inverted;
+      }
+
+      styles [
+        "item-thumbnail",
+      ]
+    }
+
+    Label label {
+      wrap-mode: word_char;
+      label: bind template.display-name;
     }
   }
 }
