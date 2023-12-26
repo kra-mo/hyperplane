@@ -346,25 +346,44 @@ class HypWindow(Adw.ApplicationWindow):
 
     def zoom_in(self, *_args: Any) -> None:
         """Increases the zoom level of all views."""
+        key = "grid-zoom-level" if shared.grid_view else "list-zoom-level"
+        max_zoom_level = 5
 
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) > 4:
+        if (zoom_level := shared.state_schema.get_uint(key)) >= max_zoom_level:
             return
 
-        shared.state_schema.set_uint("zoom-level", zoom_level + 1)
-        self.update_zoom()
+        shared.state_schema.set_uint(key, (zoom_level := zoom_level + 1))
+        self.update_zoom(zoom_level)
 
     def zoom_out(self, *_args: Any) -> None:
         """Decreases the zoom level of all views."""
+        key = "grid-zoom-level" if shared.grid_view else "list-zoom-level"
 
-        if (zoom_level := shared.state_schema.get_uint("zoom-level")) < 2:
+        # The minimum zoom level is 1 for grid and 0 for list view
+        min_zoom_level = 0 + int(shared.grid_view)
+
+        if (zoom_level := shared.state_schema.get_uint(key)) <= min_zoom_level:
             return
 
-        shared.state_schema.set_uint("zoom-level", zoom_level - 1)
-        self.update_zoom()
+        shared.state_schema.set_uint(key, (zoom_level := zoom_level - 1))
+        self.update_zoom(zoom_level)
 
-    def update_zoom(self) -> None:
-        """Update the zoom level of all items in the navigation stack"""
-        shared.postmaster.emit("zoom", shared.state_schema.get_uint("zoom-level"))
+    def update_zoom(self, zoom_level: Optional[int] = None) -> None:
+        """
+        Update the zoom level of all items in the navigation stack
+
+        If `zoom-level` is not provided, it will be read from dconf.
+        """
+
+        shared.postmaster.emit(
+            "zoom",
+            zoom_level
+            or shared.state_schema.get_uint(
+                "grid-zoom-level"
+                if shared.grid_view
+                else "list-zoom-level"
+            ),
+        )
 
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
@@ -592,10 +611,10 @@ class HypWindow(Adw.ApplicationWindow):
                 )
             case self.path_bar_clamp:
                 # HACK: Keep track of the last focused item and scroll to that instead
-                if isinstance(view := self.get_visible_page().view, Gtk.GridView):
-                    view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
+                if shared.grid_view:
+                    self.get_visible_page().view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
                 else:
-                    view.scroll_to(0, None, Gtk.ListScrollFlags.FOCUS)
+                    self.get_visible_page().view.scroll_to(0, None, Gtk.ListScrollFlags.FOCUS)
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
@@ -660,7 +679,11 @@ class HypWindow(Adw.ApplicationWindow):
         nav_bin.view.push(nav_bin.next_pages[-1])
 
     def __reset_zoom(self, *_args: Any) -> None:
-        shared.state_schema.reset("zoom-level")
+        shared.state_schema.reset(
+            "grid-zoom-level"
+            if shared.grid_view
+            else "list-zoom-level"
+        )
         self.update_zoom()
 
     def __reload(self, *_args: Any) -> None:
@@ -828,19 +851,16 @@ class HypWindow(Adw.ApplicationWindow):
             self.rename_revealer_label.set_label(message)
 
     def __toggle_view(self, *_args: Any) -> None:
-        shared.state_schema.set_boolean(
-            "grid-view", not isinstance(self.get_visible_page().view, Gtk.GridView)
-        )
+        shared.grid_view = not shared.grid_view
+        shared.state_schema.set_boolean("grid-view", shared.grid_view)
         shared.postmaster.emit("view-changed")
 
     def __view_changed(self, *_args: Any) -> None:
-        grid_view = isinstance(self.get_visible_page().view, Gtk.GridView)
-
         for button in (self.header_bar_view_button, self.action_bar_view_button):
             button.set_icon_name(
-                "view-list-symbolic" if grid_view else "view-grid-symbolic"
+                "view-list-symbolic" if shared.grid_view else "view-grid-symbolic"
             )
-            button.set_tooltip_text(_("List View") if grid_view else _("Grid View"))
+            button.set_tooltip_text(_("List View") if shared.grid_view else _("Grid View"))
 
     def __sidebar_right_click(
         self, gesture: Gtk.GestureClick, _n: int, x: float, y: float, gfile: Gio.File

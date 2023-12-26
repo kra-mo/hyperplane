@@ -485,8 +485,7 @@ class HypItemsPage(Adw.NavigationPage):
         return self.column_view
 
     def __view_changed(self, *_args: Any) -> None:
-        if self.scrolled_window.get_child() == self.view:
-            change = True
+        change = self.scrolled_window.get_child() == self.view
 
         self.view = (
             self.__get_grid_view()
