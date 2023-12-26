@@ -90,15 +90,17 @@ class HypVolumesBox(Adw.Bin):
             eject_button.add_css_class("flat")
             eject_button.add_css_class("sidebar-button")
 
+            def eject_with_operation_finish(volume, result) -> None:
+                try:
+                    volume.eject_with_operation_finish(result)
+                except GLib.Error:
+                    return
+
             def do_eject(volume: Gio.Volume) -> None:
                 volume.eject_with_operation(
                     Gio.MountUnmountFlags.NONE,
                     Gtk.MountOperation.new(),
-                    # You might be asking:
-                    # Why the fuck am I creating a useless lambda
-                    # instead of just setting the arg to None?
-                    # Ask Gio why it crashes if I don't do that.
-                    callback=lambda *_: None,
+                    callback=eject_with_operation_finish,
                 )
 
             def eject() -> None:
@@ -249,8 +251,10 @@ class HypVolumesBox(Adw.Bin):
                 callback=self.__mount_finish,
             )
 
-    def __mount_finish(self, volume: Gio.Volume, _result: Gio.AsyncResult) -> None:
-        # TODO: I have no idea how PyGObject handles errors here
-        # https://docs.gtk.org/gio/method.Volume.mount_finish.html
+    def __mount_finish(self, volume: Gio.Volume, result: Gio.AsyncResult) -> None:
+        try:
+            volume.mount_finish(result)
+        except GLib.Error:
+            return
 
         self.get_root().new_page(volume.get_mount().get_root())
