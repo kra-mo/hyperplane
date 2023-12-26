@@ -3,120 +3,134 @@ using Adw 1;
 
 template $HypItem : Adw.Bin {
   Box box {
-    Overlay thumbnail {
+    Overlay circular_thumbnail {
       overflow: hidden;
       halign: center;
 
       [overlay]
-      Box dir_thumbnails {
-        halign: start;
-        valign: start;
-        margin-end: 6;
-
-        Overlay dir_thumbnail_1 {
-          overflow: hidden;
-
-          [overlay]
-          Picture dir_picture_1 {
-            visible: false;
-            content-fit: cover;
-          }
-
-          Image {
-            visible: bind dir_picture_1.visible inverted;
-          }
-
-          styles [
-            "small-thumbnail",
-          ]
-        }
-
-        Overlay dir_thumbnail_2 {
-          overflow: hidden;
-
-          [overlay]
-          Picture dir_picture_2 {
-            visible: false;
-            content-fit: cover;
-          }
-
-          Image {
-            visible: bind dir_picture_2.visible inverted;
-          }
-
-          styles [
-            "small-thumbnail",
-          ]
-        }
-
-        Overlay dir_thumbnail_3 {
-          overflow: hidden;
-
-          [overlay]
-          Picture dir_picture_3 {
-            visible: false;
-            content-fit: cover;
-          }
-
-          Image {
-            visible: bind dir_picture_3.visible inverted;
-          }
-
-          styles [
-            "small-thumbnail",
-          ]
-        }
-      }
-
-      [overlay]
-      Picture picture {
-        content-fit: cover;
-        paintable: bind template.thumbnail-paintable;
-
-        styles [
-          "thumbnail-picture",
-        ]
-      }
-
-      [overlay]
-      Box play_button {
-        halign: center;
-        valign: center;
-        visible: false;
-
-        Image play_button_icon {
-          icon-name: 'media-playback-start-symbolic';
-        }
-
-        styles [
-          "osd",
-          "circular-box",
-        ]
-      }
-
-      [overlay]
-      Label extension_label {
-        valign: end;
-        halign: end;
-        margin-bottom: 5;
-        margin-end: 5;
-        margin-start: 5;
-        ellipsize: end;
-        label: bind template.extension;
-
-        styles [
-          "file-extension",
-        ]
-      }
-
-      Image icon {
+      Image circular_icon {
         gicon: bind template.gicon;
-        visible: bind picture.visible inverted;
+
+        styles [
+          "circular-icon"
+        ]
       }
 
-      styles [
-        "item-thumbnail",
-      ]
+      Overlay thumbnail {
+        overflow: hidden;
+        halign: center;
+
+        [overlay]
+        Box dir_thumbnails {
+          halign: start;
+          valign: start;
+          margin-end: 6;
+
+          Overlay dir_thumbnail_1 {
+            overflow: hidden;
+
+            [overlay]
+            Picture dir_picture_1 {
+              visible: false;
+              content-fit: cover;
+            }
+
+            Image {
+              visible: bind dir_picture_1.visible inverted;
+            }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
+
+          Overlay dir_thumbnail_2 {
+            overflow: hidden;
+
+            [overlay]
+            Picture dir_picture_2 {
+              visible: false;
+              content-fit: cover;
+            }
+
+            Image {
+              visible: bind dir_picture_2.visible inverted;
+            }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
+
+          Overlay dir_thumbnail_3 {
+            overflow: hidden;
+
+            [overlay]
+            Picture dir_picture_3 {
+              visible: false;
+              content-fit: cover;
+            }
+
+            Image {
+              visible: bind dir_picture_3.visible inverted;
+            }
+
+            styles [
+              "small-thumbnail",
+            ]
+          }
+        }
+
+        [overlay]
+        Picture picture {
+          content-fit: cover;
+          paintable: bind template.thumbnail-paintable;
+
+          styles [
+            "thumbnail-picture",
+          ]
+        }
+
+        [overlay]
+        Box play_button {
+          halign: center;
+          valign: center;
+          visible: false;
+
+          Image play_button_icon {
+            icon-name: 'media-playback-start-symbolic';
+          }
+
+          styles [
+            "osd",
+            "circular-box",
+          ]
+        }
+
+        [overlay]
+        Label extension_label {
+          valign: end;
+          halign: end;
+          margin-bottom: 5;
+          margin-end: 5;
+          margin-start: 5;
+          ellipsize: end;
+          label: bind template.extension;
+
+          styles [
+            "file-extension",
+          ]
+        }
+
+        Image icon {
+          gicon: bind template.gicon;
+          visible: bind picture.visible inverted;
+        }
+
+        styles [
+          "item-thumbnail",
+        ]
+      }
     }
 
     Label label {

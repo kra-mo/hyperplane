@@ -50,6 +50,7 @@ del path
 app = None  # pylint: disable=invalid-name
 search = ""  # pylint: disable=invalid-name
 right_clicked_file = None  # pylint: disable=invalid-name
+grid_view = state_schema.get_boolean("grid-view")
 undo_queue = {}
 
 postmaster = HypPostmasterGeneral()

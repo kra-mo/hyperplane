@@ -39,6 +39,9 @@ class HypItem(Adw.Bin):
     box: Gtk.Box = Gtk.Template.Child()
     label: Gtk.Label = Gtk.Template.Child()
 
+    circular_thumbnail: Gtk.Overlay = Gtk.Template.Child()
+    circular_icon: Gtk.Image = Gtk.Template.Child()
+
     thumbnail: Gtk.Overlay = Gtk.Template.Child()
     icon: Gtk.Image = Gtk.Template.Child()
     extension_label: Gtk.Label = Gtk.Template.Child()
@@ -72,15 +75,27 @@ class HypItem(Adw.Bin):
 
     def __init__(self, item, page, **kwargs) -> None:
         super().__init__(**kwargs)
+        self.full_name = None
+        self.stem = None
+        self._thumbnail_paintable = None
+        self.circular_thumbnail.set_measure_overlay(self.circular_icon, True)
+
         self.item = item
         self.page = page
 
-        self.__zoom(None, shared.state_schema.get_uint("zoom-level"))
-        shared.postmaster.connect("zoom", self.__zoom)
-
         # Set up properties that are dependent on whether
-        # the item is in a grid or lsit view
+        # the item is in a grid or list view
         self.__view_setup()
+
+        self.zoom_level = 1
+        self.__zoom(
+            shared.state_schema.get_uint(
+                "grid-zoom-level" if shared.grid_view else "list-zoom-level"
+            )
+        )
+        shared.postmaster.connect(
+            "zoom", lambda _obj, zoom_level: self.__zoom(zoom_level)
+        )
 
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
@@ -92,6 +107,7 @@ class HypItem(Adw.Bin):
 
         self.thumb_init_classes = self.thumbnail.get_css_classes()
         self.icon_init_classes = self.icon.get_css_classes()
+        self.circular_icon_init_classes = self.circular_icon.get_css_classes()
         self.ext_init_classes = self.extension_label.get_css_classes()
         self.dir_thumb_init_classes = self.dir_thumbnail_1.get_css_classes()
         self.dir_icon_init_classes = self.dir_thumbnail_1.get_child().get_css_classes()
@@ -148,9 +164,9 @@ class HypItem(Adw.Bin):
         self.edit_name = self.file_info.get_edit_name()
 
         self.is_dir = self.content_type == "inode/directory"
-        display_name = self.file_info.get_display_name()
+        self.full_name = self.file_info.get_display_name()
         if self.is_dir:
-            self.display_name = display_name
+            self.stem = self.full_name
             self.extension = None
             idle_add(self.picture.set_content_fit, Gtk.ContentFit.FILL)
 
@@ -172,11 +188,11 @@ class HypItem(Adw.Bin):
         else:
             # Blacklist some MIME types from getting extension badges
             if self.content_type in DOT_IS_NOT_EXTENSION:
-                self.display_name = display_name
+                self.stem = self.full_name
                 self.extension = None
             else:
-                self.display_name = Path(display_name).stem
-                self.extension = Path(display_name).suffix[1:].upper()
+                self.stem = Path(self.full_name).stem
+                self.extension = Path(self.full_name).suffix[1:].upper()
             idle_add(self.picture.set_content_fit, Gtk.ContentFit.COVER)
 
             if thumbnail_path := self.file_info.get_attribute_byte_string(
@@ -204,6 +220,7 @@ class HypItem(Adw.Bin):
             else:
                 self.__thumbnail_cb()
 
+        self.display_name = self.stem if self.zoom_level else self.full_name
         idle_add(self.extension_label.set_visible, bool(self.extension))
 
     def unbind(self) -> None:
@@ -341,6 +358,7 @@ class HypItem(Adw.Bin):
                 else shared.closed_folder_texture
             )
 
+        self.__set_circular(not texture)
         idle_add(self.picture.set_visible, bool(texture))
         if not self.is_dir:
             for thumbnail in (
@@ -374,6 +392,11 @@ class HypItem(Adw.Bin):
             self.icon_init_classes + [f"{self.color}-icon"],
         )
         idle_add(
+            self.circular_icon.set_css_classes,
+            self.circular_icon_init_classes
+            + [f"{self.color}-icon", f"{self.color}-background"],
+        )
+        idle_add(
             self.thumbnail.set_css_classes,
             self.thumb_init_classes + [f"{self.color}-background"],
         )
@@ -382,7 +405,30 @@ class HypItem(Adw.Bin):
             self.ext_init_classes + [f"{self.color}-extension"],
         )
 
-    def __zoom(self, _obj: Any, zoom_level: int) -> None:
+    def __set_circular(self, circular: bool) -> None:
+        # The icon can never be circular if the zoom level is greater than 0
+        if self.zoom_level:
+            circular = False
+
+        idle_add(self.circular_icon.set_visible, circular)
+        idle_add(self.thumbnail.set_visible, not circular)
+
+    def __zoom(self, zoom_level: int) -> None:
+        # No need to update if the page is currently orphaned
+        if not self.page.get_parent():
+            return
+
+        self.zoom_level = zoom_level
+        self.__set_circular(not self.thumbnail_paintable)
+
+        if zoom_level:
+            self.display_name = self.stem
+            self.extension_label.set_opacity(1)
+        else:
+            # Special case only for list view
+            self.display_name = self.full_name
+            self.extension_label.set_opacity(0)
+
         box_margin = zoom_level * 3
         self.box.set_margin_start(box_margin)
         self.box.set_margin_end(box_margin)
@@ -398,6 +444,8 @@ class HypItem(Adw.Bin):
         self.play_button_icon.set_pixel_size((zoom_level * 4) + 8)
 
         match zoom_level:
+            case 0:
+                self.thumbnail.set_size_request(48, 48)
             case 1:
                 # This is not the exact aspect ratio, but it is close enough.
                 # It's good for keeping the folder textures sharp.
@@ -408,7 +456,11 @@ class HypItem(Adw.Bin):
             case _:
                 self.thumbnail.set_size_request(40 * zoom_level, 32 * zoom_level)
 
-        if zoom_level < 3:
+        if zoom_level < 1:
+            self.dir_thumbnails.set_spacing(8)
+            self.dir_thumbnails.set_margin_start(8)
+            self.dir_thumbnails.set_margin_top(4)
+        elif zoom_level < 3:
             self.dir_thumbnails.set_spacing(12)
             self.dir_thumbnails.set_margin_start(10)
             self.dir_thumbnails.set_margin_top(6)
@@ -446,7 +498,7 @@ class HypItem(Adw.Bin):
             self.icon.set_pixel_size(32)
 
     def __view_setup(self, *_args: Any) -> None:
-        if isinstance(self.page.view, Gtk.GridView):
+        if shared.grid_view:
             self.box.set_orientation(Gtk.Orientation.VERTICAL)
             self.label.set_wrap(True)
             self.label.set_lines(3)
