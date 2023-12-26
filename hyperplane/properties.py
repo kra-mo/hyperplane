@@ -74,7 +74,7 @@ class HypPropertiesWindow(Adw.Window):
         content_type = file_info.get_content_type()
         gicon = file_info.get_symbolic_icon()
         thumbnail_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH)
-        size = file_info.get_size() if gfile.get_uri_scheme() == "file" else None
+        size = file_info.get_size()
         file_type = file_info.get_file_type()
         access = file_info.get_access_date_time()
         modified = file_info.get_modification_date_time()
@@ -383,10 +383,11 @@ class HypPropertiesWindow(Adw.Window):
                     modified: _("Modified"),
                     created: _("Created"),
                 }.items():
-                    if date:
+                    # Don't display 1970
+                    if date and date.to_unix():
                         date_row = Adw.ActionRow(
                             title=title,
-                            subtitle=access.format(r"%c"),
+                            subtitle=date.format(r"%c"),
                             subtitle_selectable=True,
                         )
                         date_row.add_css_class("property")
