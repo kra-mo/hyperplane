@@ -379,9 +379,7 @@ class HypWindow(Adw.ApplicationWindow):
             "zoom",
             zoom_level
             or shared.state_schema.get_uint(
-                "grid-zoom-level"
-                if shared.grid_view
-                else "list-zoom-level"
+                "grid-zoom-level" if shared.grid_view else "list-zoom-level"
             ),
         )
 
@@ -614,7 +612,9 @@ class HypWindow(Adw.ApplicationWindow):
                 if shared.grid_view:
                     self.get_visible_page().view.scroll_to(0, Gtk.ListScrollFlags.FOCUS)
                 else:
-                    self.get_visible_page().view.scroll_to(0, None, Gtk.ListScrollFlags.FOCUS)
+                    self.get_visible_page().view.scroll_to(
+                        0, None, Gtk.ListScrollFlags.FOCUS
+                    )
 
     def __toggle_search_entry(self, *_args: Any) -> None:
         if self.title_stack.get_visible_child() != self.search_entry_clamp:
@@ -680,9 +680,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __reset_zoom(self, *_args: Any) -> None:
         shared.state_schema.reset(
-            "grid-zoom-level"
-            if shared.grid_view
-            else "list-zoom-level"
+            "grid-zoom-level" if shared.grid_view else "list-zoom-level"
         )
         self.update_zoom()
 
@@ -812,7 +810,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_entry.set_text(item.edit_name)
 
         self.rename_popover.popup()
-        self.rename_entry.select_region(0, len(item.display_name))
+        self.rename_entry.select_region(0, len(item.stem))
         self.rename_item = item
 
     def __do_rename(self, *_args: Any) -> None:
@@ -860,7 +858,9 @@ class HypWindow(Adw.ApplicationWindow):
             button.set_icon_name(
                 "view-list-symbolic" if shared.grid_view else "view-grid-symbolic"
             )
-            button.set_tooltip_text(_("List View") if shared.grid_view else _("Grid View"))
+            button.set_tooltip_text(
+                _("List View") if shared.grid_view else _("Grid View")
+            )
 
     def __sidebar_right_click(
         self, gesture: Gtk.GestureClick, _n: int, x: float, y: float, gfile: Gio.File
