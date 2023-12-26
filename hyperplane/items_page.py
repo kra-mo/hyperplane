@@ -132,27 +132,23 @@ class HypItemsPage(Adw.NavigationPage):
         # Selection
         self.multi_selection = Gtk.MultiSelection.new(self.sort_list)
 
-        # Grid view
-        self.grid_factory = Gtk.SignalListItemFactory()
-        self.grid_factory.connect("setup", self.__grid_setup)
-        self.grid_factory.connect("bind", self.__grid_bind)
-        self.grid_factory.connect("unbind", self.__grid_unbind)
+        # Item factory
+        self.item_factory = Gtk.SignalListItemFactory()
+        self.item_factory.connect("setup", self.__item_setup)
+        self.item_factory.connect("bind", self.__item_bind)
+        self.item_factory.connect("unbind", self.__item_unbind)
 
-        self.grid_view.set_factory(self.grid_factory)
+        # Grid view
+        self.grid_view.set_factory(self.item_factory)
         self.grid_view.set_model(self.multi_selection)
         self.grid_view.connect("activate", self.activate)
 
         # Column view
-        self.item_column_factory = Gtk.SignalListItemFactory()
-        self.item_column_factory.connect("setup", self.__item_column_setup)
-        self.item_column_factory.connect("bind", self.__item_column_bind)
-        self.item_column_factory.connect("unbind", self.__item_column_unbind)
         self.column_view.append_column(
             Gtk.ColumnViewColumn(
-                title=_("Item"), factory=self.item_column_factory, resizable=True
+                title=_("Item"), factory=self.item_factory, resizable=True
             )
         )
-
         self.column_view.set_model(self.multi_selection)
         self.column_view.connect("activate", self.activate)
 
@@ -400,37 +396,21 @@ class HypItemsPage(Adw.NavigationPage):
                 self.scrolled_window.set_child(self.no_matching_items)
                 return
 
-    def __grid_setup(
+    def __item_setup(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         list_item.set_child(HypItem(list_item, self))
 
-    def __grid_bind(
+    def __item_bind(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         GLib.Thread.new(None, list_item.get_child().bind)
         self.grid_items[list_item.get_position()] = list_item.get_child()
 
-    def __grid_unbind(
+    def __item_unbind(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         list_item.get_child().unbind()
-
-    def __item_column_setup(
-        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
-    ) -> None:
-        cell.set_child(HypItem(cell, self))
-
-    def __item_column_bind(
-        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
-    ) -> None:
-        GLib.Thread.new(None, cell.get_child().bind)
-        self.list_items[cell.get_position()] = cell.get_child()
-
-    def __item_column_unbind(
-        self, _factory: Gtk.SignalListItemFactory, cell: Gtk.ColumnViewCell
-    ) -> None:
-        cell.get_child().unbind()
 
     def __tags_changed(self, _obj: GObject.Object, change: Gtk.FilterChange) -> None:
         self.item_filter.changed(change)
