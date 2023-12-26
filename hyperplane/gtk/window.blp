@@ -236,14 +236,14 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [end]
-            ToggleButton search_button {
-              icon-name: "system-search-symbolic";
-              tooltip-text: _("Search");
+            Button header_bar_view_button {
+              action-name: "win.toggle-view";
             }
 
             [end]
-            Button header_bar_view_button {
-              action-name: "win.toggle-view";
+            ToggleButton search_button {
+              icon-name: "system-search-symbolic";
+              tooltip-text: _("Search");
             }
           }
 
