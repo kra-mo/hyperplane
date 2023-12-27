@@ -674,14 +674,17 @@ class HypItemsPage(Adw.NavigationPage):
         # TODO: Look up the pages with the paths and update those
         match item[0]:
             case "copy":
-                for trash_item in item[1]:
+                for copy_item in item[1]:
                     try:
-                        rm(trash_item)
+                        rm(copy_item)
                     except FileNotFoundError:
                         pass
             case "cut":
                 for gfiles in item[1]:
-                    move(gfiles[1], gfiles[0])
+                    try:
+                        move(gfiles[1], gfiles[0])
+                    except FileExistsError:
+                        pass
             case "rename":
                 try:
                     item[1].set_display_name(item[2])
