@@ -33,25 +33,24 @@ PROFILE = "@PROFILE@"
 schema = Gio.Settings.new(APP_ID)
 state_schema = Gio.Settings.new(APP_ID + ".State")
 
+app = None  # pylint: disable=invalid-name
+search = ""  # pylint: disable=invalid-name
+right_clicked_file = None  # pylint: disable=invalid-name
+undo_queue = {}
+
+grid_view = state_schema.get_boolean("grid-view")
+show_hidden = state_schema.get_boolean("show-hidden")
+
 home_path = Path(GLib.get_user_data_dir(), "hyperplane", "home")
 home = Gio.File.new_for_path(str(home_path))
 
-show_hidden = state_schema.get_boolean("show-hidden")
-
 tags = []
-
 if (path := home_path / ".hyperplane").is_file():
     tags = list(
         tag for tag in path.read_text(encoding="utf-8").strip().split("\n") if tag
     )
 
 del path
-
-app = None  # pylint: disable=invalid-name
-search = ""  # pylint: disable=invalid-name
-right_clicked_file = None  # pylint: disable=invalid-name
-grid_view = state_schema.get_boolean("grid-view")
-undo_queue = {}
 
 postmaster = HypPostmasterGeneral()
 
