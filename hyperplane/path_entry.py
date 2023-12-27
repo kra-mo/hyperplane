@@ -31,9 +31,14 @@ class HypPathEntry(Gtk.Entry):
 
     __gtype_name__ = "HypPathEntry"
 
+    completer = Gio.FilenameCompleter.new()
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.connect("activate", self.__activate)
+        self.connect("changed", self.__complete)
+        self.prev_text = ""
+        self.prev_completion = ""
 
     @GObject.Signal(name="hide-entry")
     def hide(self) -> None:
@@ -42,6 +47,38 @@ class HypPathEntry(Gtk.Entry):
 
         Containers of this widget should connect to it and react accordingly.
         """
+
+    def __complete(self, *_args: Any) -> None:
+        text = self.get_text()
+
+        # If the user is typing a tag, return
+        if text.startswith("//"):
+            return
+
+        if completion := self.completer.get_completion_suffix(text):
+            # If a deletion happened, return
+            # There is probably a more logical way to do this
+            if (
+                (len(completion) == 2 and not self.prev_completion.endswith(completion))
+                or completion.endswith(self.prev_completion)
+                or (
+                    self.prev_text.startswith(text)
+                    and self.prev_completion.endswith(completion)
+                )
+            ):
+                self.prev_text = text
+                self.prev_completion = completion
+                return
+
+            self.prev_text = text
+            self.prev_completion = completion
+
+            text_length = self.get_text_length()
+            new_text = text + completion
+
+            # Set the buffer directly so GTK doesn't freak out
+            self.get_buffer().set_text(new_text, len(new_text))
+            self.select_region(text_length, -1)
 
     def __activate(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
