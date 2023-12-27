@@ -22,9 +22,9 @@ A self-updating `GtkListBox` (wrapped in an `AdwBin`) of mountable volumes.
 
 To be used in a sidebar.
 """
-from typing import Optional
+from typing import Any, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
@@ -46,8 +46,14 @@ class HypVolumesBox(Adw.Bin):
 
     volume_monitor = Gio.VolumeMonitor.get()
 
+    _visible_rows: int
+    _has_any: bool
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+        self.visible_rows = 0
+        self.has_any = False
+
         self.actions = {}
         self.rows = {}
         self.build()
@@ -80,6 +86,14 @@ class HypVolumesBox(Adw.Bin):
         row = HypEditableRow(
             identifier=f"volume_{volume.get_identifier(Gio.VOLUME_IDENTIFIER_KIND_UUID)}"
         )
+
+        def set_visible_rows(row: HypEditableRow, *_args: Any) -> None:
+            # Add 1 if the widget is visible, subtract 1 otherwise
+            self.visible_rows += 2 * int(row.get_visible()) - 1
+
+        self.visible_rows += row.get_visible()
+        row.connect("notify::visible", set_visible_rows)
+
         row.title = volume.get_name()
         row.image.set_from_gicon(volume.get_symbolic_icon())
 
@@ -192,6 +206,29 @@ class HypVolumesBox(Adw.Bin):
 
         self.list_box.remove(row)
         self.actions.pop(row)
+
+    @property
+    def visible_rows(self) -> int:
+        """
+        The number of rows currently visible.
+
+        This is used for showing/hiding the separator via `has-any`.
+        """
+        return self._visible_rows
+
+    @visible_rows.setter
+    def visible_rows(self, n: int) -> None:
+        self._visible_rows = n
+        self.has_any = bool(self.visible_rows)
+
+    @GObject.Property(type=bool, default=False)
+    def has_any(self) -> str:
+        """Whether the row is actually editable."""
+        return self._has_any
+
+    @has_any.setter
+    def set_has_any(self, has_any: bool) -> None:
+        self._has_any = has_any
 
     def __right_click(
         self,
