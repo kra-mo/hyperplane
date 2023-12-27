@@ -20,7 +20,7 @@
 """An entry for navigating to paths or tags."""
 from typing import Any
 
-from gi.repository import Gio, GObject, Gtk
+from gi.repository import Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
 
@@ -40,6 +40,11 @@ class HypPathEntry(Gtk.Entry):
         self.prev_text = ""
         self.prev_completion = ""
 
+        # Capture the tab key
+        controller = Gtk.EventControllerKey.new()
+        controller.connect("key-pressed", self.__key_pressed)
+        self.add_controller(controller)
+
     @GObject.Signal(name="hide-entry")
     def hide(self) -> None:
         """
@@ -47,6 +52,24 @@ class HypPathEntry(Gtk.Entry):
 
         Containers of this widget should connect to it and react accordingly.
         """
+
+    # https://github.com/GNOME/nautilus/blob/5e8037c109fc00ba3778193404914db73f8fe95c/src/nautilus-location-entry.c#L511
+    def __key_pressed(
+        self,
+        _controller: Gtk.EventControllerKey,
+        keyval: int,
+        _keycode: int,
+        _state: Gdk.ModifierType,
+    ) -> None:
+        if keyval == Gdk.KEY_Tab:
+            if self.get_selection_bounds():
+                self.select_region(-1, -1)
+            else:
+                self.error_bell()
+
+            return Gdk.EVENT_STOP
+
+        return Gdk.EVENT_PROPAGATE
 
     def __complete(self, *_args: Any) -> None:
         text = self.get_text()
