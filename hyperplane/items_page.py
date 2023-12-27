@@ -395,7 +395,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __item_bind(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
-        GLib.Thread.new(None, list_item.get_child().bind)
+        list_item.get_child().bind()
         self.items[list_item.get_position()] = list_item.get_child()
 
     def __item_unbind(

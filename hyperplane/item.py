@@ -152,11 +152,10 @@ class HypItem(Adw.Bin):
 
     def bind(self) -> None:
         """Build the icon after the object has been bound."""
-        idle_add(self.__cut_uris_changed)
-
         self.file_info = self.item.get_item()
-
         self.gfile = self.file_info.get_attribute_object("standard::file")
+
+        self.__cut_uris_changed()
 
         self.gicon = get_symbolic(self.file_info.get_symbolic_icon())
         self.content_type = self.file_info.get_content_type()
@@ -168,7 +167,7 @@ class HypItem(Adw.Bin):
         if self.is_dir:
             self.stem = self.full_name
             self.extension = None
-            idle_add(self.picture.set_content_fit, Gtk.ContentFit.FILL)
+            self.picture.set_content_fit(Gtk.ContentFit.FILL)
 
             self.gfile.enumerate_children_async(
                 ",".join(
@@ -193,7 +192,7 @@ class HypItem(Adw.Bin):
             else:
                 self.stem = Path(self.full_name).stem
                 self.extension = Path(self.full_name).suffix[1:].upper()
-            idle_add(self.picture.set_content_fit, Gtk.ContentFit.COVER)
+            self.picture.set_content_fit(Gtk.ContentFit.COVER)
 
             if thumbnail_path := self.file_info.get_attribute_byte_string(
                 Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
@@ -221,7 +220,7 @@ class HypItem(Adw.Bin):
                 self.__thumbnail_cb()
 
         self.display_name = self.stem if self.zoom_level else self.full_name
-        idle_add(self.extension_label.set_visible, bool(self.extension))
+        self.extension_label.set_visible(bool(self.extension))
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
@@ -235,9 +234,8 @@ class HypItem(Adw.Bin):
 
         def done(index) -> None:
             for thumbnail_index in range(1, 4):
-                idle_add(
-                    getattr(self, f"dir_thumbnail_{thumbnail_index}").set_visible,
-                    index + 1 >= thumbnail_index,
+                getattr(self, f"dir_thumbnail_{thumbnail_index}").set_visible(
+                    index + 1 >= thumbnail_index
                 )
 
             self.__thumbnail_cb(open_folder=bool(index))
@@ -277,31 +275,28 @@ class HypItem(Adw.Bin):
 
             gicon = get_symbolic(file_info.get_symbolic_icon())
 
-            idle_add(thumbnail.get_child().set_from_gicon, gicon)
+            thumbnail.get_child().set_from_gicon(gicon)
 
             if content_type == "inode/directory":
-                idle_add(
-                    thumbnail.set_css_classes,
+                thumbnail.set_css_classes(
                     self.dir_thumb_init_classes
-                    + ["light-blue-background", "white-icon"],
+                    + ["light-blue-background", "white-icon"]
                 )
-                idle_add(
-                    thumbnail.get_child().set_css_classes,
+
+                thumbnail.get_child().set_css_classes(
                     self.dir_icon_init_classes,
                 )
                 self.__dir_thumbnail_cb(None, picture)
                 return
 
-            idle_add(
-                thumbnail.set_css_classes,
-                self.dir_thumb_init_classes + ["white-background"],
+            thumbnail.set_css_classes(
+                self.dir_thumb_init_classes + ["white-background"]
             )
 
             color = get_color_for_symbolic(content_type, gicon)
 
-            idle_add(
-                thumbnail.get_child().set_css_classes,
-                self.dir_icon_init_classes + [f"{color}-icon-light-only"],
+            thumbnail.get_child().set_css_classes(
+                self.dir_icon_init_classes + [f"{color}-icon-light-only"]
             )
 
             if thumbnail_path := file_info.get_attribute_byte_string(
