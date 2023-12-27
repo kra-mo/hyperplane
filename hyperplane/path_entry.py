@@ -19,6 +19,7 @@
 
 """An entry for navigating to paths or tags."""
 from typing import Any
+from urllib.parse import quote, unquote, urlparse
 
 from gi.repository import Gdk, Gio, GObject, Gtk
 
@@ -32,6 +33,7 @@ class HypPathEntry(Gtk.Entry):
     __gtype_name__ = "HypPathEntry"
 
     completer = Gio.FilenameCompleter.new()
+    completer.set_dirs_only(True)
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -78,30 +80,45 @@ class HypPathEntry(Gtk.Entry):
         if text.startswith("//"):
             return
 
-        if completion := self.completer.get_completion_suffix(text):
-            # If a deletion happened, return
-            # There is probably a more logical way to do this
-            if (
-                (len(completion) == 2 and not self.prev_completion.endswith(completion))
-                or completion.endswith(self.prev_completion)
-                or (
-                    self.prev_text.startswith(text)
-                    and self.prev_completion.endswith(completion)
-                )
-            ):
-                self.prev_text = text
-                self.prev_completion = completion
-                return
+        relative_completion = False
+        if not (completion := self.completer.get_completion_suffix(text)) and (
+            gfile := self.get_root().get_visible_page().gfile
+        ):
+            completion = self.completer.get_completion_suffix(
+                f"{gfile.get_uri()}/{quote(text)}"
+            )
+            relative_completion = True
 
+        if not completion:
+            return
+
+        # Unquote of the completion is for a URI
+        if "://" in text or relative_completion:
+            completion = unquote(completion)
+
+        # If a deletion happened, return
+        # There is probably a more logical way to do this
+        if (
+            (len(completion) == 2 and not self.prev_completion.endswith(completion))
+            or completion.endswith(self.prev_completion)
+            or (
+                self.prev_text.startswith(text)
+                and self.prev_completion.endswith(completion)
+            )
+        ):
             self.prev_text = text
             self.prev_completion = completion
+            return
 
-            text_length = self.get_text_length()
-            new_text = text + completion
+        self.prev_text = text
+        self.prev_completion = completion
 
-            # Set the buffer directly so GTK doesn't freak out
-            self.get_buffer().set_text(new_text, len(new_text))
-            self.select_region(text_length, -1)
+        text_length = self.get_text_length()
+        new_text = text + completion
+
+        # Set the buffer directly so GTK doesn't freak out
+        self.get_buffer().set_text(new_text, len(new_text))
+        self.select_region(text_length, -1)
 
     def __activate(self, entry, *_args: Any) -> None:
         text = entry.get_text().strip()
@@ -122,13 +139,25 @@ class HypPathEntry(Gtk.Entry):
             return
 
         if "://" in text:
-            gfile = Gio.File.new_for_uri(text)
+            # Don't quote the scheme
+            prefix = f"{urlparse(text).scheme}://"
+            gfile = Gio.File.new_for_uri(f"{prefix}{quote(text.removeprefix(prefix))}")
         else:
             gfile = Gio.File.new_for_path(text)
 
-        if (
-            not gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
-            == Gio.FileType.DIRECTORY
+        # If neither the absolute nor relative path is valid
+        if not (
+            gfile.query_file_type(Gio.FileQueryInfoFlags.NONE) == Gio.FileType.DIRECTORY
+            or (
+                not "://" in text
+                and (page_gfile := self.get_root().get_visible_page().gfile)
+                and (
+                    gfile := Gio.File.new_for_uri(
+                        f"{page_gfile.get_uri()}/{quote(text)}"
+                    )
+                ).query_file_type(Gio.FileQueryInfoFlags.NONE)
+                == Gio.FileType.DIRECTORY
+            )
         ):
             self.get_root().send_toast(_("Unable to find path"))
             return

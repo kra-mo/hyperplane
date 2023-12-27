@@ -605,9 +605,9 @@ class HypWindow(Adw.ApplicationWindow):
                 elif page.tags:
                     self.path_entry.set_text("//" + "//".join(page.tags) + "//")
 
-                self.set_focus(self.path_entry)
-                self.path_entry.select_region(-1, -1)
+                self.path_entry.select_region(0, -1)
 
+                self.set_focus(self.path_entry)
                 self.path_entry_connection = self.path_entry.connect(
                     "notify::has-focus", self.__path_entry_focus
                 )
