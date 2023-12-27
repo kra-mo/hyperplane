@@ -19,7 +19,9 @@
 
 """A view of `HypItem`s to be added to an `AdwNavigationView`."""
 from collections import namedtuple
+from itertools import chain
 from pathlib import Path
+from shutil import ReadError, get_unpack_formats, unpack_archive
 from time import time
 from typing import Any, Callable, Generator, Iterable, Optional
 
@@ -247,10 +249,39 @@ class HypItemsPage(Adw.NavigationPage):
 
         gfile = file_info.get_attribute_object("standard::file")
 
-        if file_info.get_content_type() == "inode/directory":
+        content_type = file_info.get_content_type()
+
+        # Open in the app if it is a directory
+        if content_type == "inode/directory":
             self.get_root().new_page(gfile)
             return
 
+        # Unpack if is it an archive
+        try:
+            assert (path := gfile.get_path())
+            assert (dst := self.__get_dst().get_path())
+        except AssertionError:
+            pass
+        else:
+            if path.endswith(
+                tuple(
+                    chain(*(unpack_format[1] for unpack_format in get_unpack_formats()))
+                )
+            ):
+                # Removing the `.tar` suffix is a hack,
+                # but it works and I can't think of a better solution
+                if (
+                    extract_dir := Path(dst) / Path(path).stem.removesuffix(".tar")
+                ).is_dir():
+                    self.get_root().send_toast(
+                        _("A folder with that name already exists.")
+                    )
+                    return
+
+                GLib.Thread.new(None, unpack_archive, path, extract_dir)
+                return
+
+        # Open externally otherwise
         if not (
             uri := file_info.get_attribute_string(
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI
@@ -296,6 +327,20 @@ class HypItemsPage(Adw.NavigationPage):
                         Gtk.NamedAction.new(f"page.{name}"),
                     )
                 )
+
+    def __get_dst(self) -> Gio.File:
+        if self.tags:
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            return Gio.File.new_for_path(
+                str(
+                    Path(
+                        shared.home_path,
+                        *tags,
+                    )
+                )
+            )
+
+        return self.gfile
 
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
@@ -559,18 +604,7 @@ class HypItemsPage(Adw.NavigationPage):
     ) -> None:
         # TODO: This is copy-paste from __paste()
         for src in file_list:
-            if self.tags:
-                tags = tuple(tag for tag in shared.tags if tag in self.tags)
-                dst = Gio.File.new_for_path(
-                    str(
-                        Path(
-                            shared.home_path,
-                            *tags,
-                        )
-                    )
-                )
-            else:
-                dst = self.gfile
+            dst = self.__get_dst()
 
             try:
                 dst = Gio.File.new_for_path(
@@ -592,18 +626,7 @@ class HypItemsPage(Adw.NavigationPage):
         self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x: float, _y: float
     ) -> None:
         # TODO: Again, copy-paste from __paste()
-        if self.tags:
-            tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            dst = Gio.File.new_for_path(
-                str(
-                    Path(
-                        shared.home_path,
-                        *tags,
-                    )
-                )
-            )
-        else:
-            dst = self.gfile
+        dst = self.__get_dst()
 
         texture_bytes = texture.save_to_png_bytes()
 
@@ -631,18 +654,7 @@ class HypItemsPage(Adw.NavigationPage):
         if not text:  # If text is an empty string
             return
 
-        if self.tags:
-            tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            dst = Gio.File.new_for_path(
-                str(
-                    Path(
-                        shared.home_path,
-                        *tags,
-                    )
-                )
-            )
-        else:
-            dst = self.gfile
+        dst = self.__get_dst()
 
         dst = dst.get_child_for_display_name(_("Dropped Text") + ".txt")
 
@@ -738,11 +750,7 @@ class HypItemsPage(Adw.NavigationPage):
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
 
     def __new_folder(self, *_args: Any) -> None:
-        if self.tags:
-            tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            gfile = Gio.File.new_for_path(str(Path(shared.home_path, *tags)))
-        else:
-            gfile = self.gfile
+        gfile = self.__get_dst()
 
         preferences_group = Adw.PreferencesGroup(width_request=360)
         revealer_label = Gtk.Label(
@@ -840,18 +848,7 @@ class HypItemsPage(Adw.NavigationPage):
         clipboard = Gdk.Display.get_default().get_clipboard()
         paths = []
 
-        if self.tags:
-            tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            dst = Gio.File.new_for_path(
-                str(
-                    Path(
-                        shared.home_path,
-                        *tags,
-                    )
-                )
-            )
-        else:
-            dst = self.gfile
+        dst = self.__get_dst()
 
         def paste_file_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
             nonlocal paths
