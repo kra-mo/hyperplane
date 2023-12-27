@@ -204,6 +204,8 @@ class HypVolumesBox(Adw.Bin):
         if not (row := self.rows.get(volume)):
             return
 
+        self.visible_rows -= int(row.get_visible())
+
         self.list_box.remove(row)
         self.actions.pop(row)
 
