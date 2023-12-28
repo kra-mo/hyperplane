@@ -40,7 +40,6 @@ class HypNavigationBin(Adw.Bin):
     view: Adw.NavigationView
 
     next_pages: list[Adw.NavigationPage]
-    tags: list[str] = []
 
     def __init__(
         self,
@@ -55,8 +54,7 @@ class HypNavigationBin(Adw.Bin):
         if initial_gfile:
             self.view.add(HypItemsPage(gfile=initial_gfile))
         elif initial_tags:
-            self.tags = list(initial_tags)
-            self.view.add(HypItemsPage(tags=self.tags))
+            self.view.add(HypItemsPage(tags=list(initial_tags)))
 
         self.view.connect("popped", self.__popped)
         self.view.connect("pushed", self.__pushed)
@@ -77,21 +75,25 @@ class HypNavigationBin(Adw.Bin):
             if page.gfile and page.gfile.get_uri() == gfile.get_uri():
                 return
 
-            self.tags = []
             page = HypItemsPage(gfile=gfile)
         elif tag:
-            if tag in self.tags:
-                return
-            self.tags.append(tag)
-            page = HypItemsPage(tags=self.tags.copy())
+            if page.tags:
+                if tag in page.tags:
+                    return
+
+                tags = page.tags.copy()
+            else:
+                tags = []
+
+            tags.append(tag)
+            page = HypItemsPage(tags=tags)
         elif tags:
             tags = list(tags)
 
             if page.tags == tags:
                 return
 
-            self.tags = tags
-            page = HypItemsPage(tags=self.tags.copy())
+            page = HypItemsPage(tags=tags)
         else:
             return
 
@@ -123,11 +125,6 @@ class HypNavigationBin(Adw.Bin):
         self.next_pages.append(page)
 
         self.get_root().set_focus(self.view.get_visible_page().scrolled_window)
-
-        if tags := self.view.get_visible_page().tags:
-            self.tags = tags.copy()
-        else:
-            self.tags = []
 
     def __next_page(self, *_args: Any) -> None:
         if not self.next_pages:
