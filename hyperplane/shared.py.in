@@ -41,7 +41,9 @@ undo_queue = {}
 grid_view = state_schema.get_boolean("grid-view")
 show_hidden = state_schema.get_boolean("show-hidden")
 
-home_path = Path(GLib.get_user_data_dir(), "hyperplane", "home")
+home_path = Path(
+    getenv("HYPHOME", str(Path(GLib.get_user_data_dir(), "hyperplane", "home")))
+).expanduser()
 home = Gio.File.new_for_path(str(home_path))
 
 tags = []
@@ -68,7 +70,9 @@ is_flatpak = getenv("FLATPAK_ID") == APP_ID
 if (
     is_flatpak
     and (
-        path := Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        path := Path(
+            getenv("HOST_XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
+        )
         / "recently-used.xbel"
     ).is_file()
 ):

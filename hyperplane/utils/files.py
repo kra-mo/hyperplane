@@ -418,7 +418,7 @@ def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
         return
 
     trashinfo = (
-        Path(getenv("HOST_XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        Path(getenv("HOST_XDG_DATA_HOME", str(Path.home() / ".local" / "share")))
         / "Trash"
         / "info"
         / (trash_path.name + ".trashinfo")
