@@ -18,8 +18,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The main application singleton class."""
+import logging
 import sys
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional, Sequence
 
 import gi
 
@@ -45,7 +46,7 @@ class HypApplication(Adw.Application):
     def __init__(self) -> None:
         super().__init__(
             application_id=shared.APP_ID,
-            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+            flags=Gio.ApplicationFlags.HANDLES_OPEN,
         )
         logging_config()
 
@@ -65,6 +66,7 @@ class HypApplication(Adw.Application):
         new_window.arg_description = None
 
         self.add_main_option_entries((new_window,))
+        self.set_option_context_parameter_string("[DIRECTORIES]")
 
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
         self.create_action("about", self.__about)
@@ -78,9 +80,29 @@ class HypApplication(Adw.Application):
         self.add_action(show_hidden_action)
         self.set_accels_for_action("app.show-hidden", ("<primary>h",))
 
-    def do_activate(self) -> HypWindow:
+    def do_open(self, gfiles: Sequence[Gio.File], _n_files: int, _hint: str) -> None:
+        """Opens the given files."""
+        for gfile in gfiles:
+            if (
+                gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
+                != Gio.FileType.DIRECTORY
+            ):
+                logging.error("%s is not a directory.", gfile.get_uri())
+                return
+
+            self.do_activate(gfile)
+
+    def do_activate(
+        self,
+        gfile: Optional[Gio.File] = None,
+        tags: Optional[Iterable[str]] = None,
+    ) -> set[HypWindow]:
         """Called when the application is activated."""
-        win = HypWindow(application=self)
+
+        if not (gfile or tags):
+            gfile = shared.home
+
+        win = HypWindow(application=self, initial_gfile=gfile, initial_tags=tags)
 
         win.set_default_size(
             shared.state_schema.get_int("width"),
@@ -105,8 +127,17 @@ class HypApplication(Adw.Application):
 
     def do_handle_local_options(self, options: GLib.VariantDict) -> int:
         """Handles local command line arguments."""
-        if options.contains("new-window") and self.get_is_registered():
-            self.do_activate()
+        self.register()  # This is so get_is_remote works
+        if self.get_is_remote():
+            if options.contains("new-window"):
+                return -1
+
+            logging.warning(
+                "Hyperplane is already running. "
+                "To open a new window, run the app with --new-window."
+            )
+            return 0
+
         return -1
 
     def create_action(

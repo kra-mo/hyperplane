@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The main application window."""
+import logging
 from itertools import chain
 from os import sep
 from time import time
@@ -96,7 +97,12 @@ class HypWindow(Adw.ApplicationWindow):
     sidebar_tag_rows: set
     right_clicked_tag: str
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self,
+        initial_gfile: Optional[Gio.File],
+        initial_tags: Optional[Iterable[str]],
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
         if shared.PROFILE == "development":
@@ -128,7 +134,9 @@ class HypWindow(Adw.ApplicationWindow):
 
         # Create actions
 
-        navigation_view = HypNavigationBin(initial_gfile=shared.home)
+        navigation_view = HypNavigationBin(
+            initial_gfile=initial_gfile, initial_tags=initial_tags
+        )
 
         self.tab_view.append(navigation_view).set_title(
             title := (page := self.get_visible_page()).get_title()
@@ -321,20 +329,15 @@ class HypWindow(Adw.ApplicationWindow):
         self, gfile: Optional[Gio.File] = None, tags: Optional[Iterable[str]] = None
     ) -> None:
         """Open a new window with the given file or tags."""
-        if (
-            gfile
-            and gfile.query_file_type(Gio.FileQueryInfoFlags.NONE)
-            == Gio.FileType.DIRECTORY
+        if gfile and (
+            gfile.query_file_type(Gio.FileQueryInfoFlags.NONE) != Gio.FileType.DIRECTORY
         ):
-            new_bin = HypNavigationBin(initial_gfile=gfile)
-        elif tags:
-            new_bin = HypNavigationBin(initial_tags=tags)
-        else:
+            logging.error(
+                "Cannot open new window, %s is not a directory.", gfile.get_uri()
+            )
             return
 
-        win = self.get_application().do_activate()
-        win.tab_view.close_page(win.tab_view.get_selected_page())
-        win.tab_view.append(new_bin)
+        self.get_application().do_activate(gfile, tags)
 
     def get_nav_bin(self) -> HypNavigationBin:
         """Returns the currently visible HypNavigationBin."""

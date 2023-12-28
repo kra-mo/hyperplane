@@ -1,10 +1,12 @@
 [Desktop Entry]
 Name=Hyperplane
-Exec=hyperplane --new-window
+Keywords=file;folder;manager;explore;
+Exec=hyperplane --new-window %U
 Icon=@APP_ID@
 Terminal=false
 Type=Application
 Categories=GNOME;GTK;System;Core;FileTools;FileManager;
+MimeType=inode/directory;
 StartupNotify=true
 Actions=new-window;
 
