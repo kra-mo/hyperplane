@@ -18,12 +18,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """An entry for navigating to paths or tags."""
-from typing import Any
+from os import sep
+from typing import Any, Iterable, Optional
 from urllib.parse import quote, unquote, urlparse
 
 from gi.repository import Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
+from hyperplane.utils.files import get_gfile_path
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/path-entry.ui")
@@ -46,6 +48,36 @@ class HypPathEntry(Gtk.Entry):
         controller = Gtk.EventControllerKey.new()
         controller.connect("key-pressed", self.__key_pressed)
         self.add_controller(controller)
+
+    def new_path(
+        self, gfile: Optional[Gio.File], tags: Optional[Iterable[str]]
+    ) -> None:
+        """Sets the text of the entry to the path (or URI) of `gfile` or `tags`."""
+
+        if tags:
+            self.set_text(f'{"//"}{"//".join(tags)}{"//"}')
+            return
+
+        if not gfile:
+            return
+
+        if gfile.get_uri_scheme() == "file":
+            try:
+                path = get_gfile_path(gfile, uri_fallback=True)
+            except FileNotFoundError:
+                path = unquote(gfile.get_uri())
+        else:
+            path = unquote(gfile.get_uri())
+
+        self.set_text(
+            path
+            if isinstance(path, str)
+            else (
+                str(path)
+                if str(path) == sep  # If the path is root
+                else str(path) + sep
+            )
+        )
 
     @GObject.Signal(name="hide-entry")
     def hide(self) -> None:

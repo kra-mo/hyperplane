@@ -20,10 +20,8 @@
 """The main application window."""
 import logging
 from itertools import chain
-from os import sep
 from time import time
 from typing import Any, Callable, Iterable, Optional, Self
-from urllib.parse import unquote
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
@@ -36,12 +34,7 @@ from hyperplane.path_entry import HypPathEntry
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.create_message_dialog import create_message_dialog
-from hyperplane.utils.files import (
-    clear_recent_files,
-    empty_trash,
-    get_gfile_path,
-    validate_name,
-)
+from hyperplane.utils.files import clear_recent_files, empty_trash, validate_name
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.volumes_box import HypVolumesBox
 
@@ -592,29 +585,10 @@ class HypWindow(Adw.ApplicationWindow):
 
                 self.set_focus(self.search_entry)
             case self.path_entry_clamp:
-                if (page := self.get_visible_page()).gfile:
-                    if page.gfile.get_uri_scheme() == "file":
-                        try:
-                            path = get_gfile_path(page.gfile, uri_fallback=True)
-                        except FileNotFoundError:
-                            path = unquote(page.gfile.get_uri())
-                    else:
-                        path = unquote(page.gfile.get_uri())
-
-                    self.path_entry.set_text(
-                        path
-                        if isinstance(path, str)
-                        else (
-                            str(path)
-                            if str(path) == sep  # If the path is root
-                            else str(path) + sep
-                        )
-                    )
-                elif page.tags:
-                    self.path_entry.set_text("//" + "//".join(page.tags) + "//")
+                page = self.get_visible_page()
+                self.path_entry.new_path(page.gfile, page.tags)
 
                 self.path_entry.select_region(0, -1)
-
                 self.set_focus(self.path_entry)
                 self.path_entry_connection = self.path_entry.connect(
                     "notify::has-focus", self.__path_entry_focus
