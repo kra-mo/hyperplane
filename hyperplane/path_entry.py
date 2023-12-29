@@ -19,6 +19,7 @@
 
 """An entry for navigating to paths or tags."""
 from os import sep
+from pathlib import Path
 from typing import Any, Iterable, Optional
 from urllib.parse import quote, unquote, urlparse
 
@@ -175,7 +176,7 @@ class HypPathEntry(Gtk.Entry):
             prefix = f"{urlparse(text).scheme}://"
             gfile = Gio.File.new_for_uri(f"{prefix}{quote(text.removeprefix(prefix))}")
         else:
-            gfile = Gio.File.new_for_path(text)
+            gfile = Gio.File.new_for_path(str(Path(text).expanduser()))
 
         # If neither the absolute nor relative path is valid
         if not (
