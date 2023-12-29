@@ -98,6 +98,7 @@ class HypWindow(Adw.ApplicationWindow):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.select_uri = None
 
         if shared.PROFILE == "development":
             self.add_css_class("devel")

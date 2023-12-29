@@ -16,6 +16,17 @@ if desktop_utils.found()
   test('Validate desktop file', desktop_utils, args: [desktop_file])
 endif
 
+servicedir = get_option('prefix') / get_option('datadir') / 'dbus-1' / 'services'
+
+
+configure_file(
+  input: 'org.freedesktop.FileManager1.service.in',
+  output: 'org.freedesktop.FileManager1.service',
+  configuration: conf,
+  install_dir: servicedir
+)
+
+
 appstream_file = i18n.merge_file(
         input: configure_file(
           input: 'hu.kramo.Hyperplane.metainfo.xml.in',
