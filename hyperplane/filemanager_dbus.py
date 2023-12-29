@@ -58,13 +58,20 @@ PATH = "/org/freedesktop/FileManager1"
 
 class FileManagerDBusServer:
     """https://www.freedesktop.org/wiki/Specifications/file-manager-interface/"""
-
     def __init__(self) -> None:
-        connection = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-        Gio.bus_own_name_on_connection(
-            connection, NAME, Gio.BusNameOwnerFlags.NONE, None, None
+        self._name_id = Gio.bus_own_name(
+            Gio.BusType.SESSION,
+            NAME,
+            Gio.BusNameOwnerFlags.NONE,
+            self.__on_bus_acquired,
+            None,
+            None,
         )
 
+    def __del__(self):
+        Gio.bus_unown_name(self._name_id)
+
+    def __on_bus_acquired(self, connection: Gio.DBusConnection, _):
         for interface in Gio.DBusNodeInfo.new_for_xml(INTROSPECTION).interfaces:
             try:
                 connection.register_object(
@@ -73,7 +80,7 @@ class FileManagerDBusServer:
                     method_call_closure=self.__on_method_call,
                 )
             except Exception:  # pylint: disable=broad-exception-caught
-                #  Another instance already exported at /org/freedesktop/FileManager1
+                #  Another instance already exported at this path
                 ...
 
     def __on_method_call(
