@@ -264,6 +264,7 @@ class HypWindow(Adw.ApplicationWindow):
         # Set up sidebar actions
 
         self.sidebar_rows = {
+            # TODO: Hide this if file history is disabled system-wide
             self.recent_row: Gio.File.new_for_uri("recent://"),
             self.home_row: shared.home,
             self.trash_row: Gio.File.new_for_uri("trash://"),

@@ -51,6 +51,18 @@ class HypItemSorter(Gtk.Sorter):
         if (not file_info1) or (not file_info2):
             return Gtk.Ordering.EQUAL
 
+        # Always sort trashed items by deletion date
+        if (
+            file_info1.get_attribute_object("standard::file").get_uri_scheme()
+            == "trash"
+        ):
+            return self.__ordering_from_cmpfunc(
+                GLib.DateTime.compare(
+                    file_info2.get_deletion_date(),
+                    file_info1.get_deletion_date(),
+                )
+            )
+
         # Always sort recent items by date
         if (
             file_info1.get_attribute_object("standard::file").get_uri_scheme()

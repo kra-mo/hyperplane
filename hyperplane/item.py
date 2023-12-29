@@ -501,7 +501,6 @@ class HypItem(Adw.Bin):
             self.label.set_halign(Gtk.Align.CENTER)
             self.label.set_margin_top(12)
             self.label.set_margin_start(0)
-            self.label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
             return
 
         self.box.set_orientation(Gtk.Orientation.HORIZONTAL)
@@ -511,7 +510,6 @@ class HypItem(Adw.Bin):
         self.label.set_halign(Gtk.Align.START)
         self.label.set_margin_top(0)
         self.label.set_margin_start(12)
-        self.label.set_ellipsize(Pango.EllipsizeMode.END)
 
     def __select_self(self) -> None:
         if not self.page.multi_selection.is_selected(pos := self.item.get_position()):

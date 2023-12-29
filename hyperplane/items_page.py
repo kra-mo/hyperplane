@@ -21,11 +21,11 @@
 from collections import namedtuple
 from itertools import chain
 from pathlib import Path
-from shutil import ReadError, get_unpack_formats, unpack_archive
+from shutil import get_unpack_formats, unpack_archive
 from time import time
 from typing import Any, Callable, Generator, Iterable, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Xdp, XdpGtk4
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango, Xdp, XdpGtk4
 
 from hyperplane import shared
 from hyperplane.item import HypItem
@@ -118,6 +118,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
+                Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE, # For Trash
                 Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
                 # For list view
                 Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
@@ -257,6 +258,7 @@ class HypItemsPage(Adw.NavigationPage):
             return
 
         # Unpack if is it an archive
+        # TODO: Rename the right-click menu item here
         try:
             assert (path := gfile.get_path())
             assert (dst := self.__get_dst().get_path())
@@ -530,7 +532,7 @@ class HypItemsPage(Adw.NavigationPage):
     def __property_setup(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
-        label = Gtk.Label(halign=Gtk.Align.START)
+        label = Gtk.Label(halign=Gtk.Align.START, ellipsize=Pango.EllipsizeMode.END)
         label.add_css_class("dim-label")
         list_item.set_child(label)
 
@@ -819,7 +821,7 @@ class HypItemsPage(Adw.NavigationPage):
 
             shared.postmaster.emit(
                 "tag-location-created",
-                Gtk.StringList.new(tags),
+                Gtk.StringList.new(self.tags),
                 gfile,
             )
 

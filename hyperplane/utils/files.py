@@ -32,6 +32,7 @@ from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
 from hyperplane.utils.tags import path_represents_tags
 
 # TODO: Handle errors better
+# TODO: Make file operations cancellable
 
 
 def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> None:
@@ -288,7 +289,7 @@ def get_gfile_display_name(gfile: Gio.File) -> str:
     """Gets the display name for `gfile`."""
     try:
         return gfile.query_info(
-        Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
+            Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
         ).get_display_name()
     except GLib.Error:
         return "-"

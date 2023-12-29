@@ -70,9 +70,18 @@ class HypNavigationBin(Adw.Bin):
     ) -> None:
         """Push a new page with the given file or tag to the navigation stack."""
         page = self.view.get_visible_page()
+        next_page = self.next_pages[-1] if self.next_pages else None
 
         if gfile:
             if page.gfile and page.gfile.get_uri() == gfile.get_uri():
+                return
+
+            if (
+                next_page
+                and next_page.gfile
+                and next_page.gfile.get_uri() == gfile.get_uri()
+            ):
+                self.view.push(next_page)
                 return
 
             page = HypItemsPage(gfile=gfile)
@@ -86,11 +95,20 @@ class HypNavigationBin(Adw.Bin):
                 tags = []
 
             tags.append(tag)
+
+            if next_page and next_page.tags == tags:
+                self.view.push(next_page)
+                return
+
             page = HypItemsPage(tags=tags)
         elif tags:
             tags = list(tags)
 
             if page.tags == tags:
+                return
+
+            if next_page and next_page.tags == tags:
+                self.view.push(next_page)
                 return
 
             page = HypItemsPage(tags=tags)
