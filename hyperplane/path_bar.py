@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The path bar in a HypWindow."""
+import logging
 from os import sep
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -162,10 +163,12 @@ class HypPathBar(Gtk.ScrolledWindow):
             uri = gfile.get_uri()
             parse = urlparse(uri)
             segments = []
+            scheme_uri = f"{parse.scheme}://"
 
-            # Do these automatically is shceme != "file"
-            if parse.scheme != "file":
-                scheme_uri = f"{parse.scheme}://"
+            # Do these automatically if shceme != "file"
+            if parse.scheme == "file":
+                base_uri = scheme_uri
+            else:
                 try:
                     file_info = Gio.File.new_for_uri(scheme_uri).query_info(
                         ",".join(
@@ -176,21 +179,26 @@ class HypPathBar(Gtk.ScrolledWindow):
                         ),
                         Gio.FileQueryInfoFlags.NONE,
                     )
-                except GLib.Error:
-                    pass
-                else:
-                    display_name = file_info.get_display_name()
-                    symbolic = file_info.get_symbolic_icon()
 
-                    segments.insert(
-                        0,
-                        (
-                            display_name,
-                            symbolic.get_names()[0] if symbolic else None,
-                            scheme_uri,
-                            None,
-                        ),
-                    )
+                    base_name = file_info.get_display_name()
+                    base_symbolic = file_info.get_symbolic_icon().get_names()[0]
+                    base_uri = scheme_uri
+                except GLib.Error:
+                    # Try the mount if the scheme root fails
+                    try:
+                        mount = gfile.find_enclosing_mount()
+                        mount_gfile = mount.get_default_location()
+
+                        base_name = mount.get_name()
+                        base_symbolic = mount.get_symbolic_icon().get_names()[0]
+                        base_uri = mount_gfile.get_uri()
+                    except GLib.Error as error:
+                        base_name = None
+                        base_symbolic = None
+                        base_uri = None
+                        logging.error(
+                            'Cannot get information for location "%s": %s', uri, error
+                        )
 
             parts = unquote(parse.path).split(sep)
 
@@ -198,26 +206,32 @@ class HypPathBar(Gtk.ScrolledWindow):
                 if not part:
                     continue
 
-                segments.append((part, "", f"file://{sep.join(parts[:index+1])}", None))
+                segments.append(
+                    (part, "", f"{base_uri}{sep.join(parts[:index+1])}", None)
+                )
 
             if (path := gfile.get_path()) and (
                 (path := Path(path)) == shared.home_path
                 or path.is_relative_to(shared.home_path)
             ):
                 segments = segments[len(shared.home_path.parts) - 1 :]
-                segments.insert(
-                    0,
-                    (_("Home"), "user-home-symbolic", shared.home_path.as_uri(), None),
-                )
+                base_name = _("Home")
+                base_symbolic = "user-home-symbolic"
+                base_uri = shared.home.get_uri()
             elif parse.scheme == "file":
                 # Not relative to home, so add a root segment
+                base_name = ""
+                base_symbolic = "drive-harddisk-symbolic"
+                # Fall back to sep if the GFile doesn't have a path
+                base_uri = Path(path.anchor if path else sep).as_uri()
+
+            if base_uri:
                 segments.insert(
                     0,
                     (
-                        "",
-                        "drive-harddisk-symbolic",
-                        # Fall back to sep if the GFile doesn't have a path
-                        Path(path.anchor if path else sep).as_uri(),
+                        base_name,
+                        base_symbolic,
+                        base_uri,
                         None,
                     ),
                 )

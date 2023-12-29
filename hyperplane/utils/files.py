@@ -286,9 +286,12 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
 
 def get_gfile_display_name(gfile: Gio.File) -> str:
     """Gets the display name for `gfile`."""
-    return gfile.query_info(
+    try:
+        return gfile.query_info(
         Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
-    ).get_display_name()
+        ).get_display_name()
+    except GLib.Error:
+        return "-"
 
 
 def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:

@@ -22,6 +22,7 @@ A self-updating `GtkListBox` (wrapped in an `AdwBin`) of mountable volumes.
 
 To be used in a sidebar.
 """
+import logging
 from typing import Any, Optional
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
@@ -109,7 +110,8 @@ class HypVolumesBox(Adw.Bin):
             ) -> None:
                 try:
                     volume.eject_with_operation_finish(result)
-                except GLib.Error:
+                except GLib.Error as error:
+                    logging.error('Unable to eject "%s": %s', volume.get_name(), error)
                     return
 
             def do_eject(volume: Gio.Volume) -> None:
@@ -125,7 +127,7 @@ class HypVolumesBox(Adw.Bin):
                 if not (mount := volume.get_mount()):
                     return
 
-                root = mount.get_root()
+                location = mount.get_default_location()
 
                 # What if you wanted to itertools.chain but Alice said:
                 # Return Value
@@ -150,8 +152,8 @@ class HypVolumesBox(Adw.Bin):
                             continue
 
                         if not (
-                            root.get_relative_path(page.gfile)
-                            or root.get_uri() == page.gfile.get_uri()
+                            location.get_relative_path(page.gfile)
+                            or location.get_uri() == page.gfile.get_uri()
                         ):
                             continue
 
@@ -247,7 +249,7 @@ class HypVolumesBox(Adw.Bin):
             self.actions[self.rows[volume]]()
             return
 
-        shared.right_clicked_file = mount.get_root()
+        shared.right_clicked_file = mount.get_default_location()
 
         self.right_click_menu.unparent()
         self.right_click_menu.set_parent(gesture.get_widget())
@@ -270,7 +272,7 @@ class HypVolumesBox(Adw.Bin):
             self.actions[self.rows[volume]]()
             return
 
-        self.get_root().new_tab(mount.get_root())
+        self.get_root().new_tab(mount.get_default_location())
 
     def __volume_changed(
         self,
@@ -283,7 +285,7 @@ class HypVolumesBox(Adw.Bin):
 
         if mount := volume.get_mount():
             self.actions[row] = lambda *_, mount=mount: self.get_root().new_page(
-                mount.get_root()
+                mount.get_default_location()
             )
         else:
             self.actions[row] = lambda *_, volume=volume, row=row: volume.mount(
@@ -295,7 +297,16 @@ class HypVolumesBox(Adw.Bin):
     def __mount_finish(self, volume: Gio.Volume, result: Gio.AsyncResult) -> None:
         try:
             volume.mount_finish(result)
-        except GLib.Error:
+        except GLib.Error as error:
+            if error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.ALREADY_MOUNTED):
+                # Try the activation root.
+                # This works for MTP volumes, not sure if I should be doing it though
+                if root := volume.get_activation_root():
+                    self.get_root().new_page(root)
+            else:
+                logging.error(
+                    'Unable to mount volume "%s": %s', volume.get_name(), error
+                )
             return
 
-        self.get_root().new_page(volume.get_mount().get_root())
+        self.get_root().new_page(volume.get_mount().get_default_location())

@@ -23,6 +23,7 @@ from itertools import chain
 from os import sep
 from time import time
 from typing import Any, Callable, Iterable, Optional, Self
+from urllib.parse import unquote
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
@@ -592,10 +593,14 @@ class HypWindow(Adw.ApplicationWindow):
                 self.set_focus(self.search_entry)
             case self.path_entry_clamp:
                 if (page := self.get_visible_page()).gfile:
-                    try:
-                        path = get_gfile_path(page.gfile, uri_fallback=True)
-                    except FileNotFoundError:
-                        path = ""  # Fallback blank string
+                    if page.gfile.get_uri_scheme() == "file":
+                        try:
+                            path = get_gfile_path(page.gfile, uri_fallback=True)
+                        except FileNotFoundError:
+                            path = unquote(page.gfile.get_uri())
+                    else:
+                        path = unquote(page.gfile.get_uri())
+
                     self.path_entry.set_text(
                         path
                         if isinstance(path, str)
