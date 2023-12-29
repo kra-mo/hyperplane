@@ -47,6 +47,7 @@ endif
 hyperplane_sources = [
   '__init__.py',
   'editable_row.py',
+  'filemanager_dbus.py',
   'file_properties.py',
   'item_filter.py',
   'item_sorter.py',
