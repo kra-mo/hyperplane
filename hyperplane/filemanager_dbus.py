@@ -27,7 +27,7 @@ from gi.repository import Gio, GLib
 from hyperplane import shared
 from hyperplane.properties import HypPropertiesWindow
 
-INTROSPECTION = """
+INTERFACE_DESC = """
 <node xmlns:doc="http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
   <interface name="org.freedesktop.DBus.Introspectable">
     <method name="Introspect">
@@ -72,7 +72,7 @@ class FileManagerDBusServer:
         Gio.bus_unown_name(self._name_id)
 
     def __on_bus_acquired(self, connection: Gio.DBusConnection, _):
-        for interface in Gio.DBusNodeInfo.new_for_xml(INTROSPECTION).interfaces:
+        for interface in Gio.DBusNodeInfo.new_for_xml(INTERFACE_DESC).interfaces:
             try:
                 connection.register_object(
                     object_path=PATH,
@@ -126,7 +126,7 @@ class FileManagerDBusServer:
                     properties.present()
 
             case "Introspect":
-                variant = GLib.Variant("(s)", (INTROSPECTION,))
+                variant = GLib.Variant("(s)", (INTERFACE_DESC,))
                 invocation.return_value(variant)
                 return
 
