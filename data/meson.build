@@ -18,13 +18,11 @@ endif
 
 servicedir = get_option('prefix') / get_option('datadir') / 'dbus-1' / 'services'
 
-service_conf = configuration_data()
-service_conf.set('bindir', servicedir)
 
 configure_file(
   input: 'org.freedesktop.FileManager1.service.in',
   output: 'org.freedesktop.FileManager1.service',
-  configuration: service_conf,
+  configuration: conf,
   install_dir: servicedir
 )
 

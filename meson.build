@@ -30,6 +30,8 @@ conf.set('PREFIX', prefix)
 conf.set('PROFILE', profile)
 conf.set('localedir', get_option('prefix') / get_option('localedir'))
 conf.set('pkgdatadir', pkgdatadir)
+conf.set('bindir', get_option('bindir'))
+conf.set('prefix', get_option('prefix'))
 
 subdir('data')
 subdir('hyperplane')

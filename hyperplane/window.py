@@ -37,7 +37,6 @@ from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.files import clear_recent_files, empty_trash, validate_name
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.volumes_box import HypVolumesBox
-from hyperplane.filemanager_dbus import FileManagerDBusServer
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/window.ui")
@@ -99,6 +98,7 @@ class HypWindow(Adw.ApplicationWindow):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.select_uri = None
 
         if shared.PROFILE == "development":
             self.add_css_class("devel")
@@ -282,8 +282,6 @@ class HypWindow(Adw.ApplicationWindow):
 
             widget.add_controller(right_click)
             widget.add_controller(middle_click)
-
-        FileManagerDBusServer(self)
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""

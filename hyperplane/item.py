@@ -21,7 +21,7 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 from gi.repository.GLib import idle_add
 
 from hyperplane import shared

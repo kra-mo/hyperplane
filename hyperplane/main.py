@@ -35,6 +35,7 @@ gi.require_version("XdpGtk4", "1.0")
 from gi.repository import Adw, Gio, GLib
 
 from hyperplane import shared
+from hyperplane.filemanager_dbus import FileManagerDBusServer
 from hyperplane.logging.logging_config import logging_config
 from hyperplane.preferences import HypPreferencesWindow
 from hyperplane.window import HypWindow
@@ -49,6 +50,7 @@ class HypApplication(Adw.Application):
             flags=Gio.ApplicationFlags.HANDLES_OPEN,
         )
         logging_config()
+        FileManagerDBusServer()
 
         # Create home
         shared.home_path.mkdir(parents=True, exist_ok=True)
@@ -96,7 +98,7 @@ class HypApplication(Adw.Application):
         self,
         gfile: Optional[Gio.File] = None,
         tags: Optional[Iterable[str]] = None,
-    ) -> set[HypWindow]:
+    ) -> HypWindow:
         """Called when the application is activated."""
 
         if not (gfile or tags):

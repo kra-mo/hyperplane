@@ -118,7 +118,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME,
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
-                Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE, # For Trash
+                Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE,  # For Trash
                 Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
                 # For list view
                 Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
@@ -443,7 +443,21 @@ class HypItemsPage(Adw.NavigationPage):
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         list_item.get_child().bind()
-        self.items[list_item.get_position()] = list_item.get_child()
+        pos = list_item.get_position()
+
+        self.items[pos] = list_item.get_child()
+
+        # For the org.freedesktop.FileManager1 DBus service's ShowItems
+        if (
+            list_item.get_item().get_attribute_object("standard::file").get_uri()
+            != self.get_root().select_uri
+        ):
+            return
+
+        self.get_root().select_uri = None
+
+        # Not scrolling there because Grid/ListView really don't like that during population
+        self.multi_selection.select_item(pos, True)
 
     def __item_unbind(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
