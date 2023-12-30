@@ -16,6 +16,9 @@
 		<key name="hidden-locations" type="as">
 			<default>[]</default>
 		</key>
+		<key name="single-click-open" type="b">
+			<default>false</default>
+		</key>
 	</schema>
 
 	<schema id="@APP_ID@.State" path="@PREFIX@/State/">

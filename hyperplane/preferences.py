@@ -30,6 +30,7 @@ class HypPreferencesWindow(Adw.PreferencesWindow):
     __gtype_name__ = "HypPreferencesWindow"
 
     folders_switch_row = Gtk.Template.Child()
+    single_click_open_switch_row = Gtk.Template.Child()
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -37,6 +38,13 @@ class HypPreferencesWindow(Adw.PreferencesWindow):
         shared.schema.bind(
             "folders-before-files",
             self.folders_switch_row,
+            "active",
+            Gio.SettingsBindFlags.DEFAULT,
+        )
+
+        shared.schema.bind(
+            "single-click-open",
+            self.single_click_open_switch_row,
             "active",
             Gio.SettingsBindFlags.DEFAULT,
         )
