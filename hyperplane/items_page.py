@@ -192,6 +192,20 @@ class HypItemsPage(Adw.NavigationPage):
         self.scroll.connect("scroll", self.__scroll)
         self.scrolled_window.add_controller(self.scroll)
 
+        shared.schema.bind(
+            "single-click-open",
+            self.grid_view,
+            "single-click-activate",
+            Gio.SettingsBindFlags.DEFAULT,
+        )
+
+        shared.schema.bind(
+            "single-click-open",
+            self.column_view,
+            "single-click-activate",
+            Gio.SettingsBindFlags.DEFAULT,
+        )
+
     def reload(self) -> None:
         """Refresh the view."""
         if isinstance(self.dir_list, Gtk.DirectoryList):
