@@ -100,6 +100,31 @@ class HypApplication(Adw.Application):
         reverse_sort_action.connect("change-state", self.__reverse_sort)
         self.add_action(reverse_sort_action)
 
+        # List/grid view
+        change_view_action = Gio.SimpleAction.new_stateful(
+            "change-view",
+            GLib.VariantType.new("s"),
+            GLib.Variant.new_string("grid" if shared.grid_view else "list"),
+        )
+        change_view_action.connect("activate", self.__change_view)
+        change_view_action.connect("change-state", self.__change_view)
+        self.add_action(change_view_action)
+
+        self.create_action(
+            "list-view",
+            lambda *_: self.__change_view(
+                change_view_action, GLib.Variant.new_string("list")
+            ),
+            ("<primary>1",),
+        )
+        self.create_action(
+            "grid-view",
+            lambda *_: self.__change_view(
+                change_view_action, GLib.Variant.new_string("grid")
+            ),
+            ("<primary>2",),
+        )
+
     def do_open(self, gfiles: Sequence[Gio.File], _n_files: int, _hint: str) -> None:
         """Opens the given files."""
         for gfile in gfiles:
@@ -246,6 +271,14 @@ class HypApplication(Adw.Application):
         shared.sort_reversed = value
 
         shared.postmaster.emit("sort-changed")
+
+    def __change_view(self, action: Gio.SimpleAction, state: GLib.Variant) -> None:
+        action.set_state(state)
+
+        shared.grid_view = state.get_string() == "grid"
+        shared.state_schema.set_boolean("grid-view", shared.grid_view)
+
+        shared.postmaster.emit("view-changed")
 
 
 def main(_version):

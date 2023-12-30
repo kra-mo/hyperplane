@@ -175,21 +175,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("reload", self.__reload, ("<primary>r", "F5"))
 
         self.create_action("rename", self.__rename, ("F2",))
-        self.create_action("toggle-view", self.__toggle_view)
-        self.create_action(
-            "list-view",
-            lambda *_: self.__toggle_view()
-            if isinstance(self.get_visible_page().view, Gtk.GridView)
-            else None,
-            ("<primary>1",),
-        )
-        self.create_action(
-            "grid-view",
-            lambda *_: self.__toggle_view()
-            if not isinstance(self.get_visible_page().view, Gtk.GridView)
-            else None,
-            ("<primary>2",),
-        )
 
         # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-sidebar", self.__open_sidebar)
@@ -827,18 +812,10 @@ class HypWindow(Adw.ApplicationWindow):
         if message:
             self.rename_revealer_label.set_label(message)
 
-    def __toggle_view(self, *_args: Any) -> None:
-        shared.grid_view = not shared.grid_view
-        shared.state_schema.set_boolean("grid-view", shared.grid_view)
-        shared.postmaster.emit("view-changed")
-
     def __view_changed(self, *_args: Any) -> None:
         for button in (self.header_bar_view_button, self.action_bar_view_button):
             button.set_icon_name(
-                "view-list-symbolic" if shared.grid_view else "view-grid-symbolic"
-            )
-            button.set_tooltip_text(
-                _("List View") if shared.grid_view else _("Grid View")
+                "view-grid-symbolic" if shared.grid_view else "view-list-symbolic"
             )
 
     def __sidebar_right_click(

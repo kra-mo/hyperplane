@@ -2,14 +2,25 @@ using Gtk 4.0;
 using Adw 1;
 
 // This needs to be up top because of the custom attributes
-menu primary_menu {
-    section {
-      item (_("New _Tab"), "win.new-tab")
-      item (_("New _Window"), "win.new-window")
-      item (_("View _Open Tabs"), "win.tab-overview")
+menu view {
+  section {
+    label: _("View");
+
+    item {
+      label: _("Grid");
+      action: "app.change-view";
+      target: "grid";
     }
-    section {
-    label: _("Icon Size");
+
+    item {
+      label: _("List");
+      action: "app.change-view";
+      target: "list";
+    }
+  }
+
+  section {
+    label: _("Size");
     display-hint: "inline-buttons";
 
     item {
@@ -20,18 +31,43 @@ menu primary_menu {
       custom: "zoom-in";
     }
   }
+
   section {
-    item (_("_Reload"), "win.reload")
+    label: _("Sort");
+
+    item {
+      label: _("A→Z");
+      action: "app.sort";
+      target: "a-z";
+    }
+
+    item {
+      label: _("Date Modified");
+      action: "app.sort";
+      target: "modified";
+    }
+
+    item {
+      label: _("Date Created");
+      action: "app.sort";
+      target: "created";
+    }
+
+    item {
+      label: _("Size");
+      action: "app.sort";
+      target: "size";
+    }
+
+    item {
+      label: _("Type");
+      action: "app.sort";
+      target: "type";
+    }
   }
+
   section {
-    item (_("Show _Hidden Files"), "app.show-hidden")
-    item (_("Edit Locations"), "win.edit-sidebar")
-  }
-  section {
-    item (_("_Preferences"), "app.preferences")
-    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
-    item (_("_Guide"), "app.show-guide")
-    item (_("_About Hyperplane"), "app.about")
+    item (_("Reverse"), "app.reverse-sort")
   }
 }
 
@@ -71,28 +107,6 @@ template $HypWindow : Adw.ApplicationWindow {
                 popover: 
                 PopoverMenu {
                   menu-model: primary_menu;
-
-                  [zoom-out]
-                  Button {
-                    icon-name: "zoom-out-symbolic";
-                    action-name: "win.zoom-out";
-                    tooltip-text: _("Zoom Out");
-
-                    styles [
-                      "flat",
-                    ]
-                  }
-
-                  [zoom-in]
-                  Button {
-                    icon-name: "zoom-in-symbolic";
-                    action-name: "win.zoom-in";
-                    tooltip-text: _("Zoom In");
-
-                    styles [
-                      "flat",
-                    ]
-                  }
                 };
               }
             }
@@ -236,14 +250,9 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [end]
-            MenuButton header_bar_sort_button {
-              icon-name: "view-sort-descending-symbolic";
-              menu-model: sort;
-            }
-
-            [end]
-            Button header_bar_view_button {
-              action-name: "win.toggle-view";
+            MenuButton header_bar_view_button {
+              tooltip-text: _("View");
+              popover: header_bar_view_popover;
             }
 
             [end]
@@ -280,14 +289,9 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [end]
-            MenuButton {
-              icon-name: "view-sort-descending-symbolic";
-              menu-model: sort;
-            }
-
-            [end]
-            Button action_bar_view_button {
-              action-name: "win.toggle-view";
+            MenuButton action_bar_view_button {
+              tooltip-text: _("View");
+              popover: action_bar_view_popover;
             }
           }
         }
@@ -311,10 +315,61 @@ template $HypWindow : Adw.ApplicationWindow {
       hide_sidebar_button.visible: true;
       header_bar_back.visible: false;
       header_bar_forward.visible: false;
-      header_bar_sort_button.visible: false;
       header_bar_view_button.visible: false;
       action_bar.revealed: true;
     }
+  }
+}
+
+PopoverMenu header_bar_view_popover {
+  menu-model: view;
+
+  [zoom-out]
+  Button {
+    icon-name: "zoom-out-symbolic";
+    action-name: "win.zoom-out";
+    tooltip-text: _("Zoom Out");
+
+    styles [
+      "flat",
+    ]
+  }
+
+  [zoom-in]
+  Button {
+    icon-name: "zoom-in-symbolic";
+    action-name: "win.zoom-in";
+    tooltip-text: _("Zoom In");
+
+    styles [
+      "flat",
+    ]
+  }
+}
+
+PopoverMenu action_bar_view_popover {
+  menu-model: view;
+
+  [zoom-out]
+  Button {
+    icon-name: "zoom-out-symbolic";
+    action-name: "win.zoom-out";
+    tooltip-text: _("Zoom Out");
+
+    styles [
+      "flat",
+    ]
+  }
+
+  [zoom-in]
+  Button {
+    icon-name: "zoom-in-symbolic";
+    action-name: "win.zoom-in";
+    tooltip-text: _("Zoom In");
+
+    styles [
+      "flat",
+    ]
   }
 }
 
@@ -382,42 +437,25 @@ PopoverMenu tag_right_click_menu {
   has-arrow: false;
 }
 
-menu sort {
+
+menu primary_menu {
   section {
-    label: _("Sort");
-
-    item {
-      label: _("A-Z");
-      action: "app.sort";
-      target: "a-z";
-    }
-
-    item {
-      label: _("Date Modified");
-      action: "app.sort";
-      target: "modified";
-    }
-
-    item {
-      label: _("Date Created");
-      action: "app.sort";
-      target: "created";
-    }
-
-    item {
-      label: _("Size");
-      action: "app.sort";
-      target: "size";
-    }
-
-    item {
-      label: _("Type");
-      action: "app.sort";
-      target: "type";
-    }
+    item (_("New _Tab"), "win.new-tab")
+    item (_("New _Window"), "win.new-window")
+    item (_("View _Open Tabs"), "win.tab-overview")
   }
   section {
-    item (_("Reverse"), "app.reverse-sort")
+    item (_("_Reload"), "win.reload")
+  }
+  section {
+    item (_("Show _Hidden Files"), "app.show-hidden")
+    item (_("Edit Locations"), "win.edit-sidebar")
+  }
+  section {
+    item (_("_Preferences"), "app.preferences")
+    item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
+    item (_("_Guide"), "app.show-guide")
+    item (_("_About Hyperplane"), "app.about")
   }
 }
 
