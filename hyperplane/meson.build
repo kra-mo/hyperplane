@@ -2,6 +2,7 @@ moduledir = python_dir / 'hyperplane'
 
 blueprints = custom_target('blueprints',
   input: files(
+    'gtk/guide.blp',
     'gtk/help-overlay.blp',
     'gtk/item.blp',
     'gtk/items-page.blp',
@@ -47,8 +48,9 @@ endif
 hyperplane_sources = [
   '__init__.py',
   'editable_row.py',
-  'filemanager_dbus.py',
+  'file_manager_dbus.py',
   'file_properties.py',
+  'guide.py',
   'item_filter.py',
   'item_sorter.py',
   'item.py',

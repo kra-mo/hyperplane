@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="@PREFIX@">
+    <file preprocess="xml-stripblanks">gtk/guide.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">gtk/item.ui</file>
     <file preprocess="xml-stripblanks">gtk/items-page.ui</file>
@@ -14,6 +15,8 @@
     <file alias="style-dark.css">gtk/style-dark.css</file>
     <file preprocess="xml-stripblanks">assets/folder-closed.svg</file>
     <file preprocess="xml-stripblanks">assets/folder-open.svg</file>
+    <file preprocess="xml-stripblanks">assets/welcome-tags.svg</file>
+    <file preprocess="xml-stripblanks">assets/welcome-folders.svg</file>
     <file preprocess="xml-stripblanks" alias="@APP_ID@.metainfo.xml">../data/@APP_ID@.metainfo.xml</file>
   </gresource>
 </gresources>

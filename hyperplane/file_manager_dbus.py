@@ -1,4 +1,4 @@
-# filemanager_dbus.py
+# file_manager_dbus.py
 #
 # Copyright 2023 Benedek Dévényi
 # Copyright 2023 kramo
@@ -58,6 +58,7 @@ PATH = "/org/freedesktop/FileManager1"
 
 class FileManagerDBusServer:
     """https://www.freedesktop.org/wiki/Specifications/file-manager-interface/"""
+
     def __init__(self) -> None:
         self._name_id = Gio.bus_own_name(
             Gio.BusType.SESSION,

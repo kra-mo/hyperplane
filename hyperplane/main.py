@@ -35,7 +35,8 @@ gi.require_version("XdpGtk4", "1.0")
 from gi.repository import Adw, Gio, GLib
 
 from hyperplane import shared
-from hyperplane.filemanager_dbus import FileManagerDBusServer
+from hyperplane.file_manager_dbus import FileManagerDBusServer
+from hyperplane.guide import HypGuide
 from hyperplane.logging.logging_config import logging_config
 from hyperplane.preferences import HypPreferencesWindow
 from hyperplane.window import HypWindow
@@ -124,7 +125,14 @@ class HypApplication(Adw.Application):
             "is-maximized", win, "maximized", Gio.SettingsBindFlags.SET
         )
 
-        win.present()
+        if shared.state_schema.get_boolean("first-run"):
+            shared.state_schema.set_boolean("first-run", False)
+            guide = HypGuide()
+            guide.present()
+            guide.connect("close-request", lambda *_: win.present())
+        else:
+            win.present()
+
         return win
 
     def do_handle_local_options(self, options: GLib.VariantDict) -> int:

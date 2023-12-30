@@ -9,6 +9,9 @@
 		</key>
 	</schema>
 	<schema id="@APP_ID@.State" path="@PREFIX@/State/">
+		<key name="first-run" type="b">
+			<default>true</default>
+		</key>
 		<key name="width" type="i">
 			<default>880</default>
 		</key>
@@ -18,11 +21,11 @@
 		<key name="is-maximized" type="b">
 			<default>false</default>
 		</key>
-		<key name="grid-view" type="b">
-			<default>true</default>
-		</key>
 		<key name="show-hidden" type="b">
 			<default>false</default>
+		</key>
+		<key name="grid-view" type="b">
+			<default>true</default>
 		</key>
 		<key name="grid-zoom-level" type="u">
 			<default>3</default>
