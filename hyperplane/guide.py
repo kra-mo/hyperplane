@@ -35,6 +35,11 @@ class HypGuide(Adw.Window):
     folders_picture: Gtk.Picture = Gtk.Template.Child()
     folder_picture: Gtk.Picture = Gtk.Template.Child()
 
+    button_1: Gtk.Button = Gtk.Template.Child()
+    button_2: Gtk.Button = Gtk.Template.Child()
+    button_3: Gtk.Button = Gtk.Template.Child()
+    button_4: Gtk.Button = Gtk.Template.Child()
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -46,5 +51,6 @@ class HypGuide(Adw.Window):
     @Gtk.Template.Callback()
     def _next_page(self, _widget: Gtk.Widget) -> None:
         self.carousel.scroll_to(
-            self.carousel.get_nth_page(self.carousel.get_position() + 1), True
+            self.carousel.get_nth_page(pos := self.carousel.get_position() + 1), True
         )
+        self.set_focus(getattr(self, f"button_{int(pos) + 1}"))

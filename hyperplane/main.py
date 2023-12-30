@@ -32,7 +32,7 @@ gi.require_version("XdpGtk4", "1.0")
 
 # pylint: disable=wrong-import-position
 
-from gi.repository import Adw, Gio, GLib
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.file_manager_dbus import FileManagerDBusServer
@@ -72,6 +72,7 @@ class HypApplication(Adw.Application):
         self.set_option_context_parameter_string("[DIRECTORIES]")
 
         self.create_action("quit", lambda *_: self.quit(), ("<primary>q",))
+        self.create_action("show-guide", self.__guide, ("F1",))
         self.create_action("about", self.__about)
         self.create_action("preferences", self.__preferences, ("<primary>comma",))
 
@@ -166,6 +167,21 @@ class HypApplication(Adw.Application):
         self.add_action(action)
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
+
+    def __guide(self, *_args: Any) -> None:
+        guide = HypGuide()
+
+        guide.set_modal(True)
+        guide.set_transient_for(self.get_active_window())
+        guide.add_controller(shortcut_controller := Gtk.ShortcutController())
+        shortcut_controller.add_shortcut(
+            Gtk.Shortcut.new(
+                Gtk.ShortcutTrigger.parse_string("Escape"),
+                Gtk.NamedAction.new("window.close"),
+            ),
+        )
+
+        guide.present()
 
     def __about(self, *_args: Any) -> None:
         about = Adw.AboutWindow.new_from_appdata(
