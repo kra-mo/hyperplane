@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="hyperplane">
+
+	<enum id="@APP_ID@.sort">
+		<value nick="a-z" value="0"/>
+		<value nick="modified" value="1"/>
+		<value nick="created" value="2"/>
+		<value nick="size" value="3"/>
+		<value nick="type" value="4"/>
+	</enum>
+
 	<schema id="@APP_ID@" path="@PREFIX@/">
 		<key name="folders-before-files" type="b">
 			<default>true</default>
@@ -8,6 +17,7 @@
 			<default>[]</default>
 		</key>
 	</schema>
+
 	<schema id="@APP_ID@.State" path="@PREFIX@/State/">
 		<key name="first-run" type="b">
 			<default>true</default>
@@ -24,6 +34,12 @@
 		<key name="show-hidden" type="b">
 			<default>false</default>
 		</key>
+		<key name='sort-by' enum='@APP_ID@.sort'>
+			<default>'a-z'</default>
+		</key>
+		<key name='sort-reversed' type='b'>
+			<default>false</default>
+		</key>
 		<key name="grid-view" type="b">
 			<default>true</default>
 		</key>
@@ -34,4 +50,5 @@
 			<default>0</default>
 		</key>
 	</schema>
+
 </schemalist>

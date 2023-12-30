@@ -236,6 +236,12 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [end]
+            MenuButton header_bar_sort_button {
+              icon-name: "view-sort-descending-symbolic";
+              menu-model: sort;
+            }
+
+            [end]
             Button header_bar_view_button {
               action-name: "win.toggle-view";
             }
@@ -274,6 +280,12 @@ template $HypWindow : Adw.ApplicationWindow {
             }
 
             [end]
+            MenuButton {
+              icon-name: "view-sort-descending-symbolic";
+              menu-model: sort;
+            }
+
+            [end]
             Button action_bar_view_button {
               action-name: "win.toggle-view";
             }
@@ -299,6 +311,7 @@ template $HypWindow : Adw.ApplicationWindow {
       hide_sidebar_button.visible: true;
       header_bar_back.visible: false;
       header_bar_forward.visible: false;
+      header_bar_sort_button.visible: false;
       header_bar_view_button.visible: false;
       action_bar.revealed: true;
     }
@@ -367,6 +380,45 @@ PopoverMenu tag_right_click_menu {
   halign: start;
   menu-model: tag_right_click;
   has-arrow: false;
+}
+
+menu sort {
+  section {
+    label: _("Sort");
+
+    item {
+      label: _("A-Z");
+      action: "app.sort";
+      target: "a-z";
+    }
+
+    item {
+      label: _("Date Modified");
+      action: "app.sort";
+      target: "modified";
+    }
+
+    item {
+      label: _("Date Created");
+      action: "app.sort";
+      target: "created";
+    }
+
+    item {
+      label: _("Size");
+      action: "app.sort";
+      target: "size";
+    }
+
+    item {
+      label: _("Type");
+      action: "app.sort";
+      target: "type";
+    }
+  }
+  section {
+    item (_("Reverse"), "app.reverse-sort")
+  }
 }
 
 menu right_click {

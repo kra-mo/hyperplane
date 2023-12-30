@@ -82,3 +82,13 @@ class HypPostmasterGeneral(GObject.Object):
     @GObject.Signal(name="view-changed")
     def view_changed(self) -> None:
         """Emitted when the view changes from grid to list or vice versa."""
+
+    @GObject.Signal(name="sort-changed")
+    def sort_changed(self) -> None:
+        """
+        Emitted when the sorting of items changes, for example from 'a-z' to 'modified'.
+
+        It is also emitted when the sort direction reverses.
+
+        Sorters should connect to it and update their items accordingly.
+        """

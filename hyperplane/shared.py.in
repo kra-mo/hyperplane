@@ -40,6 +40,8 @@ undo_queue = {}
 
 grid_view = state_schema.get_boolean("grid-view")
 show_hidden = state_schema.get_boolean("show-hidden")
+sort_by = state_schema.get_string("sort-by")
+sort_reversed = state_schema.get_boolean("sort-reversed")
 
 home_path = Path(
     getenv("HYPHOME", str(Path(GLib.get_user_data_dir(), "hyperplane", "home")))

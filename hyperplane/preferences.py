@@ -18,8 +18,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The main preferences window."""
-from typing import Any
-
 from gi.repository import Adw, Gio, Gtk
 
 from hyperplane import shared
@@ -36,10 +34,13 @@ class HypPreferencesWindow(Adw.PreferencesWindow):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        # TODO: Refresh on change
         shared.schema.bind(
             "folders-before-files",
             self.folders_switch_row,
             "active",
             Gio.SettingsBindFlags.DEFAULT,
+        )
+
+        self.folders_switch_row.connect(
+            "notify::active", lambda *_: shared.postmaster.emit("sort-changed")
         )

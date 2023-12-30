@@ -76,6 +76,7 @@ class HypApplication(Adw.Application):
         self.create_action("about", self.__about)
         self.create_action("preferences", self.__preferences, ("<primary>comma",))
 
+        # Show hidden
         show_hidden_action = Gio.SimpleAction.new_stateful(
             "show-hidden", None, shared.state_schema.get_value("show-hidden")
         )
@@ -83,6 +84,21 @@ class HypApplication(Adw.Application):
         show_hidden_action.connect("change-state", self.__show_hidden)
         self.add_action(show_hidden_action)
         self.set_accels_for_action("app.show-hidden", ("<primary>h",))
+
+        # Sort by
+        sort_action = Gio.SimpleAction.new_stateful(
+            "sort", GLib.VariantType.new("s"), shared.state_schema.get_value("sort-by")
+        )
+        sort_action.connect("activate", self.__sort)
+        self.add_action(sort_action)
+
+        # Reverse sort
+        reverse_sort_action = Gio.SimpleAction.new_stateful(
+            "reverse-sort", None, shared.state_schema.get_value("sort-reversed")
+        )
+        reverse_sort_action.connect("activate", self.__reverse_sort)
+        reverse_sort_action.connect("change-state", self.__reverse_sort)
+        self.add_action(reverse_sort_action)
 
     def do_open(self, gfiles: Sequence[Gio.File], _n_files: int, _hint: str) -> None:
         """Opens the given files."""
@@ -202,6 +218,7 @@ class HypApplication(Adw.Application):
 
     def __preferences(self, *_args: Any) -> None:
         prefs = HypPreferencesWindow()
+        prefs.set_transient_for(self.get_active_window())
         prefs.present()
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
@@ -212,6 +229,23 @@ class HypApplication(Adw.Application):
         shared.show_hidden = value
 
         shared.postmaster.emit("toggle-hidden")
+
+    def __sort(self, action: Gio.SimpleAction, state: GLib.Variant) -> None:
+        action.set_state(state)
+
+        shared.sort_by = state.get_string()
+        shared.postmaster.emit("sort-changed")
+
+        shared.state_schema.set_string("sort-by", shared.sort_by)
+
+    def __reverse_sort(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
+        value = not action.props.state.get_boolean()
+        action.set_state(GLib.Variant.new_boolean(value))
+
+        shared.state_schema.set_boolean("sort-reversed", value)
+        shared.sort_reversed = value
+
+        shared.postmaster.emit("sort-changed")
 
 
 def main(_version):

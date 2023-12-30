@@ -31,6 +31,13 @@ class HypItemSorter(Gtk.Sorter):
 
     __gtype_name__ = "HypItemSorter"
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        shared.postmaster.connect(
+            "sort-changed", lambda *_: self.changed(Gtk.SorterChange.DIFFERENT)
+        )
+
     def do_compare(
         self,
         file_info1: Optional[Gio.FileInfo] = None,
@@ -89,27 +96,78 @@ class HypItemSorter(Gtk.Sorter):
                 )
 
         if shared.schema.get_boolean("folders-before-files"):
-            dir1 = file_info1.get_content_type() == "inode/directory"
-            dir2 = file_info2.get_content_type() == "inode/directory"
-
-            if dir1:
-                if not dir2:
-                    return Gtk.Ordering.SMALLER
-            elif dir2:
-                return Gtk.Ordering.LARGER
+            if folders := self.__sort_folders_before_files(file_info1, file_info2):
+                return folders
 
         name1 = file_info1.get_display_name()
         name2 = file_info2.get_display_name()
 
+        # Sort dot-prefixed files last
         if name1.startswith("."):
             if not name2.startswith("."):
                 return Gtk.Ordering.LARGER
         elif name2.startswith("."):
             return Gtk.Ordering.SMALLER
 
+        match shared.sort_by:
+            case "a-z":
+                return self.__ordering_from_cmpfunc(strcoll(name1, name2))
+
+            case "modified":
+                mod1 = file_info1.get_modification_date_time()
+                mod2 = file_info2.get_modification_date_time()
+
+                if mod1 and mod2:
+                    return self.__ordering_from_cmpfunc(mod2.compare(mod1))
+
+            case "created":
+                created1 = file_info1.get_creation_date_time()
+                created2 = file_info2.get_creation_date_time()
+
+                if created1 and created2:
+                    return self.__ordering_from_cmpfunc(created2.compare(created1))
+
+            case "size":
+                # No fast way to calculate size for folders so assume they're always bigger
+                if folders := self.__sort_folders_before_files(file_info1, file_info2):
+                    return folders
+
+                size1 = file_info1.get_size()
+                size2 = file_info2.get_size()
+
+                if size2 and size1:
+                    if size1 == size2:
+                        return Gtk.Ordering.EQUAL
+
+                    return self.__ordering_from_cmpfunc((int(size1 < size2) * 2) - 1)
+
+            case "type":
+                type1 = file_info1.get_content_type()
+                type2 = file_info2.get_content_type()
+
+                if type1 and type2:
+                    return self.__ordering_from_cmpfunc(strcoll(type2, type1))
+
+        # Fall back to A-Z
         return self.__ordering_from_cmpfunc(strcoll(name1, name2))
 
     def __ordering_from_cmpfunc(self, cmpfunc_result: int) -> Gtk.Ordering:
-        """Converts the result of a `GCompareFunc` like `strcmp()` to a `GtkOrdering` value."""
         # https://gitlab.gnome.org/GNOME/gtk/-/issues/6298
-        return Gtk.Ordering((cmpfunc_result > 0) - (cmpfunc_result < 0))
+        return Gtk.Ordering(
+            ((cmpfunc_result > 0) - (cmpfunc_result < 0))
+            * (-1 if shared.sort_reversed else 1)
+        )
+
+    def __sort_folders_before_files(
+        self, file_info1: Gio.FileInfo, file_info2: Gio.FileInfo
+    ) -> Gtk.Ordering:
+        dir1 = file_info1.get_content_type() == "inode/directory"
+        dir2 = file_info2.get_content_type() == "inode/directory"
+
+        if dir1:
+            if not dir2:
+                return Gtk.Ordering.SMALLER
+        elif dir2:
+            return Gtk.Ordering.LARGER
+
+        return None
