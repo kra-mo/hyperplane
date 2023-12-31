@@ -40,10 +40,10 @@ class HypItem(Adw.Bin):
     box: Gtk.Box = Gtk.Template.Child()
     label: Gtk.Label = Gtk.Template.Child()
 
-    circular_thumbnail: Gtk.Overlay = Gtk.Template.Child()
+    overlay: Gtk.Overlay = Gtk.Template.Child()
     circular_icon: Gtk.Image = Gtk.Template.Child()
 
-    thumbnail: Gtk.Overlay = Gtk.Template.Child()
+    thumbnail_overlay: Gtk.Overlay = Gtk.Template.Child()
     icon: Gtk.Image = Gtk.Template.Child()
     extension_label: Gtk.Label = Gtk.Template.Child()
     picture: Gtk.Picture = Gtk.Template.Child()
@@ -62,7 +62,7 @@ class HypItem(Adw.Bin):
     page: Adw.NavigationPage
     file_info: Gio.FileInfo
 
-    dragged_gfiles: list[Gio.File] = []
+    dragged_gfiles: dict[Gio.File, Gio.FileInfo] = {}
 
     gfile: Gio.File
     is_dir: bool
@@ -81,7 +81,7 @@ class HypItem(Adw.Bin):
         self.full_name = None
         self.stem = None
         self._thumbnail_paintable = None
-        self.circular_thumbnail.set_measure_overlay(self.circular_icon, True)
+        self.overlay.set_measure_overlay(self.circular_icon, True)
 
         self.item = item
         self.page = page
@@ -134,7 +134,7 @@ class HypItem(Adw.Bin):
         self.add_controller(self.motion)
 
         # Save initial style classes
-        self.thumb_init_classes = self.thumbnail.get_css_classes()
+        self.thumb_init_classes = self.thumbnail_overlay.get_css_classes()
         self.icon_init_classes = self.icon.get_css_classes()
         self.circular_icon_init_classes = self.circular_icon.get_css_classes()
         self.ext_init_classes = self.extension_label.get_css_classes()
@@ -254,14 +254,64 @@ class HypItem(Adw.Bin):
 
     def __drag_prepare(self, _src: Gtk.DragSource, _x: float, _y: float) -> None:
         self.__select_self(unselect_rest=False)
-        self.dragged_gfiles = self.page.get_selected_gfiles()
-
-        return Gdk.ContentProvider.new_for_value(
-            Gdk.FileList.new_from_list(self.dragged_gfiles)
+        self.dragged_gfiles = dict(
+            zip(self.page.get_selected_gfiles(), self.page.get_selected_infos())
         )
 
-    def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
-        src.set_icon(Gtk.WidgetPaintable.new(self), 0, 0)
+        return Gdk.ContentProvider.new_for_value(
+            Gdk.FileList.new_from_list(list(self.dragged_gfiles.keys()))
+        )
+
+    def __drag_begin(self, _src: Gtk.DragSource, drag: Gdk.Drag) -> None:
+        overlay = Gtk.Overlay.new()
+        Gtk.DragIcon.get_for_drag(drag).set_child(overlay)
+
+        for index, file_info in enumerate(self.dragged_gfiles.values()):
+            if index > 10:
+                break
+
+            if thumbnail_path := file_info.get_attribute_byte_string(
+                Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH
+            ):
+                picture = Gtk.Picture.new_for_filename(thumbnail_path)
+                picture.set_content_fit(Gtk.ContentFit.COVER)
+                picture.add_css_class("item-thumbnail")
+                picture.add_css_class("thumbnail-picture")
+                picture.add_css_class("gray-solid-background")
+
+                item = Adw.Clamp(
+                    orientation=Gtk.Orientation.VERTICAL,
+                    maximum_size=64,
+                    child=Adw.Clamp(
+                        child=picture, overflow=Gtk.Overflow.HIDDEN, maximum_size=64
+                    ),
+                )
+                item.set_overflow(Gtk.Overflow.HIDDEN)
+            else:
+                if not (content_type := file_info.get_content_type()):
+                    continue
+
+                symbolic = get_symbolic(file_info.get_symbolic_icon())
+                color = get_color_for_symbolic(content_type, symbolic)
+
+                item = Gtk.Image.new_from_gicon(symbolic)
+                item.set_icon_size(Gtk.IconSize.LARGE)
+                item.set_valign(Gtk.Align.CENTER)
+                item.set_halign(Gtk.Align.CENTER)
+                item.add_css_class(f"{color}-solid-background")
+                item.add_css_class(f"{color}-icon")
+                item.add_css_class("circular-icon")
+                item.set_opacity(0.9)
+
+            # Tower
+            (item.set_margin_end if index % 2 else item.set_margin_start)(6)
+            overlay.set_child(item)
+
+            new_overlay = Gtk.Overlay(margin_bottom=24)
+
+            overlay.add_overlay(new_overlay)
+            overlay.set_measure_overlay(new_overlay, True)
+            overlay = new_overlay
 
     def __drag_end(
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, delete_data: bool
@@ -271,13 +321,10 @@ class HypItem(Adw.Bin):
             for gfile in self.dragged_gfiles:
                 rm(gfile)
 
-        self.dragged_gfiles = []
-
     def __drag_cancel(
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, _reason: Gdk.DragCancelReason
     ) -> None:
         self.page.view.set_enable_rubberband(True)
-        self.dragged_gfiles = []
 
     def __open_folder(self, *_args: Any) -> None:
         win = self.get_root()
@@ -430,12 +477,12 @@ class HypItem(Adw.Bin):
         if texture:
             if self.is_dir:
                 idle_add(
-                    self.thumbnail.set_css_classes,
+                    self.thumbnail_overlay.set_css_classes,
                     self.thumb_init_classes + ["dark-blue-background"],
                 )
             else:
                 idle_add(
-                    self.thumbnail.set_css_classes,
+                    self.thumbnail_overlay.set_css_classes,
                     self.thumb_init_classes + ["gray-background"],
                 )
 
@@ -456,7 +503,7 @@ class HypItem(Adw.Bin):
             + [f"{self.color}-icon", f"{self.color}-background"],
         )
         idle_add(
-            self.thumbnail.set_css_classes,
+            self.thumbnail_overlay.set_css_classes,
             self.thumb_init_classes + [f"{self.color}-background"],
         )
         idle_add(
@@ -470,7 +517,7 @@ class HypItem(Adw.Bin):
             circular = False
 
         idle_add(self.circular_icon.set_visible, circular)
-        idle_add(self.thumbnail.set_visible, not circular)
+        idle_add(self.thumbnail_overlay.set_visible, not circular)
 
     def __zoom(self, zoom_level: int) -> None:
         # No need to update if the page is currently orphaned
@@ -504,16 +551,18 @@ class HypItem(Adw.Bin):
 
         match zoom_level:
             case 0:
-                self.thumbnail.set_size_request(48, 48)
+                self.thumbnail_overlay.set_size_request(48, 48)
             case 1:
                 # This is not the exact aspect ratio, but it is close enough.
                 # It's good for keeping the folder textures sharp.
                 # Or not apparently. Whether they are sharp seems really random.
-                self.thumbnail.set_size_request(96, 74)
+                self.thumbnail_overlay.set_size_request(96, 74)
             case 2:
-                self.thumbnail.set_size_request(96, 96)
+                self.thumbnail_overlay.set_size_request(96, 96)
             case _:
-                self.thumbnail.set_size_request(40 * zoom_level, 32 * zoom_level)
+                self.thumbnail_overlay.set_size_request(
+                    40 * zoom_level, 32 * zoom_level
+                )
 
         if zoom_level < 1:
             self.dir_thumbnails.set_spacing(8)

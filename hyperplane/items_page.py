@@ -188,21 +188,8 @@ class HypItemsPage(Adw.NavigationPage):
             self.dir_list = self.__get_list(tags=self.tags)
             self.filter_list.set_model(self.dir_list)
 
-    def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
-        """Get a list of `GFile`s corresponding to positions in the list model."""
-        files = []
-
-        for position in positions:
-            files.append(
-                self.multi_selection.get_item(position).get_attribute_object(
-                    "standard::file"
-                )
-            )
-
-        return files
-
     def get_selected_positions(self) -> list[int]:
-        """Gets the list of positions for selected items in the grid view."""
+        """Gets the list of positions for selected items in the view."""
         not_empty, bitset_iter, position = Gtk.BitsetIter.init_first(
             self.multi_selection.get_selection()
         )
@@ -220,12 +207,41 @@ class HypItemsPage(Adw.NavigationPage):
 
         return positions
 
+    def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
+        """Get a list of `GFile`s corresponding to positions in the list model."""
+        files = []
+
+        for position in positions:
+            files.append(
+                self.multi_selection.get_item(position).get_attribute_object(
+                    "standard::file"
+                )
+            )
+
+        return files
+
+    def get_infos_from_positions(self, positions: list[int]) -> list[Gio.FileInfo]:
+        """Get a list of `GFileInfo`s corresponding to positions in the list model."""
+        infos = []
+
+        for position in positions:
+            infos.append(self.multi_selection.get_item(position))
+
+        return infos
+
     def get_selected_gfiles(self) -> list[Gio.File]:
         """
         Gets a list of `GFiles` representing
-        the currently selected items in the grid view.
+        the currently selected items in the view.
         """
         return self.get_gfiles_from_positions(self.get_selected_positions())
+
+    def get_selected_infos(self) -> list[Gio.FileInfo]:
+        """
+        Gets a list of `GFilesInfos` representing
+        the currently selected items in the view.
+        """
+        return self.get_infos_from_positions(self.get_selected_positions())
 
     def activate(self, _list: Gtk.ListBase, pos: int) -> None:
         """Activates an item at the given position."""
@@ -442,7 +458,7 @@ class HypItemsPage(Adw.NavigationPage):
 
         self.get_root().select_uri = None
 
-        # Not scrolling there because Grid/ListView really don't like that during population
+        # Not scrolling there because Grid/ColumnView really don't like that during population
         self.multi_selection.select_item(pos, True)
 
     def __item_unbind(
