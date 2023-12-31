@@ -352,16 +352,16 @@ def validate_name(
     # TODO: More elegant (cross-platform) way to check for invalid paths
     if name in (".", ".."):
         if is_dir:
-            error = _('A folder cannot be called "{}".').format(name)
+            error = _("A folder cannot be called “{}”.").format(name)
         else:
-            error = _('A file cannot be called "{}".').format(name)
+            error = _("A file cannot be called “{}”.").format(name)
         return False, error
 
     if "/" in name:
         if is_dir:
-            error = _('Folder names cannot contain "{}".').format("/")
+            error = _("Folder names cannot contain “{}”.").format("/")
         else:
-            error = _('File names cannot contain "{}".').format("/")
+            error = _("File names cannot contain “{}”.").format("/")
         return False, error
 
     new_path = Path(path.parent, name) if siblings else path / name

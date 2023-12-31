@@ -469,7 +469,7 @@ class HypWindow(Adw.ApplicationWindow):
                 return
 
             if text in (".", ".."):
-                self.send_toast(_("A category cannot be called {}").format(f'“{text}”'))
+                self.send_toast(_("A category cannot be called {}").format(f"“{text}”"))
                 return
 
             add_tags(text)
@@ -696,7 +696,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __remove_tag(self, *_args: Any) -> None:
         remove_tags(self.right_clicked_tag)
-        self.send_toast(_("{} removed").format(f'“{self.right_clicked_tag}”'))
+        self.send_toast(_("{} removed").format(f"“{self.right_clicked_tag}”"))
 
     def __new_tab(self, *_args: Any) -> None:
         page = self.get_visible_page()
