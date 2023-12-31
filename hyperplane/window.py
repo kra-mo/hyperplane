@@ -465,11 +465,11 @@ class HypWindow(Adw.ApplicationWindow):
                 .replace("/", "⧸")
                 .replace("\n", " ")
             ) in shared.tags:
-                self.send_toast(_('A category named "{}" already exists').format(text))
+                self.send_toast(_("A category named “{}” already exists").format(text))
                 return
 
             if text in (".", ".."):
-                self.send_toast(_("A category cannot be called {}").format(f'"{text}"'))
+                self.send_toast(_("A category cannot be called {}").format(f'“{text}”'))
                 return
 
             add_tags(text)
@@ -696,7 +696,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __remove_tag(self, *_args: Any) -> None:
         remove_tags(self.right_clicked_tag)
-        self.send_toast(_("{} removed").format(f'"{self.right_clicked_tag}"'))
+        self.send_toast(_("{} removed").format(f'“{self.right_clicked_tag}”'))
 
     def __new_tab(self, *_args: Any) -> None:
         page = self.get_visible_page()
