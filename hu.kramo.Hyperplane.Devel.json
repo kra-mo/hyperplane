@@ -10,6 +10,7 @@
         "--device=dri",
         "--socket=wayland",
         "--filesystem=xdg-data/Trash",
+        "--filesystem=xdg-templates",
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfsd",
         "--own-name=org.freedesktop.FileManager1"
