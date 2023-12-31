@@ -159,7 +159,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.__items_changed()
         shared.postmaster.connect("tag-location-created", self.__tag_location_created)
 
-        # Set up the `page`` action group
+        # Set up the `page` action group
         self.shortcut_controller = Gtk.ShortcutController.new()
         self.add_controller(self.shortcut_controller)
 
@@ -184,7 +184,6 @@ class HypItemsPage(Adw.NavigationPage):
         self.create_action("trash-restore", self.__trash_restore)
 
         # Set up zoom scrolling
-
         self.scroll = Gtk.EventControllerScroll.new(
             (
                 Gtk.EventControllerScrollFlags.VERTICAL
@@ -193,20 +192,6 @@ class HypItemsPage(Adw.NavigationPage):
         )
         self.scroll.connect("scroll", self.__scroll)
         self.scrolled_window.add_controller(self.scroll)
-
-        shared.schema.bind(
-            "single-click-open",
-            self.grid_view,
-            "single-click-activate",
-            Gio.SettingsBindFlags.DEFAULT,
-        )
-
-        shared.schema.bind(
-            "single-click-open",
-            self.column_view,
-            "single-click-activate",
-            Gio.SettingsBindFlags.DEFAULT,
-        )
 
     def reload(self) -> None:
         """Refresh the view."""
@@ -492,6 +477,13 @@ class HypItemsPage(Adw.NavigationPage):
     def __get_grid_view(self) -> Gtk.GridView:
         # Only set up the view once
         if not self.grid_view.get_model():
+            shared.schema.bind(
+                "single-click-open",
+                self.grid_view,
+                "single-click-activate",
+                Gio.SettingsBindFlags.DEFAULT,
+            )
+
             self.grid_view.set_factory(self.item_factory)
             self.grid_view.set_model(self.multi_selection)
             self.grid_view.connect("activate", self.activate)
@@ -501,6 +493,13 @@ class HypItemsPage(Adw.NavigationPage):
     def __get_column_view(self) -> Gtk.ColumnView:
         # Only set up the view once
         if not self.column_view.get_model():
+            shared.schema.bind(
+                "single-click-open",
+                self.column_view,
+                "single-click-activate",
+                Gio.SettingsBindFlags.DEFAULT,
+            )
+
             self.column_view.append_column(
                 Gtk.ColumnViewColumn(
                     title=_("Item"),
