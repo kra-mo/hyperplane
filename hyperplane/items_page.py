@@ -1014,7 +1014,7 @@ class HypItemsPage(Adw.NavigationPage):
             message = _("{} files moved to trash").format(n)
         elif n:
             message = _("{} moved to trash").format(
-                f'"{get_gfile_display_name(gfiles[0])}"'
+                f"“{get_gfile_display_name(gfiles[0])}”"
             )
 
         toast = self.get_root().send_toast(message, undo=True)
@@ -1039,7 +1039,7 @@ class HypItemsPage(Adw.NavigationPage):
                 return
             case 1:
                 msg = _("Are you sure you want to permanently delete {}?").format(
-                    f'"{get_gfile_display_name(gfiles[0])}"'
+                    f"“{get_gfile_display_name(gfiles[0])}”"
                 )
             case _:
                 # The variable is the number of items to be deleted
