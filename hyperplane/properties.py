@@ -81,9 +81,9 @@ class HypPropertiesWindow(Adw.Window):
         created = file_info.get_creation_date_time()
         owner = file_info.get_attribute_string(Gio.FILE_ATTRIBUTE_OWNER_USER)
         group = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_OWNER_GROUP)
-        can_read = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_ACCESS_CAN_READ)
-        can_write = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE)
-        can_execute = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE)
+        can_read = file_info.get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_READ)
+        can_write = file_info.get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE)
+        can_execute = file_info.get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE)
         security_context = file_info.get_attribute_as_string(Gio.FILE_ATTRIBUTE_SELINUX_CONTEXT)
         deletion_date = file_info.get_deletion_date()
         orig_path = file_info.get_attribute_byte_string(Gio.FILE_ATTRIBUTE_TRASH_ORIG_PATH)
@@ -485,7 +485,7 @@ class HypPropertiesWindow(Adw.Window):
                             my_change = True
                             exec_row.set_active(not exec_row.get_active())
 
-                    exec_row.set_active(can_execute == "TRUE")
+                    exec_row.set_active(bool(can_execute))
                     exec_row.connect("notify::active", set_executable)
 
     def __stop(self, *_args: Any) -> None:

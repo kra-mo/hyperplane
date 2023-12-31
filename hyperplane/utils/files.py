@@ -34,6 +34,8 @@ from hyperplane.utils.tags import path_represents_tags
 # TODO: Handle errors better
 # TODO: Make file operations cancellable
 
+class YouAreStupid(Exception):
+    """Raised when you try to move a folder into itself."""
 
 def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> None:
     """
@@ -102,6 +104,9 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     if not (parent := dst.get_parent()):
         return
 
+    if parent.get_uri() == src.get_uri():
+        raise YouAreStupid
+
     if not parent.query_exists():
         try:
             parent.make_directory_with_parents()
@@ -157,7 +162,7 @@ def restore(
         # Move the item in Trash/files back to the original location
         try:
             move(trash_file, orig_file)
-        except FileExistsError:
+        except (FileExistsError, YouAreStupid):
             return
 
     def query_cb(gfile, result):

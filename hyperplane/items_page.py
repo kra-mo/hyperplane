@@ -35,6 +35,7 @@ from hyperplane.new_file_dialog import HypNewFileDialog
 from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
+    YouAreStupid,
     copy,
     get_copy_gfile,
     get_gfile_display_name,
@@ -84,28 +85,11 @@ class HypItemsPage(Adw.NavigationPage):
             self.set_title(" + ".join(self.tags))
 
         # Right-click
-        gesture_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
-        gesture_click.connect("pressed", self.__right_click)
-        self.add_controller(gesture_click)
+        right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        right_click.connect("pressed", self.__right_click)
+        self.add_controller(right_click)
         self.menu_items = None
         self.view_right_clicked = False
-
-        # Drag and drop
-        # TODO: Accept more actions than just copy
-        # TODO: Provide DragSource (why is it so hard with rubberbanding TwT)
-        file_drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
-        file_drop_target.connect("drop", self.__drop_file)
-        self.scrolled_window.add_controller(file_drop_target)
-
-        texture_drop_target = Gtk.DropTarget.new(Gdk.Texture, Gdk.DragAction.COPY)
-        texture_drop_target.connect(
-            "drop", lambda *args: GLib.Thread.new(None, self.__drop_texture, *args)
-        )
-        self.scrolled_window.add_controller(texture_drop_target)
-
-        text_drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.COPY)
-        text_drop_target.connect("drop", self.__drop_text)
-        self.scrolled_window.add_controller(text_drop_target)
 
         shared.postmaster.connect("tags-changed", self.__tags_changed)
         shared.postmaster.connect("toggle-hidden", self.__toggle_hidden)
@@ -206,16 +190,16 @@ class HypItemsPage(Adw.NavigationPage):
 
     def get_gfiles_from_positions(self, positions: list[int]) -> list[Gio.File]:
         """Get a list of `GFile`s corresponding to positions in the list model."""
-        paths = []
+        files = []
 
         for position in positions:
-            paths.append(
+            files.append(
                 self.multi_selection.get_item(position).get_attribute_object(
                     "standard::file"
                 )
             )
 
-        return paths
+        return files
 
     def get_selected_positions(self) -> list[int]:
         """Gets the list of positions for selected items in the grid view."""
@@ -262,7 +246,7 @@ class HypItemsPage(Adw.NavigationPage):
         # TODO: Rename the right-click menu item here
         try:
             assert (path := gfile.get_path())
-            assert (dst := self.__get_dst().get_path())
+            assert (dst := self.get_dst().get_path())
         except AssertionError:
             pass
         else:
@@ -277,7 +261,7 @@ class HypItemsPage(Adw.NavigationPage):
                     extract_dir := Path(dst) / Path(path).stem.removesuffix(".tar")
                 ).is_dir():
                     self.get_root().send_toast(
-                        _("A folder with that name already exists.")
+                        _("A folder with that name already exists")
                     )
                     return
 
@@ -306,6 +290,21 @@ class HypItemsPage(Adw.NavigationPage):
 
         shared.recent_manager.add_full(uri, recent_data)
 
+    def get_dst(self) -> Gio.File:
+        """Gets the destination `GFile` for paste operations to the page."""
+        if self.tags:
+            tags = tuple(tag for tag in shared.tags if tag in self.tags)
+            return Gio.File.new_for_path(
+                str(
+                    Path(
+                        shared.home_path,
+                        *tags,
+                    )
+                )
+            )
+
+        return self.gfile
+
     def create_action(
         self, name: str, callback: Callable, shortcuts: Optional[Iterable] = None
     ) -> None:
@@ -330,20 +329,6 @@ class HypItemsPage(Adw.NavigationPage):
                         Gtk.NamedAction.new(f"page.{name}"),
                     )
                 )
-
-    def __get_dst(self) -> Gio.File:
-        if self.tags:
-            tags = tuple(tag for tag in shared.tags if tag in self.tags)
-            return Gio.File.new_for_path(
-                str(
-                    Path(
-                        shared.home_path,
-                        *tags,
-                    )
-                )
-            )
-
-        return self.gfile
 
     def __get_list(
         self, gfile: Optional[Gio.File] = None, tags: Optional[list[str]] = None
@@ -628,84 +613,6 @@ class HypItemsPage(Adw.NavigationPage):
         # between the items page and the item
         GLib.timeout_add(10, self.__popup_menu)
 
-    def __drop_file(
-        self,
-        _drop_target: Gtk.DropTarget,
-        file_list: Gdk.FileList,
-        _x: float,
-        _y: float,
-    ) -> None:
-        # TODO: This is copy-paste from __paste()
-        for src in file_list:
-            dst = self.__get_dst()
-
-            try:
-                dst = Gio.File.new_for_path(
-                    str(get_gfile_path(dst) / get_gfile_display_name(src))
-                )
-            except (FileNotFoundError, TypeError):
-                continue
-
-            else:
-                try:
-                    copy(src, dst)
-                except FileExistsError:
-                    try:
-                        copy(src, get_copy_gfile(dst))
-                    except (FileExistsError, FileNotFoundError):
-                        continue
-
-    def __drop_texture(
-        self, _drop_target: Gtk.DropTarget, texture: Gdk.Texture, _x: float, _y: float
-    ) -> None:
-        # TODO: Again, copy-paste from __paste()
-        dst = self.__get_dst()
-
-        texture_bytes = texture.save_to_png_bytes()
-
-        dst = dst.get_child_for_display_name(_("Dropped Image") + ".png")
-
-        if dst.query_exists():
-            dst = get_copy_gfile(dst)
-            try:
-                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
-                return
-        else:
-            try:
-                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
-                return
-
-        output = stream.get_output_stream()
-        output.write_bytes(texture_bytes)
-
-    def __drop_text(
-        self, _drop_target: Gtk.DropTarget, text: str, _x: float, _y: float
-    ) -> None:
-        # TODO: Again again, copy-paste from __paste()
-        if not text:  # If text is an empty string
-            return
-
-        dst = self.__get_dst()
-
-        dst = dst.get_child_for_display_name(_("Dropped Text") + ".txt")
-
-        if dst.query_exists():
-            dst = get_copy_gfile(dst)
-            try:
-                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
-                return
-        else:
-            try:
-                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
-                return
-
-        output = stream.get_output_stream()
-        output.write(text.encode("utf-8"))
-
     def __undo(self, obj: Any, *_args: Any) -> None:
         if not shared.undo_queue:
             return
@@ -716,7 +623,6 @@ class HypItemsPage(Adw.NavigationPage):
             index = tuple(shared.undo_queue.keys())[-1]
         item = shared.undo_queue[index]
 
-        # TODO: Look up the pages with the paths and update those
         match item[0]:
             case "copy":
                 for copy_item in item[1]:
@@ -724,11 +630,11 @@ class HypItemsPage(Adw.NavigationPage):
                         rm(copy_item)
                     except FileNotFoundError:
                         pass
-            case "cut":
+            case "move":
                 for gfiles in item[1]:
                     try:
                         move(gfiles[1], gfiles[0])
-                    except FileExistsError:
+                    except (FileExistsError, YouAreStupid):
                         pass
             case "rename":
                 try:
@@ -783,14 +689,14 @@ class HypItemsPage(Adw.NavigationPage):
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
 
     def __new_file(self, *_args: Any) -> None:
-        dst = self.__get_dst()
+        dst = self.get_dst()
 
         dialog = HypNewFileDialog(dst)
         dialog.set_transient_for(self.get_root())
         dialog.present()
 
     def __new_folder(self, *_args: Any) -> None:
-        dst = self.__get_dst()
+        dst = self.get_dst()
 
         preferences_group = Adw.PreferencesGroup(width_request=360)
         revealer_label = Gtk.Label(
@@ -886,12 +792,12 @@ class HypItemsPage(Adw.NavigationPage):
 
     def __paste(self, *_args: Any) -> None:
         clipboard = Gdk.Display.get_default().get_clipboard()
-        paths = []
+        files = []
 
-        dst = self.__get_dst()
+        dst = self.get_dst()
 
         def paste_file_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:
-            nonlocal paths
+            nonlocal files
             nonlocal dst
 
             try:
@@ -913,14 +819,19 @@ class HypItemsPage(Adw.NavigationPage):
                         move(src, final_dst)
                     except FileExistsError:
                         self.get_root().send_toast(
-                            _("A folder with that name already exists.")
+                            _("A folder with that name already exists")
                             if src.query_file_type(Gio.FileQueryInfoFlags.NONE)
                             == Gio.FileType.DIRECTORY
-                            else _("A file with that name already exists.")
+                            else _("A file with that name already exists")
+                        )
+                        continue
+                    except YouAreStupid:
+                        self.get_root().send_toast(
+                            _("You cannot move a folder into itself")
                         )
                         continue
                     else:
-                        paths.append((src, final_dst))
+                        files.append((src, final_dst))
 
                 else:
                     try:
@@ -932,12 +843,12 @@ class HypItemsPage(Adw.NavigationPage):
                         except (FileExistsError, FileNotFoundError):
                             continue
 
-                    paths.append(final_dst)
+                    files.append(final_dst)
 
             if shared.cut_uris:
-                shared.undo_queue[time()] = ("cut", paths)
+                shared.undo_queue[time()] = ("move", files)
             else:
-                shared.undo_queue[time()] = ("copy", paths)
+                shared.undo_queue[time()] = ("copy", files)
             shared.set_cut_uris(set())
 
         def paste_texture_cb(clipboard: Gdk.Clipboard, result: Gio.AsyncResult) -> None:

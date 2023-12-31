@@ -29,7 +29,7 @@ https://github.com/GNOME/nautilus/blob/e2f7070feb19c7ec9d0f43d9721f446a82072281/
 }
 .hyperplane-column-view > listview {
     padding: 6px 0px 12px 0px;
-    border-spacing: 6px;
+    border-spacing: 9px;
     margin-left: -12px;
     margin-right: -12px;
 }

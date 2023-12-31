@@ -26,6 +26,7 @@ from gi.repository.GLib import idle_add
 
 from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
+from hyperplane.utils.files import rm
 from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 from hyperplane.utils.thumbnail import generate_thumbnail
 
@@ -60,6 +61,8 @@ class HypItem(Adw.Bin):
     item: Gtk.ListItem
     page: Adw.NavigationPage
     file_info: Gio.FileInfo
+
+    dragged_gfiles: list[Gio.File] = []
 
     gfile: Gio.File
     is_dir: bool
@@ -96,23 +99,47 @@ class HypItem(Adw.Bin):
         shared.postmaster.connect(
             "zoom", lambda _obj, zoom_level: self.__zoom(zoom_level)
         )
+        shared.postmaster.connect("cut-uris-changed", self.__cut_uris_changed)
 
+        # Left-click
+        def set_rubberband(*_args: Any) -> None:
+            self.page.view.set_enable_rubberband(False)
+            GLib.timeout_add(100, self.page.view.set_enable_rubberband, True)
+
+        left_click = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        left_click.connect("pressed", set_rubberband)
+        self.add_controller(left_click)
+
+        # Right-click
         right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
         right_click.connect("pressed", self.__right_click)
         self.add_controller(right_click)
 
+        # Middle-click
         middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
         middle_click.connect("pressed", self.__middle_click)
         self.add_controller(middle_click)
 
+        # Drag and drop
+        drag_source = Gtk.DragSource.new()
+        drag_source.set_actions(Gdk.DragAction.MOVE)
+        drag_source.connect("prepare", self.__drag_prepare)
+        drag_source.connect("drag-begin", self.__drag_begin)
+        drag_source.connect("drag-end", self.__drag_end)
+        drag_source.connect("drag-cancel", self.__drag_cancel)
+        self.add_controller(drag_source)
+
+        self.motion = Gtk.DropControllerMotion.new()
+        self.motion.connect("enter", self.__motion_enter)
+        self.add_controller(self.motion)
+
+        # Save initial style classes
         self.thumb_init_classes = self.thumbnail.get_css_classes()
         self.icon_init_classes = self.icon.get_css_classes()
         self.circular_icon_init_classes = self.circular_icon.get_css_classes()
         self.ext_init_classes = self.extension_label.get_css_classes()
         self.dir_thumb_init_classes = self.dir_thumbnail_1.get_css_classes()
         self.dir_icon_init_classes = self.dir_thumbnail_1.get_child().get_css_classes()
-
-        shared.postmaster.connect("cut-uris-changed", self.__cut_uris_changed)
 
     @GObject.Property(type=str)
     def display_name(self) -> str:
@@ -224,6 +251,43 @@ class HypItem(Adw.Bin):
 
     def unbind(self) -> None:
         """Cleanup after the object has been unbound from its item."""
+
+    def __drag_prepare(self, _src: Gtk.DragSource, _x: float, _y: float) -> None:
+        self.__select_self(unselect_rest=False)
+        self.dragged_gfiles = self.page.get_selected_gfiles()
+
+        return Gdk.ContentProvider.new_for_value(
+            Gdk.FileList.new_from_list(self.dragged_gfiles)
+        )
+
+    def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
+        src.set_icon(Gtk.WidgetPaintable.new(self), 0, 0)
+
+    def __drag_end(
+        self, _src: Gtk.DragSource, _drag: Gdk.Drag, delete_data: bool
+    ) -> None:
+        self.page.view.set_enable_rubberband(True)
+        if delete_data:
+            for gfile in self.dragged_gfiles:
+                rm(gfile)
+
+        self.dragged_gfiles = []
+
+    def __drag_cancel(
+        self, _src: Gtk.DragSource, _drag: Gdk.Drag, _reason: Gdk.DragCancelReason
+    ) -> None:
+        self.page.view.set_enable_rubberband(True)
+        self.dragged_gfiles = []
+
+    def __open_folder(self, *_args: Any) -> None:
+        win = self.get_root()
+
+        if self.motion.contains_pointer() and win.drop_target.get_current_drop():
+            win.new_page(self.gfile)
+
+    def __motion_enter(self, *_args: Any) -> None:
+        if self.is_dir and self.get_root().drop_target.get_current_drop():
+            GLib.timeout_add(500, self.__open_folder)
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:
@@ -511,9 +575,9 @@ class HypItem(Adw.Bin):
         self.label.set_margin_top(0)
         self.label.set_margin_start(12)
 
-    def __select_self(self) -> None:
+    def __select_self(self, unselect_rest: bool = True) -> None:
         if not self.page.multi_selection.is_selected(pos := self.item.get_position()):
-            self.page.multi_selection.select_item(pos, True)
+            self.page.multi_selection.select_item(pos, unselect_rest)
 
     def __right_click(self, *_args: Any) -> None:
         self.__select_self()

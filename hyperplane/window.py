@@ -23,7 +23,7 @@ from itertools import chain
 from time import time
 from typing import Any, Callable, Iterable, Optional, Self
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
@@ -34,7 +34,14 @@ from hyperplane.path_entry import HypPathEntry
 from hyperplane.properties import HypPropertiesWindow
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.create_message_dialog import create_message_dialog
-from hyperplane.utils.files import clear_recent_files, empty_trash, validate_name
+from hyperplane.utils.files import (
+    clear_recent_files,
+    copy,
+    empty_trash,
+    get_copy_gfile,
+    get_gfile_display_name,
+    validate_name,
+)
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
 from hyperplane.volumes_box import HypVolumesBox
 
@@ -128,7 +135,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.trash_empty_animation.props.epsilon = 0.026
 
         # Create actions
-
         navigation_view = HypNavigationBin(
             initial_gfile=initial_gfile, initial_tags=initial_tags
         )
@@ -199,7 +205,6 @@ class HypWindow(Adw.ApplicationWindow):
         self.create_action("end-edit-sidebar", self.__end_edit_sidebar)
 
         # Connect signals
-
         self.sidebar.connect("row-activated", self.__row_activated)
         self.new_tag_box.connect("row-activated", self.__new_tag)
         self.trash_box.connect("row-activated", self.__open_trash)
@@ -235,12 +240,10 @@ class HypWindow(Adw.ApplicationWindow):
         self.rename_button.connect("clicked", self.__do_rename)
 
         # Set up search
-
         self.searched_page = self.get_visible_page()
         self.search_entry.set_key_capture_widget(self)
 
         # Build sidebar
-
         self.sidebar_tag_rows = set()
         self.__update_tags()
 
@@ -248,7 +251,6 @@ class HypWindow(Adw.ApplicationWindow):
         shared.trash_list.connect("notify::n-items", self.__trash_changed)
 
         # Set up sidebar actions
-
         self.sidebar_rows = {
             # TODO: Hide this if file history is disabled system-wide
             self.recent_row: Gio.File.new_for_uri("recent://"),
@@ -267,6 +269,14 @@ class HypWindow(Adw.ApplicationWindow):
 
             widget.add_controller(right_click)
             widget.add_controller(middle_click)
+
+        # Drag and drop
+        self.drop_target = Gtk.DropTarget.new(
+            GObject.TYPE_NONE, Gdk.DragAction.COPY | Gdk.DragAction.MOVE
+        )
+        self.drop_target.set_gtypes((Gdk.Texture, Gdk.FileList, str))
+        self.drop_target.connect("drop", self.__drop)
+        self.tab_view.add_controller(self.drop_target)
 
     def send_toast(self, message: str, undo: bool = False) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
@@ -888,3 +898,129 @@ class HypWindow(Adw.ApplicationWindow):
             self.sidebar_rows, self.sidebar_tag_rows, self.volumes_box.rows.values()
         ):
             row.set_active()
+
+    def __drop(
+        self,
+        drop_target: Gtk.DropTarget,
+        value: Gdk.Texture | Gdk.FileList | str,
+        _x: float,
+        _y: float,
+    ):
+        page = self.get_visible_page()
+        page.multi_selection.unselect_all()
+
+        if page.gfile and not page.gfile.query_info(
+            Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE, Gio.FileQueryInfoFlags.NONE
+        ).get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE):
+            self.send_toast(_("The location is not writable"))
+            return False
+
+        if isinstance(value, Gdk.FileList):
+            dst = self.get_visible_page().get_dst()
+            for src in value:
+                uri = src.get_uri()
+
+                if uri == dst.get_uri():
+                    self.send_toast(_("You cannot move a folder into itself"))
+                    return False
+
+                try:
+                    child = dst.get_child_for_display_name(get_gfile_display_name(src))
+                except GLib.Error:
+                    return False
+
+                if uri == child.get_uri():
+                    return False
+
+            self.__drop_file_list(
+                value,
+                drop_target.get_current_drop().get_drag().get_selected_action()
+                if drop_target.get_current_drop().get_drag()
+                else Gdk.DragAction.COPY,
+            )
+            return True
+
+        if isinstance(value, Gdk.Texture):
+            GLib.Thread.new(None, self.__drop_texture, value)
+            return True
+
+        if isinstance(value, str):
+            self.__drop_text(value)
+            return True
+
+        return False
+
+    def __drop_file_list(self, file_list: Gdk.FileList, action: Gdk.DragAction) -> None:
+        # TODO: This is copy-paste from HypItemsPage.__paste()
+        dst = self.get_visible_page().get_dst()
+        move = action == Gdk.DragAction.MOVE
+
+        files = []
+
+        for src in file_list:
+            try:
+                if not (
+                    child := dst.get_child_for_display_name(get_gfile_display_name(src))
+                ):
+                    continue
+            except GLib.Error:
+                continue
+            else:
+                try:
+                    copy(src, child)
+                except FileExistsError:
+                    try:
+                        copy(src, get_copy_gfile(child))
+                    except (FileExistsError, FileNotFoundError):
+                        continue
+
+                files.append((src, child) if move else child)
+
+        shared.undo_queue[time()] = ("move" if move else "copy", files)
+
+    def __drop_texture(self, texture: Gdk.Texture) -> None:
+        # TODO: Again, copy-paste from HypItemsPage.__paste()
+        dst = self.get_visible_page().get_dst()
+
+        texture_bytes = texture.save_to_png_bytes()
+
+        dst = dst.get_child_for_display_name(_("Dropped Image") + ".png")
+
+        if dst.query_exists():
+            dst = get_copy_gfile(dst)
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+        else:
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+
+        output = stream.get_output_stream()
+        output.write_bytes(texture_bytes)
+
+    def __drop_text(self, text: str) -> None:
+        # TODO: Again again, copy-paste from HypItemsPage.__paste()
+        if not text:  # If text is an empty string
+            return
+
+        dst = self.get_visible_page().get_dst()
+
+        dst = dst.get_child_for_display_name(_("Dropped Text") + ".txt")
+
+        if dst.query_exists():
+            dst = get_copy_gfile(dst)
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+        else:
+            try:
+                stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
+            except GLib.Error:
+                return
+
+        output = stream.get_output_stream()
+        output.write(text.encode("utf-8"))
