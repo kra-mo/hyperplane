@@ -31,6 +31,7 @@ from hyperplane import shared
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
+from hyperplane.new_file_dialog import HypNewFileDialog
 from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
@@ -173,6 +174,7 @@ class HypItemsPage(Adw.NavigationPage):
         )
         self.create_action("open-with", self.__open_with)
         self.create_action("new-folder", self.__new_folder, ("<primary><shift>n",))
+        self.create_action("new-file", self.__new_file, ("<primary><alt>n",))
         self.create_action("copy", self.__copy, ("<primary>c",))
         self.create_action("cut", self.__cut, ("<primary>x",))
         self.create_action("paste", self.__paste, ("<primary>v",))
@@ -573,6 +575,7 @@ class HypItemsPage(Adw.NavigationPage):
             items = {
                 "paste",
                 "new-folder",
+                "new-file",
                 "select-all",
                 "open-with",
             }
@@ -588,6 +591,7 @@ class HypItemsPage(Adw.NavigationPage):
                 }:
                     items.remove("paste")
                     items.remove("new-folder")
+                    items.remove("new-file")
 
                     if self.gfile.get_uri() == "trash:///":
                         if shared.trash_list.get_n_items():
@@ -765,8 +769,15 @@ class HypItemsPage(Adw.NavigationPage):
         # TODO: Is there any way to open multiple files?
         portal.open_uri(parent, gfiles[0].get_uri(), Xdp.OpenUriFlags.ASK)
 
+    def __new_file(self, *_args: Any) -> None:
+        dst = self.__get_dst()
+
+        dialog = HypNewFileDialog(dst)
+        dialog.set_transient_for(self.get_root())
+        dialog.present()
+
     def __new_folder(self, *_args: Any) -> None:
-        gfile = self.__get_dst()
+        dst = self.__get_dst()
 
         preferences_group = Adw.PreferencesGroup(width_request=360)
         revealer_label = Gtk.Label(
@@ -812,7 +823,7 @@ class HypItemsPage(Adw.NavigationPage):
                 revealer.set_reveal_child(False)
                 return
 
-            can_create, message = validate_name(gfile, text)
+            can_create, message = validate_name(dst, text, directory=True)
             dialog.set_response_enabled("create", can_create)
             revealer.set_reveal_child(bool(message))
             if message:
@@ -824,7 +835,7 @@ class HypItemsPage(Adw.NavigationPage):
             if not can_create:
                 return
 
-            new_gfile = gfile.get_child_for_display_name(entry.get_text())
+            new_gfile = dst.get_child_for_display_name(entry.get_text())
             emit = self.tags and (not new_gfile.get_parent().query_exists())
 
             new_gfile.make_directory_with_parents()
@@ -836,7 +847,7 @@ class HypItemsPage(Adw.NavigationPage):
             shared.postmaster.emit(
                 "tag-location-created",
                 Gtk.StringList.new(self.tags),
-                gfile,
+                dst,
             )
 
         entry.connect("entry-activated", create_folder)

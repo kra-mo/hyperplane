@@ -49,6 +49,7 @@ class HypNavigationBin(Adw.Bin):
     ) -> None:
         super().__init__(**kwargs)
         self.view = Adw.NavigationView()
+        self.view.add_css_class("flat-navigation-view")
         self.set_child(self.view)
 
         if initial_gfile:

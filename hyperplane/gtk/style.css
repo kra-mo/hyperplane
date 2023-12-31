@@ -1,3 +1,12 @@
+/* For flat header bars that don't look weird */
+.flat-navigation-view > dimming {
+    opacity: 0;
+}
+
+.flat-navigation-view > shadow {
+	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
+}
+
 .item-thumbnail {
     border-radius: 9px;
 }
@@ -113,14 +122,10 @@ and that looks ugly.
     margin-top: 0;
 }
 
-/* For flat header bars that don't look weird */
-navigation-view > dimming {
-    opacity: 0;
+.bg-text-view > text {
+    background-color: @window_bg_color;
 }
 
-navigation-view > shadow {
-	background: radial-gradient(farthest-side at right, rgba(0,0,0,.08) 0%, rgba(0,0,0,0) 100%);
-}
 
 .white-background { background: @light_1; }
 .white-icon { color: @light_1; }

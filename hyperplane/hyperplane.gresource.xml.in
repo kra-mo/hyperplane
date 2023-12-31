@@ -4,6 +4,7 @@
     <file preprocess="xml-stripblanks">gtk/guide.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">gtk/item.ui</file>
+    <file preprocess="xml-stripblanks">gtk/new-file-dialog.ui</file>
     <file preprocess="xml-stripblanks">gtk/items-page.ui</file>
     <file preprocess="xml-stripblanks">gtk/path-bar.ui</file>
     <file preprocess="xml-stripblanks">gtk/path-entry.ui</file>

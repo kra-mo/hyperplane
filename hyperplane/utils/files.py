@@ -323,7 +323,7 @@ def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
 
 
 def validate_name(
-    gfile: Gio.File, name: str, siblings: Optional[bool] = False
+    gfile: Gio.File, name: str, siblings: bool = False, directory: bool = False
 ) -> (bool, Optional[str]):
     """
     The first return value is true if `name` is a valid name for a new file or folder
@@ -333,6 +333,7 @@ def validate_name(
     This should be displayed to the user before the file operation.
 
     Set `siblings` to true for a move operation in the same directory (a rename).
+    If `siblings` is false, `directory` will determine whether the new item is a file or directory.
     """
     try:
         path = Path(get_gfile_path(gfile))
@@ -341,8 +342,12 @@ def validate_name(
         # TODO: This may be incorrect
         return False, _("The path is not writable.")
 
-    is_dir = path.is_dir()
-    is_file = (not is_dir) and (path.exists())
+    if siblings:
+        is_dir = path.is_dir()
+        is_file = (not is_dir) and (path.exists())
+    else:
+        is_dir = directory
+        is_file = not directory
 
     # TODO: More elegant (cross-platform) way to check for invalid paths
     if name in (".", ".."):
@@ -354,9 +359,9 @@ def validate_name(
 
     if "/" in name:
         if is_dir:
-            error = _('Folder names cannot conrain "{}".').format("/")
+            error = _('Folder names cannot contain "{}".').format("/")
         else:
-            error = _('File names cannot conrain "{}".').format("/")
+            error = _('File names cannot contain "{}".').format("/")
         return False, error
 
     new_path = Path(path.parent, name) if siblings else path / name
