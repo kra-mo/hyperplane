@@ -18,6 +18,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A row in the sidebar representing a tag."""
+from typing import Self
+
 from gi.repository import Gdk, Gtk
 
 from hyperplane import shared
@@ -55,14 +57,14 @@ class HypTagRow(HypEditableRow):
         drag_source.set_actions(Gdk.DragAction.MOVE)
         self.box.add_controller(drag_source)
 
-        drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+        drop_target = Gtk.DropTarget.new(HypTagRow, Gdk.DragAction.MOVE)
         drop_target.connect("enter", self.__drop_enter)
         drop_target.connect("leave", self.__drop_leave)
         drop_target.connect("drop", self.__drop)
         self.add_controller(drop_target)
 
     def __drag_prepare(self, _src: Gtk.DragSource, _x: float, _y: float) -> None:
-        return Gdk.ContentProvider.new_for_value(self.tag)
+        return Gdk.ContentProvider.new_for_value(self)
 
     def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
         src.set_icon(Gtk.WidgetPaintable.new(self.box), -30, 0)
@@ -75,19 +77,14 @@ class HypTagRow(HypEditableRow):
     def __drop_leave(self, _target: Gtk.DropTarget) -> None:
         self.remove_css_class("sidebar-drop-target")
 
-    def __drop(
-        self, _target: Gtk.DropTarget, string: str, _x: float, _y: float
-    ) -> None:
-        if not string in shared.tags:
-            return
-
+    def __drop(self, _target: Gtk.DropTarget, row: Self, _x: float, _y: float) -> None:
         self_index = shared.tags.index(self.tag)
-        str_index = shared.tags.index(string)
+        row_index = shared.tags.index(row.tag)
 
         shared.tags.insert(
             # Offset the index by 1 if `string` is at a larger index than `self.tag`
-            self_index + int(self_index < str_index),
-            shared.tags.pop(str_index),
+            self_index + int(self_index < row_index),
+            shared.tags.pop(row_index),
         )
 
         update_tags()
