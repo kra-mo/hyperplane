@@ -5,145 +5,146 @@ template $HypGuide : Adw.Window {
     title: _("Welcome to Hyperplane");
     default-height: 520;
     default-width: 700;
-
-    Adw.ToolbarView {
-        [top]
-        Adw.HeaderBar {
-            [title]
-            Adw.CarouselIndicatorLines {
-                carousel: carousel;
-            }
-        }
-
-        Adw.Carousel carousel {
-            interactive: false;
-
-            Adw.StatusPage page_1 {
-                title: _("Welcome to Hyperplane");
-                description: _("This guide will help you learn its features");
-                Button button_1 {
-                    halign: center;
-                    label: _("Start");
-
-                    styles [
-                        "pill",
-                        "suggested-action",
-                    ]
-
-                    clicked => $_next_page();
+    WindowHandle {
+        Adw.ToolbarView {
+            [top]
+            Adw.HeaderBar {
+                [title]
+                Adw.CarouselIndicatorLines {
+                    carousel: carousel;
                 }
             }
 
-            ScrolledWindow {
-                hexpand: true;
+            Adw.Carousel carousel {
+                interactive: false;
 
-                Box {
-                    orientation: vertical;
-                    valign: center;
+                Adw.StatusPage page_1 {
+                    title: _("Welcome to Hyperplane");
+                    description: _("This guide will help you learn its features");
+                    Button button_1 {
+                        halign: center;
+                        label: _("Start");
 
-                    Picture tags_picture {
-                        content-fit: scale_down;
+                        styles [
+                            "pill",
+                            "suggested-action",
+                        ]
+
+                        clicked => $_next_page();
                     }
+                }
 
-                    Adw.StatusPage {
-                        title: _("Organize by Categories");
-                        description: _("Categories allow you to organize your files and folders however you like,\nan item can be in any category and you can access your categories in any order");
+                ScrolledWindow {
+                    hexpand: true;
 
-                        Button button_2 {
-                            halign: center;
-                            label: _("Next");
+                    Box {
+                        orientation: vertical;
+                        valign: center;
 
-                            styles [
-                                "pill",
-                                "suggested-action",
-                            ]
-
-                            clicked => $_next_page();
+                        Picture tags_picture {
+                            content-fit: scale_down;
                         }
-                    }
-                }
-            }
 
-            ScrolledWindow {
-                hexpand: true;
+                        Adw.StatusPage {
+                            title: _("Organize by Categories");
+                            description: _("Categories allow you to organize your files and folders however you like,\nan item can be in any category and you can access your categories in any order");
 
-                Box {
-                    orientation: vertical;
-                    valign: center;
-
-                    Picture folders_picture {
-                        content-fit: scale_down;
-                    }
-
-                    Adw.StatusPage {
-                        title: _("You Own Your Files");
-                        description: _("Categories are simply stored as folders on disk\nso you can easily access them even outside Hyperplane");
-
-                        Button button_3 {
-                            halign: center;
-                            label: _("Next");
-
-                            styles [
-                                "pill",
-                                "suggested-action",
-                            ]
-
-                            clicked => $_next_page();
-                        }
-                    }
-                }
-            }
-
-            ScrolledWindow {
-                hexpand: true;
-
-                Box {
-                    orientation: vertical;
-                    valign: center;
-
-                    Adw.Clamp {
-                        maximum-size: 120;
-
-                        Overlay {
-
-                            [overlay]
-                            Image {
-                                margin-top: 6;
-                                icon-size: large;
-                                icon-name: "preferences-system-privacy-symbolic";
-
-                                styles [
-                                    "blue-icon-light-only"
-                                ]
-                            }
-
-                            Picture folder_picture {
-                                content-fit: fill;
+                            Button button_2 {
                                 halign: center;
-                                valign: center;
+                                label: _("Next");
 
                                 styles [
-                                    "item-thumbnail",
-                                    "dark-blue-background",
+                                    "pill",
+                                    "suggested-action",
                                 ]
+
+                                clicked => $_next_page();
                             }
                         }
                     }
+                }
 
-                    Adw.StatusPage {
-                        title: _("You’re in Control");
-                        description: _("Hyperplane will not move files automatically when editing categories\nso all file operations are transparent");
+                ScrolledWindow {
+                    hexpand: true;
 
-                        Button button_4 {
-                            halign: center;
-                            label: _("Open Hyperplane");
+                    Box {
+                        orientation: vertical;
+                        valign: center;
 
-                            styles [
-                                "pill",
-                                "suggested-action",
-                            ]
+                        Picture folders_picture {
+                            content-fit: scale_down;
+                        }
 
-                            action-name: "window.close";
+                        Adw.StatusPage {
+                            title: _("You Own Your Files");
+                            description: _("Categories are simply stored as folders on disk\nso you can easily access them even outside Hyperplane");
+
+                            Button button_3 {
+                                halign: center;
+                                label: _("Next");
+
+                                styles [
+                                    "pill",
+                                    "suggested-action",
+                                ]
+
+                                clicked => $_next_page();
+                            }
+                        }
+                    }
+                }
+
+                ScrolledWindow {
+                    hexpand: true;
+
+                    Box {
+                        orientation: vertical;
+                        valign: center;
+
+                        Adw.Clamp {
+                            maximum-size: 120;
+
+                            Overlay {
+
+                                [overlay]
+                                Image {
+                                    margin-top: 6;
+                                    icon-size: large;
+                                    icon-name: "preferences-system-privacy-symbolic";
+
+                                    styles [
+                                        "blue-icon-light-only"
+                                    ]
+                                }
+
+                                Picture folder_picture {
+                                    content-fit: fill;
+                                    halign: center;
+                                    valign: center;
+
+                                    styles [
+                                        "item-thumbnail",
+                                        "dark-blue-background",
+                                    ]
+                                }
+                            }
+                        }
+
+                        Adw.StatusPage {
+                            title: _("You’re in Control");
+                            description: _("Hyperplane will not move files automatically when editing categories\nso all file operations are transparent");
+
+                            Button button_4 {
+                                halign: center;
+                                label: _("Open Hyperplane");
+
+                                styles [
+                                    "pill",
+                                    "suggested-action",
+                                ]
+
+                                action-name: "window.close";
+                            }
                         }
                     }
                 }
