@@ -1,6 +1,6 @@
 # item.py
 #
-# Copyright 2023 kramo
+# Copyright 2023-2024 kramo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -279,11 +279,16 @@ class HypItem(Adw.Bin):
                 picture.add_css_class("thumbnail-picture")
                 picture.add_css_class("gray-solid-background")
 
+                # TODO: Stop using Adw.Clamp here
                 item = Adw.Clamp(
                     orientation=Gtk.Orientation.VERTICAL,
                     maximum_size=64,
+                    unit=Adw.LengthUnit.PX,
                     child=Adw.Clamp(
-                        child=picture, overflow=Gtk.Overflow.HIDDEN, maximum_size=64
+                        child=picture,
+                        overflow=Gtk.Overflow.HIDDEN,
+                        maximum_size=64,
+                        unit=Adw.LengthUnit.PX,
                     ),
                 )
                 item.set_overflow(Gtk.Overflow.HIDDEN)

@@ -1,6 +1,6 @@
 # properties.py
 #
-# Copyright 2023 kramo
+# Copyright 2023-2024 kramo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -112,6 +112,7 @@ class HypPropertiesWindow(Adw.Window):
                 picture.add_css_class("thumbnail-picture")
                 picture.add_css_class("gray-background")
 
+                # TODO: Stop using Adw.Clamp here
                 icon_group.add(
                     Adw.Clamp(
                         child=Adw.Clamp(child=picture, maximum_size=150),

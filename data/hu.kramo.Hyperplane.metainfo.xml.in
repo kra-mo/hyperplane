@@ -25,5 +25,18 @@
 		<control>keyboard</control>
 		<control>touch</control>
 	</supports>
+	<screenshots>
+		<screenshot type="default">
+			<image xml:lang="en">https://raw.githubusercontent.com/kra-mo/hyperplane/main/data/screenshots/1.png</image>
+			<caption>Hyperplane</caption>
+		</screenshot>
+	</screenshots>
 	<content_rating type="oars-1.1" />
+	<releases>
+		<release version="0.1.0-beta" date="2024-01-02">
+		  <description translatable="no">
+			<p>Initial beta release</p>
+		  </description>
+		</release>
+	</releases>
 </component>

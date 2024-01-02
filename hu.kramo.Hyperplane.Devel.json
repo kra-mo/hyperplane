@@ -9,8 +9,7 @@
         "--socket=fallback-x11",
         "--device=dri",
         "--socket=wayland",
-        "--filesystem=xdg-data/Trash",
-        "--filesystem=xdg-templates",
+        "--filesystem=host",
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfsd",
         "--own-name=org.freedesktop.FileManager1"

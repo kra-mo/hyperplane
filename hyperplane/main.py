@@ -1,6 +1,6 @@
 # main.py
 #
-# Copyright 2023 kramo
+# Copyright 2023-2024 kramo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -236,7 +236,7 @@ class HypApplication(Adw.Application):
             )
         )
         about.set_designers(("kramo https://kramo.hu",))
-        about.set_copyright("© 2023 kramo")
+        about.set_copyright("© 2023-2024 kramo")
         # Translators: Replace this with your name for it to show up in the about window
         about.set_translator_credits = (_("translator_credits"),)
         about.present()

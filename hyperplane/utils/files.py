@@ -1,6 +1,6 @@
 # files.py
 #
-# Copyright 2023 kramo
+# Copyright 2023-2024 kramo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import logging
 import shutil
 from os import PathLike, getenv
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 from urllib.parse import quote
 
 from gi.repository import Gio, GLib, Gtk
@@ -34,8 +34,10 @@ from hyperplane.utils.tags import path_represents_tags
 # TODO: Handle errors better
 # TODO: Make file operations cancellable
 
+
 class YouAreStupid(Exception):
     """Raised when you try to move a folder into itself."""
+
 
 def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> None:
     """
@@ -52,7 +54,12 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
     if dst.query_exists():
         raise FileExistsError
 
-    def copy_cb(*_args: Any) -> None:
+    def copy_cb(gfile: Gio.File, result: Gio.AsyncResult) -> None:
+        try:
+            gfile.copy_finish(result)
+        except GLib.Error:
+            return
+
         if tag_location_created:
             __emit_tags_changed(dst)
 
@@ -277,7 +284,7 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
         suffix = path.suffix
 
     # "File (copy)"
-    if not ((copy_path := (path.parent / f'{stem} ({_("copy")}){suffix}')).exists()):
+    if not (copy_path := path.parent / f'{stem} ({_("copy")}){suffix}').exists():
         return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy n)"

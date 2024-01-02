@@ -1,6 +1,6 @@
 # shared.py.in
 #
-# Copyright 2023 kramo
+# Copyright 2023-2024 kramo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 from os import getenv
 from pathlib import Path
 
-from gi.repository import Gdk, Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, Gtk
 
 from hyperplane.postmaster_general import HypPostmasterGeneral
 
@@ -43,9 +43,7 @@ show_hidden = state_schema.get_boolean("show-hidden")
 sort_by = state_schema.get_string("sort-by")
 sort_reversed = state_schema.get_boolean("sort-reversed")
 
-home_path = Path(
-    getenv("HYPHOME", str(Path(GLib.get_user_data_dir(), "hyperplane", "home")))
-).expanduser()
+home_path = Path(getenv("HYPHOME", str(Path.home()))).expanduser()
 home = Gio.File.new_for_path(str(home_path))
 
 tags = []

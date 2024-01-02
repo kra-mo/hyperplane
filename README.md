@@ -9,9 +9,9 @@
 </div>
 
 > [!WARNING]
-> This project is currently in **ALPHA**. You can try it out at your own risk, but be aware that things **will** break, it **will** have annoyances, **DATA LOSS** may occur and it may kill your cat.
+> This project is currently in **BETA**. You can try it out at your own risk, but be aware that things might break, it might have annoyances, **DATA LOSS** may occur and it may kill your cat.
 
-I provide builds **strictly for testing**. Please do not use it as your actual file manager, and for the love of god, **DO NOT** give it access to your home directory.
+For now, I recommend only trying it if you have a recent backup of your files.
 
 # The project
 
@@ -31,7 +31,7 @@ File B tagged 'Videos' and 'Art' would be stored at `/Videos/Art/`.
 
 When filtering for files tagged 'Art' however, both of these would show up.
 
-The app keeps track of the list of categories in a `.hyperplane` file at the root of the Hyperplane directory. (This is currently `$XDG_DATA_HOME/hyperplane/home/` by default, but will likely be `$HOME` when the app enters beta.)
+The app keeps track of the list of categories in a `.hyperplane` file at the root of the Hyperplane directory. (Which is `$HOME` by default, but can be changed with the `$HYPHOME` environment variable.)
 
 ## The name
 
@@ -42,18 +42,57 @@ It is subject to change.
 
 # Testing
 
-The project is currently at the MVP stage. Basic features work, but user experience is poor and issues will arise.
+The project is currently in beta. Most features work, but user experience still needs refinement.
 
-You can download the latest Flatpak build from the [Actions page](https://github.com/kra-mo/hyperplane/actions).
+If you want to test without risking data loss, please set the `$HYPHOME` environment variable to point to somewhere inside `~/.var/app/hu.kramo.Hyperplane.Devel/` and remove the app's `--filesystem=host` access.
 
-After installing it, you can place files in `~/.var/app/hu.kramo.Hyperplane.Devel/data/hyperplane/home/` (or just drag and drop them from another file manager) to test the app.
+You can download the latest beta from the [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/hu.kramo.Hyperplane.Devel-x86_64.zip).
 
 Please report any and all issues you find!
 
+UX suggestions and missing feature reports are also welcome, even if it seems obvious.
+
 # Contributing
 
-The project's future is uncertain. If you want to help with code or design, please reach out or file an issue before making a pull request. That being said, I appreciate any help!
+If you want to help with code or design, please reach out or file an issue before making a pull request. That being said, I appreciate any help!
+
+## Code
+
+### Building
+
+```sh
+git clone https://github.com/kra-mo/hyperplane.git
+cd hyperplane
+meson setup build
+ninja -C build install
+```
+
+### Code style
+
+All code is auto-formatted with [Black](https://github.com/psf/black) and linted with [Pylint](https://github.com/pylint-dev/pylint). Imports are sorted by [isort](https://github.com/pycqa/isort).
+
+VSCode extensions are available for all of these and you can set them up with the following `settings.json` configuration:
+
+```json
+"python.formatting.provider": "none",
+"[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+},
+"isort.args":["--profile", "black"],
+```
+
+For other code editors, you can install them via `pip` and invoke them from the command line.
 
 ## Translations
 
-Strings are nowhere near final, I will set up translations closer to an initial release.
+Strings are not final yet, I will set up translations closer to an initial release.
+
+# Code of Conduct
+
+The project follows the [GNOME Code of Conduct](https://wiki.gnome.org/Foundation/CodeOfConduct).
+
+See [CODE_OF_CONDUCT.md](https://github.com/kra-mo/hyperplane/blob/main/CODE_OF_CONDUCT.md).
