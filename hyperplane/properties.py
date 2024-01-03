@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """The item properties window."""
+import logging
 from stat import S_IEXEC
 from typing import Any
 
@@ -237,8 +238,12 @@ class HypPropertiesWindow(Adw.Window):
                             ),
                             Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
                         )
-                    except GLib.Error:
-                        pass
+                    except GLib.Error as error:
+                        logging.error(
+                            'Cannot query properties size info about file "%s": %s',
+                            gfile.get_uri(),
+                            error,
+                        )
                     else:
 
                         def stop_loading(thread: GLib.Thread):

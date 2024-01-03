@@ -57,7 +57,10 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
     def copy_cb(gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:
             gfile.copy_finish(result)
-        except GLib.Error:
+        except GLib.Error as error:
+            logging.error(
+                'File "%s" was unsuccessfully copied: %s', gfile.get_uri(), error
+            )
             return
 
         if tag_location_created:
@@ -80,8 +83,16 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
 
     try:
         src_path = Path(get_gfile_path(src))
+    except FileNotFoundError:
+        logging.error('Cannot copy file "%s": Source has not path.', src.get_uri())
+        return
+
+    try:
         dst_path = Path(get_gfile_path(dst))
     except FileNotFoundError:
+        logging.error(
+            'Cannot copy file to "%s": Destination has not path.', dst.get_uri()
+        )
         return
 
     if not (parent := Path(dst_path).parent).is_dir():
@@ -117,7 +128,8 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     if not parent.query_exists():
         try:
             parent.make_directory_with_parents()
-        except GLib.Error:
+        except GLib.Error as error:
+            logging.error('Cannot create parents for "%s": %s', dst.get_uri(), error)
             return
 
     def emit_tags_changed() -> None:
@@ -131,7 +143,12 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     def delete_src() -> None:
         try:
             rm(src)
-        except FileNotFoundError:
+        except FileNotFoundError as error:
+            logging.error(
+                'Cannot remove source "%s" during copy & delete move operation: %s',
+                src.get_uri(),
+                error,
+            )
             return
 
     def move_finish(_gfile: Gio.File, result: Gio.Task = None):
@@ -140,6 +157,10 @@ def move(src: Gio.File, dst: Gio.File) -> None:
             try:
                 copy(src, dst, delete_src)
             except FileExistsError:
+                logging.debug(
+                    'Cannot move file to "%s": Destination already exists.',
+                    dst.get_uri(),
+                )
                 return
         else:
             emit_tags_changed()
@@ -169,13 +190,19 @@ def restore(
         # Move the item in Trash/files back to the original location
         try:
             move(trash_file, orig_file)
-        except (FileExistsError, YouAreStupid):
+        except (FileExistsError, YouAreStupid) as error:
+            logging.debug('Cannot restore file "%s": %s', trash_file.get_uri(), error)
             return
 
     def query_cb(gfile, result):
         try:
             file_info = gfile.query_info_finish(result)
-        except GLib.Error:
+        except GLib.Error as error:
+            logging.error(
+                'Cannot lookup info for "%s" while restoring: %s',
+                gfile.get_uri(),
+                error,
+            )
             return
 
         do_restore(
@@ -189,7 +216,10 @@ def restore(
         try:
             # Look up the trashed file's path and original path
             trash_file, orig_file = __trash_lookup(path, t)
-        except FileNotFoundError:
+        except FileNotFoundError as error:
+            logging.error(
+                'Cannot lookup file trashed from "%s" at "%s": %s', path, t, error
+            )
             return
 
         do_restore(trash_file, orig_file)
@@ -210,7 +240,7 @@ def empty_trash() -> None:
     try:
         Gio.Subprocess.new(("gio", "trash", "--empty"), Gio.SubprocessFlags.NONE)
     except GLib.Error as error:
-        logging.warning("Failed to empty trash: %s", error)
+        logging.error("Failed to empty trash: %s", error)
         return
 
     shared.postmaster.emit("trash-emptied")
@@ -269,6 +299,9 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
     try:
         path = Path(get_gfile_path(gfile))
     except FileNotFoundError:
+        logging.error(
+            'Cannot get copy GFile for "%s": File has no path.', gfile.get_uri()
+        )
         return
 
     if (
@@ -304,7 +337,7 @@ def get_gfile_display_name(gfile: Gio.File) -> str:
             Gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, Gio.FileAttributeInfoFlags.NONE
         ).get_display_name()
     except GLib.Error:
-        return "-"
+        return gfile.get_uri()
 
 
 def get_gfile_path(gfile: Gio.File, uri_fallback=False) -> Path | str:
@@ -434,7 +467,20 @@ def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
 def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
     try:
         trash_path = get_gfile_path(trash_file)
+    except FileNotFoundError:
+        logging.error(
+            'Cannot remove trashinfo for file "%s": File has no path.',
+            trash_file.get_uri(),
+        )
+        return
+
+    try:
         orig_path = get_gfile_path(orig_file)
+        logging.error(
+            'Cannot remove trashinfo for file "%s": Original file "%s" has no path.',
+            trash_file.get_uri(),
+            orig_file.get_uri(),
+        )
     except FileNotFoundError:
         return
 
@@ -448,15 +494,22 @@ def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
     try:
         keyfile = GLib.KeyFile.new()
         keyfile.load_from_file(str(trashinfo), GLib.KeyFileFlags.NONE)
-    except GLib.Error:
+    except GLib.Error as error:
+        logging.error(
+            'Cannot create keyfile for trashed file "%s": %s',
+            trash_file.get_uri(),
+            error,
+        )
         return
 
     # Double-check that the file is the right one
     if keyfile.get_string("Trash Info", "Path") == quote(str(orig_path)):
         try:
             Gio.File.new_for_path(str(trashinfo)).delete()
-        except GLib.Error:
-            pass
+        except GLib.Error as error:
+            logging.error(
+                'Cannot remove trashinfo for file "%s": %s', trash_file.get_uri(), error
+            )
 
 
 def __emit_tags_changed(gfile: Gio.File) -> None:

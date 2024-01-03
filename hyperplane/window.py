@@ -798,8 +798,8 @@ class HypWindow(Adw.ApplicationWindow):
             new_file = self.rename_item.gfile.set_display_name(
                 self.rename_entry.get_text().strip()
             )
-        except GLib.Error:
-            pass
+        except GLib.Error as error:
+            logging.error('Cannot rename file "%s": %s', self.rename_item.gfile.get_uri(), error)
         else:
             shared.undo_queue[time()] = ("rename", new_file, self.rename_item.edit_name)
 
@@ -990,12 +990,14 @@ class HypWindow(Adw.ApplicationWindow):
             dst = get_copy_gfile(dst)
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
+            except GLib.Error as error:
+                logging.error("Cannot open stream for dropping texture: %s", error)
                 return
         else:
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
+            except GLib.Error as error:
+                logging.error("Cannot open stream for dropping texture: %s", error)
                 return
 
         output = stream.get_output_stream()
@@ -1014,12 +1016,14 @@ class HypWindow(Adw.ApplicationWindow):
             dst = get_copy_gfile(dst)
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
+            except GLib.Error as error:
+                logging.error("Cannot open stream for dropping text: %s", error)
                 return
         else:
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-            except GLib.Error:
+            except GLib.Error as error:
+                logging.error("Cannot open stream for dropping text: %s", error)
                 return
 
         output = stream.get_output_stream()

@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A view of `HypItem`s to be added to an `AdwNavigationView`."""
+import logging
 from collections import namedtuple
 from itertools import chain
 from pathlib import Path
@@ -645,18 +646,20 @@ class HypItemsPage(Adw.NavigationPage):
                     try:
                         rm(copy_item)
                     except FileNotFoundError:
-                        pass
+                        logging.debug("Cannot undo copy: File doesn't exist anymore.")
             case "move":
                 for gfiles in item[1]:
                     try:
                         move(gfiles[1], gfiles[0])
-                    except (FileExistsError, YouAreStupid):
-                        pass
+                    except FileExistsError:
+                        logging.debug("Cannot undo move: File exists.")
+                    except YouAreStupid:
+                        logging.debug("Cannot undo move: Someone is being stupid.")
             case "rename":
                 try:
                     item[1].set_display_name(item[2])
-                except GLib.Error:
-                    pass
+                except GLib.Error as error:
+                    logging.debug("Cannot undo rename: %s", error)
             case "trash":
                 for trash_item in item[1]:
                     restore(*trash_item)
@@ -827,7 +830,8 @@ class HypItemsPage(Adw.NavigationPage):
                     final_dst = Gio.File.new_for_path(
                         str(get_gfile_path(dst) / get_gfile_display_name(src))
                     )
-                except (FileNotFoundError, TypeError):
+                except (FileNotFoundError, TypeError) as error:
+                    logging.debug('Cannot paste file "%s": %s', src.get_uri(), error)
                     continue
 
                 if shared.cut_uris:
@@ -856,7 +860,10 @@ class HypItemsPage(Adw.NavigationPage):
                         try:
                             final_dst = get_copy_gfile(final_dst)
                             copy(src, final_dst)
-                        except (FileExistsError, FileNotFoundError):
+                        except (FileExistsError, FileNotFoundError) as error:
+                            logging.debug(
+                                'Cannot paste file "%s": %s', src.get_uri(), error
+                            )
                             continue
 
                     files.append(final_dst)
@@ -872,7 +879,8 @@ class HypItemsPage(Adw.NavigationPage):
 
             try:
                 texture = clipboard.read_value_finish(result)
-            except GLib.Error:
+            except GLib.Error as error:
+                logging.debug("Cannot create texture: %s", error)
                 return
 
             texture_bytes = texture.save_to_png_bytes()
@@ -883,12 +891,14 @@ class HypItemsPage(Adw.NavigationPage):
                 dst = get_copy_gfile(dst)
                 try:
                     stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-                except GLib.Error:
+                except GLib.Error as error:
+                    logging.error("Cannot open stream for pasting texture: %s", error)
                     return
             else:
                 try:
                     stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
-                except GLib.Error:
+                except GLib.Error as error:
+                    logging.error("Cannot open stream for pasting texture: %s", error)
                     return
 
             output = stream.get_output_stream()
@@ -930,6 +940,9 @@ class HypItemsPage(Adw.NavigationPage):
             try:
                 files.append((get_gfile_path(gfile), int(time())))
             except FileNotFoundError:
+                logging.debug(
+                    "Cannot append trashed file to undo queue: File has no path."
+                )
                 continue
             else:
                 n += 1
