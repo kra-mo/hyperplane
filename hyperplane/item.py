@@ -38,7 +38,9 @@ class HypItem(Adw.Bin):
     __gtype_name__ = "HypItem"
 
     box: Gtk.Box = Gtk.Template.Child()
+    labels_box: Gtk.Box = Gtk.Template.Child()
     label: Gtk.Label = Gtk.Template.Child()
+    tags_label: Gtk.Label = Gtk.Template.Child()
 
     overlay: Gtk.Overlay = Gtk.Template.Child()
     circular_icon: Gtk.Image = Gtk.Template.Child()
@@ -73,6 +75,7 @@ class HypItem(Adw.Bin):
 
     _gicon: str
     _display_name: str
+    _additional_tags: str
     _extension: str
     _thumbnail_paintable: Gdk.Paintable
 
@@ -151,6 +154,15 @@ class HypItem(Adw.Bin):
         self._display_name = name
 
     @GObject.Property(type=str)
+    def additional_tags(self) -> str:
+        """Additional tags an item has aside from those of the page it is on."""
+        return self._additional_tags
+
+    @additional_tags.setter
+    def set_additional_tags(self, additional_tags: str) -> None:
+        self._additional_tags = additional_tags
+
+    @GObject.Property(type=str)
     def extension(self) -> str:
         """The extension of the file or None."""
         return self._extension
@@ -188,6 +200,23 @@ class HypItem(Adw.Bin):
         self.content_type = self.file_info.get_content_type()
         self.color = get_color_for_symbolic(self.content_type, self.gicon)
         self.edit_name = self.file_info.get_edit_name()
+
+        # Build additional tags
+        if self.page.tags:
+            try:
+                parent = Path(self.gfile.get_parent().get_path())
+            except (AttributeError, TypeError):
+                pass
+            else:
+                additional_tags = tuple(
+                    part
+                    for part in parent.relative_to(shared.home_path).parts
+                    if part not in self.page.tags
+                )
+
+                if additional_tags:
+                    self.tags_label.set_visible(True)
+                    self.additional_tags = ", ".join(additional_tags)
 
         self.is_dir = self.content_type == "inode/directory"
         self.full_name = self.file_info.get_display_name()
@@ -613,21 +642,25 @@ class HypItem(Adw.Bin):
     def __view_setup(self, *_args: Any) -> None:
         if shared.grid_view:
             self.box.set_orientation(Gtk.Orientation.VERTICAL)
+            self.labels_box.set_margin_start(0)
+            self.labels_box.set_margin_top(12)
             self.label.set_wrap(True)
             self.label.set_lines(3)
             self.label.set_justify(Gtk.Justification.CENTER)
+            self.tags_label.set_justify(Gtk.Justification.CENTER)
             self.label.set_halign(Gtk.Align.CENTER)
-            self.label.set_margin_top(12)
-            self.label.set_margin_start(0)
+            self.tags_label.set_halign(Gtk.Align.CENTER)
             return
 
         self.box.set_orientation(Gtk.Orientation.HORIZONTAL)
+        self.labels_box.set_margin_top(0)
+        self.labels_box.set_margin_start(12)
         self.label.set_wrap(False)
         self.label.set_lines(0)
         self.label.set_justify(Gtk.Justification.LEFT)
+        self.tags_label.set_justify(Gtk.Justification.LEFT)
         self.label.set_halign(Gtk.Align.START)
-        self.label.set_margin_top(0)
-        self.label.set_margin_start(12)
+        self.tags_label.set_halign(Gtk.Align.START)
 
     def __select_self(self, unselect_rest: bool = True) -> None:
         if not self.page.multi_selection.is_selected(pos := self.item.get_position()):

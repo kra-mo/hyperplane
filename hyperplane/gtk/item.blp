@@ -133,10 +133,28 @@ template $HypItem : Adw.Bin {
       }
     }
 
-    Label label {
-      wrap-mode: word_char;
-      label: bind template.display-name;
-      ellipsize: middle;
+
+    Box labels_box {
+      orientation: vertical;
+      valign: center;
+
+      Label label {
+        natural-wrap-mode: word;
+        wrap-mode: word_char;
+        ellipsize: middle;
+        label: bind template.display-name;
+      }
+
+      Label tags_label {
+        ellipsize: end;
+        label: bind template.additional-tags;
+        visible: false;
+
+        styles [
+          "dim-label",
+          "caption"
+        ]
+      }
     }
   }
 }
