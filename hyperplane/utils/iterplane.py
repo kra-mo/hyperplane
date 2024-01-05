@@ -41,7 +41,6 @@ def __walk(node: Path, tags: dict[str, bool]) -> Generator:
     if not sum(tags.values()):
         yield node
 
-    # TODO: Use Path.walk in Python 3.12
     for child in node.iterdir():
         if not child.is_dir():
             continue

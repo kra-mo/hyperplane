@@ -44,6 +44,7 @@ from hyperplane.utils.files import (
     move,
     restore,
     rm,
+    trash,
     validate_name,
 )
 from hyperplane.utils.iterplane import iterplane
@@ -595,9 +596,10 @@ class HypItemsPage(Adw.NavigationPage):
                 "open-with",
             }
 
-            # Read-only special directories
             if self.gfile:
                 items.add("properties")
+
+                # Read-only special directories
                 if self.gfile.get_uri_scheme() in {
                     "trash",
                     "recent",
@@ -935,24 +937,25 @@ class HypItemsPage(Adw.NavigationPage):
 
         files = []
         n = 0
-        for gfile in gfiles:
-            gfile.trash_async(GLib.PRIORITY_DEFAULT)
+        for gfile in gfiles.copy():
             try:
                 files.append((get_gfile_path(gfile), int(time())))
             except FileNotFoundError:
                 logging.debug(
-                    "Cannot append trashed file to undo queue: File has no path."
+                    'Should not trash "%s": File has no path.', gfile.get_uri()
                 )
+                gfiles.remove(gfile)
                 continue
-            else:
-                n += 1
 
-        if not n:
+        if not gfiles:
             return
 
+        trash(*gfiles)
+
+        n = len(gfiles)
         if n > 1:
             message = _("{} files moved to trash").format(n)
-        elif n:
+        else:
             message = _("{} moved to trash").format(
                 f"“{get_gfile_display_name(gfiles[0])}”"
             )

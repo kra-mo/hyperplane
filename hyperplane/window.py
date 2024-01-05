@@ -182,7 +182,6 @@ class HypWindow(Adw.ApplicationWindow):
 
         self.create_action("rename", self.__rename, ("F2",))
 
-        # TODO: This is tedious, maybe use GTK Expressions?
         self.create_action("open-sidebar", self.__open_sidebar)
         self.create_action("open-new-tab-sidebar", self.__open_new_tab_sidebar)
         self.create_action("open-new-window-sidebar", self.__open_new_window_sidebar)
@@ -278,11 +277,13 @@ class HypWindow(Adw.ApplicationWindow):
         self.drop_target.connect("drop", self.__drop)
         self.tab_view.add_controller(self.drop_target)
 
-    def send_toast(self, message: str, undo: bool = False) -> None:
+    def send_toast(
+        self, message: str, undo: bool = False, use_markup: bool = False
+    ) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
         toast = Adw.Toast.new(message)
         toast.set_priority(Adw.ToastPriority.HIGH)
-        toast.set_use_markup(False)
+        toast.set_use_markup(use_markup)
         if undo:
             toast.set_button_label(_("Undo"))
         self.toast_overlay.add_toast(toast)
@@ -799,7 +800,9 @@ class HypWindow(Adw.ApplicationWindow):
                 self.rename_entry.get_text().strip()
             )
         except GLib.Error as error:
-            logging.error('Cannot rename file "%s": %s', self.rename_item.gfile.get_uri(), error)
+            logging.error(
+                'Cannot rename file "%s": %s', self.rename_item.gfile.get_uri(), error
+            )
         else:
             shared.undo_queue[time()] = ("rename", new_file, self.rename_item.edit_name)
 
@@ -951,7 +954,6 @@ class HypWindow(Adw.ApplicationWindow):
         return False
 
     def __drop_file_list(self, file_list: Gdk.FileList, action: Gdk.DragAction) -> None:
-        # TODO: This is copy-paste from HypItemsPage.__paste()
         dst = self.get_visible_page().get_dst()
         move = action == Gdk.DragAction.MOVE
 
@@ -979,7 +981,6 @@ class HypWindow(Adw.ApplicationWindow):
         shared.undo_queue[time()] = ("move" if move else "copy", files)
 
     def __drop_texture(self, texture: Gdk.Texture) -> None:
-        # TODO: Again, copy-paste from HypItemsPage.__paste()
         dst = self.get_visible_page().get_dst()
 
         texture_bytes = texture.save_to_png_bytes()
@@ -1004,7 +1005,6 @@ class HypWindow(Adw.ApplicationWindow):
         output.write_bytes(texture_bytes)
 
     def __drop_text(self, text: str) -> None:
-        # TODO: Again again, copy-paste from HypItemsPage.__paste()
         if not text:  # If text is an empty string
             return
 

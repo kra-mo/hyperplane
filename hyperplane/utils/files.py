@@ -31,7 +31,6 @@ from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
 from hyperplane.utils.tags import path_represents_tags
 
-# TODO: Handle errors better
 # TODO: Make file operations cancellable
 
 
@@ -394,7 +393,6 @@ def validate_name(
         is_dir = directory
         is_file = not directory
 
-    # TODO: More elegant (cross-platform) way to check for invalid paths
     if name in (".", ".."):
         if is_dir:
             error = _("A folder cannot be called “{}”.").format(name)
@@ -431,10 +429,17 @@ def validate_name(
     return True, None
 
 
-def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
-    trash = Gio.File.new_for_uri("trash://")
+def trash(*gfiles: Gio.File) -> None:
+    """Tries to asynchronously trash `gfiles`."""
 
-    files = trash.enumerate_children(
+    for gfile in gfiles:
+        gfile.trash_async(GLib.PRIORITY_DEFAULT)
+
+
+def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
+    trash_gfile = Gio.File.new_for_uri("trash://")
+
+    files = trash_gfile.enumerate_children(
         ",".join(
             (
                 Gio.FILE_ATTRIBUTE_STANDARD_NAME,
@@ -459,7 +464,9 @@ def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
         if not GLib.DateTime.new_from_unix_utc(t).equal(del_date):
             continue
 
-        return trash.get_child(file_info.get_name()), Gio.File.new_for_path(orig_path)
+        return trash_gfile.get_child(file_info.get_name()), Gio.File.new_for_path(
+            orig_path
+        )
 
     raise FileNotFoundError
 
@@ -513,7 +520,7 @@ def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
 
 
 def __emit_tags_changed(gfile: Gio.File) -> None:
-    if not (relative_path := (shared.home.get_relative_path(gfile))):
+    if not (relative_path := shared.home.get_relative_path(gfile)):
         return
 
     tags = Path(relative_path).parent.parts
