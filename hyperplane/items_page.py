@@ -20,7 +20,7 @@
 """A view of `HypItem`s to be added to an `AdwNavigationView`."""
 import logging
 from collections import namedtuple
-from itertools import chain
+from itertools import chain, count
 from pathlib import Path
 from shutil import get_unpack_formats, unpack_archive
 from time import time
@@ -38,9 +38,9 @@ from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
     YouAreStupid,
     copy,
-    get_copy_gfile,
     get_gfile_display_name,
     get_gfile_path,
+    get_paste_gfile,
     move,
     restore,
     rm,
@@ -375,10 +375,11 @@ class HypItemsPage(Adw.NavigationPage):
             return
 
         tags = set()
-        index = 0
-        while string := string_list.get_item(index):
+        for index in count():
+            if not (string := string_list.get_item(index)):
+                break
+
             tags.add(string.get_string())
-            index += 1
 
         if all(tag in self.tags for tag in tags):
             self.dir_list.get_model().append(
@@ -427,13 +428,14 @@ class HypItemsPage(Adw.NavigationPage):
 
             if self.tags:
                 model = self.dir_list.get_model()
-                index = 0
-                while dir_list := model.get_item(index):
+                for index in count():
+                    if not (dir_list := model.get_item(index)):
+                        return
+
                     if dir_list.is_loading():
                         self.loading.get_child().start()
                         self.scrolled_window.set_child(self.loading)
                         return
-                    index += 1
 
                 self.scrolled_window.set_child(self.no_matching_items)
                 return
@@ -860,7 +862,7 @@ class HypItemsPage(Adw.NavigationPage):
                         copy(src, final_dst)
                     except FileExistsError:
                         try:
-                            final_dst = get_copy_gfile(final_dst)
+                            final_dst = get_paste_gfile(final_dst)
                             copy(src, final_dst)
                         except (FileExistsError, FileNotFoundError) as error:
                             logging.debug(
@@ -890,7 +892,7 @@ class HypItemsPage(Adw.NavigationPage):
             dst = dst.get_child_for_display_name(_("Pasted Image") + ".png")
 
             if dst.query_exists():
-                dst = get_copy_gfile(dst)
+                dst = get_paste_gfile(dst)
                 try:
                     stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
                 except GLib.Error as error:

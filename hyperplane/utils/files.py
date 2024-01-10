@@ -20,6 +20,7 @@
 """Miscellaneous utilities for file operations."""
 import logging
 import shutil
+from itertools import count
 from os import PathLike, getenv
 from pathlib import Path
 from typing import Callable, Optional
@@ -61,6 +62,10 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
                 'File "%s" was unsuccessfully copied: %s', gfile.get_uri(), error
             )
             return
+        except AttributeError:
+            # HACK
+            # If there is no gfile
+            pass
 
         if tag_location_created:
             __emit_tags_changed(dst)
@@ -290,10 +295,13 @@ def rm(gfile: Gio.File) -> None:
         gfile.delete_async(GLib.PRIORITY_DEFAULT)
 
 
-def get_copy_gfile(gfile: Gio.File) -> Gio.File:
+def get_paste_gfile(gfile: Gio.File, number_only: bool = False) -> Gio.File:
     """
     Returns a `GFile` representing the path that should be used
     if `dst` (`gfile`) already exists for a paste operation.
+
+    If `number_only` is true, "copy" won't be included in the returned file's path.
+    This is useful for drag and drop from external sources for example, where a copy didn't happen.
     """
     try:
         path = Path(get_gfile_path(gfile))
@@ -315,18 +323,21 @@ def get_copy_gfile(gfile: Gio.File) -> Gio.File:
         stem = path.stem
         suffix = path.suffix
 
+    if number_only:
+        for n in count(2):
+            if not ((copy_path := path.parent / f"{stem} {n}{suffix}")).exists():
+                return Gio.File.new_for_path(str(copy_path))
+
     # "File (copy)"
     if not (copy_path := path.parent / f'{stem} ({_("copy")}){suffix}').exists():
         return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy n)"
-    n = 2
-    while True:
+    for n in count(2):
         if not (
             (copy_path := path.parent / f'{stem} ({_("copy")} {n}){suffix}')
         ).exists():
             return Gio.File.new_for_path(str(copy_path))
-        n += 1
 
 
 def get_gfile_display_name(gfile: Gio.File) -> str:

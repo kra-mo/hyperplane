@@ -38,8 +38,8 @@ from hyperplane.utils.files import (
     clear_recent_files,
     copy,
     empty_trash,
-    get_copy_gfile,
     get_gfile_display_name,
+    get_paste_gfile,
     validate_name,
 )
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
@@ -972,7 +972,7 @@ class HypWindow(Adw.ApplicationWindow):
                     copy(src, child)
                 except FileExistsError:
                     try:
-                        copy(src, get_copy_gfile(child))
+                        copy(src, get_paste_gfile(child))
                     except (FileExistsError, FileNotFoundError):
                         continue
 
@@ -988,7 +988,7 @@ class HypWindow(Adw.ApplicationWindow):
         dst = dst.get_child_for_display_name(_("Dropped Image") + ".png")
 
         if dst.query_exists():
-            dst = get_copy_gfile(dst)
+            dst = get_paste_gfile(dst, True)
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
             except GLib.Error as error:
@@ -1013,7 +1013,7 @@ class HypWindow(Adw.ApplicationWindow):
         dst = dst.get_child_for_display_name(_("Dropped Text") + ".txt")
 
         if dst.query_exists():
-            dst = get_copy_gfile(dst)
+            dst = get_paste_gfile(dst, True)
             try:
                 stream = dst.create_readwrite(Gio.FileCreateFlags.NONE)
             except GLib.Error as error:

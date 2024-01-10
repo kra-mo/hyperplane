@@ -23,6 +23,7 @@ A self-updating `GtkListBox` (wrapped in an `AdwBin`) of mountable volumes.
 To be used in a sidebar.
 """
 import logging
+from itertools import count
 from typing import Any, Optional
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
@@ -139,15 +140,18 @@ class HypVolumesBox(Adw.Bin):
                     store.append(model)
                 tabs = Gtk.FlattenListModel.new(store)
 
-                tab_index = 0
-                while tab := tabs.get_item(tab_index):
+                for tab_index in count():
+                    if not (tab := tabs.get_item(tab_index)):
+                        break
+
                     nav_bin = tab.get_child()
                     stack = nav_bin.view.get_navigation_stack()
 
                     # This nesting is hell.
-                    nav_index = 0
-                    while page := stack.get_item(nav_index):
-                        nav_index += 1
+                    for nav_index in count():
+                        if not (page := stack.get_item(nav_index)):
+                            break
+
                         if not page.gfile:
                             continue
 
@@ -165,8 +169,6 @@ class HypVolumesBox(Adw.Bin):
                         ).set_title(navigation_bin.view.get_visible_page().get_title())
                         tab_view.close_page(tab)
                         break
-
-                    tab_index += 1
 
                     # Why the fuck does this work but not timeout_add on the
                     # fucking method itself?????????
