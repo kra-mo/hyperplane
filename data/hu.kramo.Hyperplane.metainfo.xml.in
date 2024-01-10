@@ -32,6 +32,14 @@
 	</screenshots>
 	<content_rating type="oars-1.1" />
 	<releases>
+		<release version="0.2.0-beta" date="2024-01-10">
+			<description translatable="no">
+				<ul>
+					<li>Show additional tags under tagged items</li>
+					<li>Small fixes</li>
+				</ul>
+			</description>
+		  </release>
 		<release version="0.1.0-beta" date="2024-01-02">
 		  <description translatable="no">
 			<p>Initial beta release</p>
