@@ -82,7 +82,7 @@ class FileManagerDBusServer:
                 )
             except Exception:  # pylint: disable=broad-exception-caught
                 #  Another instance already exported at this path
-                ...
+                return
 
     def __on_method_call(
         self,

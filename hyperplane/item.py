@@ -217,7 +217,7 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
                     self.tags_label.set_visible(True)
                     self.additional_tags = ", ".join(additional_tags)
 
-        self.is_dir = self.content_type == "inode/directory"
+        self.is_dir = self.can_open_page = self.content_type == "inode/directory"
         self.full_name = self.file_info.get_display_name()
         if self.is_dir:
             self.stem = self.full_name

@@ -50,7 +50,7 @@ class HypHoverPageOpener:
     def __hover_open(self, *_args: Any) -> None:
         win = Gtk.Widget.get_root(self)
 
-        if self.drop_controller_motion.contains_pointer():
+        if self.drop_controller_motion.contains_pointer() and self.can_open_page:
             win.new_page(
                 getattr(self, "gfile", None),
                 getattr(self, "tag", None),

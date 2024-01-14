@@ -69,12 +69,26 @@ class HypTagRow(HypEditableRow):
     def __drag_begin(self, src: Gtk.DragSource, _drag: Gdk.Drag) -> None:
         src.set_icon(Gtk.WidgetPaintable.new(self.box), -30, 0)
 
-    def __drop_enter(self, _target: Gtk.DropTarget, _x: float, _y: float) -> None:
-        self.add_css_class("sidebar-drop-target")
+    def __drop_enter(self, target: Gtk.DropTarget, _x: float, _y: float) -> None:
+        try:
+            gtypes = (
+                target.get_current_drop()
+                .get_drag()
+                .get_content()
+                .ref_formats()
+                .get_gtypes()
+            )
+        except TypeError:
+            return Gdk.DragAction.MOVE
+
+        if gtypes and gtypes[0].pytype == type(self):
+            self.can_open_page = False
+            self.add_css_class("sidebar-drop-target")
 
         return Gdk.DragAction.MOVE
 
     def __drop_leave(self, _target: Gtk.DropTarget) -> None:
+        self.can_open_page = True
         self.remove_css_class("sidebar-drop-target")
 
     def __drop(self, _target: Gtk.DropTarget, row: Self, _x: float, _y: float) -> None:
