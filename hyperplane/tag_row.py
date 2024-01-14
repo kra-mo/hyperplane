@@ -18,9 +18,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """A row in the sidebar representing a tag."""
-from typing import Any, Self
+from typing import Self
 
-from gi.repository import Gdk, GLib, Gtk
+from gi.repository import Gdk, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
@@ -51,10 +51,6 @@ class HypTagRow(HypEditableRow):
         self.add_controller(middle_click)
 
         # Drag and drop
-        self.motion = Gtk.DropControllerMotion.new()
-        self.motion.connect("enter", self.__motion_enter)
-        self.add_controller(self.motion)
-
         drag_source = Gtk.DragSource.new()
         drag_source.connect("prepare", self.__drag_prepare)
         drag_source.connect("drag-begin", self.__drag_begin)
@@ -66,15 +62,6 @@ class HypTagRow(HypEditableRow):
         drop_target.connect("leave", self.__drop_leave)
         drop_target.connect("drop", self.__drop)
         self.add_controller(drop_target)
-
-    def __motion_open_tag(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        if self.motion.contains_pointer():
-            win.new_page(tag=self.tag)
-
-    def __motion_enter(self, *_args: Any) -> None:
-        GLib.timeout_add(500, self.__motion_open_tag)
 
     def __drag_prepare(self, _src: Gtk.DragSource, _x: float, _y: float) -> None:
         return Gdk.ContentProvider.new_for_value(self)

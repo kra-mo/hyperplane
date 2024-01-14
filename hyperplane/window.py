@@ -259,7 +259,9 @@ class HypWindow(Adw.ApplicationWindow):
             self.trash_row: Gio.File.new_for_uri("trash://"),
         }
 
-        for widget, gfile in self.sidebar_rows.items():
+        for row, gfile in self.sidebar_rows.items():
+            row.gfile = gfile
+
             (right_click := Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)).connect(
                 "pressed", self.__sidebar_right_click, gfile
             )
@@ -268,8 +270,8 @@ class HypWindow(Adw.ApplicationWindow):
                 "pressed", self.__sidebar_middle_click, gfile
             )
 
-            widget.add_controller(right_click)
-            widget.add_controller(middle_click)
+            row.add_controller(right_click)
+            row.add_controller(middle_click)
 
         # Drag and drop
         self.drop_target = Gtk.DropTarget.new(

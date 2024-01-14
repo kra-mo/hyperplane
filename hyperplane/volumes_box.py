@@ -33,6 +33,7 @@ from hyperplane.editable_row import HypEditableRow
 from hyperplane.navigation_bin import HypNavigationBin
 
 
+# TODO: Subclass HypHoverPageOpener
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/volumes-box.ui")
 class HypVolumesBox(Adw.Bin):
     """

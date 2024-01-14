@@ -26,13 +26,14 @@ from gi.repository.GLib import idle_add
 
 from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
+from hyperplane.hover_page_opener import HypHoverPageOpener
 from hyperplane.utils.files import rm
 from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 from hyperplane.utils.thumbnail import generate_thumbnail
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/item.ui")
-class HypItem(Adw.Bin):
+class HypItem(Adw.Bin, HypHoverPageOpener):
     """An item representing a file to be set up through a `GtkSignalListItemFactory`."""
 
     __gtype_name__ = "HypItem"
@@ -81,6 +82,8 @@ class HypItem(Adw.Bin):
 
     def __init__(self, item, page, **kwargs) -> None:
         super().__init__(**kwargs)
+        HypHoverPageOpener.__init__(self)
+
         self.full_name = None
         self.stem = None
         self._thumbnail_paintable = None
@@ -131,10 +134,6 @@ class HypItem(Adw.Bin):
         drag_source.connect("drag-end", self.__drag_end)
         drag_source.connect("drag-cancel", self.__drag_cancel)
         self.add_controller(drag_source)
-
-        self.motion = Gtk.DropControllerMotion.new()
-        self.motion.connect("enter", self.__motion_enter)
-        self.add_controller(self.motion)
 
         # Save initial style classes
         self.thumb_init_classes = self.thumbnail_overlay.get_css_classes()
@@ -359,16 +358,6 @@ class HypItem(Adw.Bin):
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, _reason: Gdk.DragCancelReason
     ) -> None:
         self.page.view.set_enable_rubberband(True)
-
-    def __open_folder(self, *_args: Any) -> None:
-        win = self.get_root()
-
-        if self.motion.contains_pointer() and win.drop_target.get_current_drop():
-            win.new_page(self.gfile)
-
-    def __motion_enter(self, *_args: Any) -> None:
-        if self.is_dir and self.get_root().drop_target.get_current_drop():
-            GLib.timeout_add(500, self.__open_folder)
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:

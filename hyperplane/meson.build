@@ -52,6 +52,7 @@ hyperplane_sources = [
   'file_manager_dbus.py',
   'file_properties.py',
   'guide.py',
+  'hover_page_opener.py',
   'item_filter.py',
   'item_sorter.py',
   'item.py',

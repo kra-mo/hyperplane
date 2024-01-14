@@ -23,9 +23,10 @@ from typing import Optional
 from gi.repository import GLib, GObject, Gtk, Pango
 
 from hyperplane import shared
+from hyperplane.hover_page_opener import HypHoverPageOpener
 
 
-class HypEditableRow(Gtk.ListBoxRow):
+class HypEditableRow(Gtk.ListBoxRow, HypHoverPageOpener):
     """A row in the sidebar representing a tag."""
 
     __gtype_name__ = "HypEditableRow"
@@ -41,6 +42,8 @@ class HypEditableRow(Gtk.ListBoxRow):
 
     def __init__(self, identifier: Optional[str] = None, **kwargs) -> None:
         super().__init__(**kwargs)
+        HypHoverPageOpener.__init__(self)
+
         self.image = Gtk.Image.new()
         self.label = Gtk.Label(ellipsize=Pango.EllipsizeMode.END)
 
