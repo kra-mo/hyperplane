@@ -61,6 +61,10 @@ class HypItemFilter(Gtk.Filter):
         if shared.show_hidden:
             return True
 
+        # Always show trashed hidden files
+        if file_info.get_deletion_date():
+            return True
+
         try:
             if file_info.get_is_hidden():
                 return False

@@ -808,6 +808,7 @@ class HypWindow(Adw.ApplicationWindow):
                 self.__banner_button_callback = self.__empty_trash
 
                 self.banner.set_revealed(True)
+
             case _:
                 self.banner.set_revealed(False)
 

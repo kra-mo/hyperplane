@@ -427,18 +427,9 @@ class HypItemsPage(Adw.NavigationPage):
                 self.scrolled_window.set_child(self.empty_folder)
 
             if self.tags:
-                model = self.dir_list.get_model()
-                for index in count():
-                    if not (dir_list := model.get_item(index)):
-                        return
-
-                    if dir_list.is_loading():
-                        self.loading.get_child().start()
-                        self.scrolled_window.set_child(self.loading)
-                        return
-
-                self.scrolled_window.set_child(self.no_matching_items)
-                return
+                # No idea why this works 🤷
+                if not self.dir_list.get_model().get_item(0):
+                    self.scrolled_window.set_child(self.no_matching_items)
 
     def __item_setup(
         self, _factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
