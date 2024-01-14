@@ -102,7 +102,10 @@ class HypVolumesBox(Adw.Bin):
 
         if volume.can_eject():
             eject_button = Gtk.Button(
-                icon_name="media-eject-symbolic", valign=Gtk.Align.CENTER
+                icon_name="media-eject-symbolic",
+                valign=Gtk.Align.CENTER,
+                halign=Gtk.Align.END,
+                hexpand=True,
             )
             eject_button.add_css_class("flat")
             eject_button.add_css_class("sidebar-button")
