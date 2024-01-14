@@ -86,6 +86,18 @@ class HypNavigationBin(Adw.Bin):
                 return
 
             page = HypItemsPage(gfile=gfile)
+        # Prefer tags over tag because of HypPathSegment, which has both
+        elif tags:
+            tags = list(tags)
+
+            if page.tags == tags:
+                return
+
+            if next_page and next_page.tags == tags:
+                self.view.push(next_page)
+                return
+
+            page = HypItemsPage(tags=tags)
         elif tag:
             if page.tags:
                 if tag in page.tags:
@@ -96,17 +108,6 @@ class HypNavigationBin(Adw.Bin):
                 tags = []
 
             tags.append(tag)
-
-            if next_page and next_page.tags == tags:
-                self.view.push(next_page)
-                return
-
-            page = HypItemsPage(tags=tags)
-        elif tags:
-            tags = list(tags)
-
-            if page.tags == tags:
-                return
 
             if next_page and next_page.tags == tags:
                 self.view.push(next_page)

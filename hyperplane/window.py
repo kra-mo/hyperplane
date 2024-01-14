@@ -40,6 +40,7 @@ from hyperplane.utils.files import (
     empty_trash,
     get_gfile_display_name,
     get_paste_gfile,
+    trash,
     validate_name,
 )
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
@@ -967,11 +968,23 @@ class HypWindow(Adw.ApplicationWindow):
         page = self.get_visible_page()
         page.multi_selection.unselect_all()
 
-        if page.gfile and not page.gfile.query_info(
-            Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE, Gio.FileQueryInfoFlags.NONE
-        ).get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE):
-            self.send_toast(_("The location is not writable"))
-            return False
+        if page.gfile:
+            if page.gfile.get_uri() == "trash:///":
+                if isinstance(value, Gdk.FileList):
+                    for gfile in value:
+                        if gfile.get_uri_scheme() == "trash":
+                            return False
+
+                    trash(*value)
+                    return True
+
+                return False
+
+            if not page.gfile.query_info(
+                Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE, Gio.FileQueryInfoFlags.NONE
+            ).get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_WRITE):
+                self.send_toast(_("The location is not writable"))
+                return False
 
         if isinstance(value, Gdk.FileList):
             dst = self.get_visible_page().get_dst()

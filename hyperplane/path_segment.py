@@ -23,10 +23,11 @@ from typing import Any, Optional
 from gi.repository import Adw, Gdk, Gio, GObject, Gtk
 
 from hyperplane import shared
+from hyperplane.hover_page_opener import HypHoverPageOpener
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/path-segment.ui")
-class HypPathSegment(Gtk.Revealer):
+class HypPathSegment(Gtk.Revealer, HypHoverPageOpener):
     """A segment in a HypPathBar."""
 
     __gtype_name__ = "HypPathSegment"
@@ -45,17 +46,22 @@ class HypPathSegment(Gtk.Revealer):
         **kwargs
     ) -> None:
         super().__init__(**kwargs)
+        HypHoverPageOpener.__init__(self)
+
         self.icon_name = icon_name
         self.label = label
         self.uri = uri
+        self.gfile = Gio.File.new_for_uri(self.uri) if self.uri else None
         self.tag = tag
+
+        # This is needed for HypHoverPageOpener
+        self.tags = [tag]
 
         middle_click = Gtk.GestureClick(button=Gdk.BUTTON_MIDDLE)
         middle_click.connect(
             "pressed",
             lambda *_: self.get_root().new_tab(
-                Gio.File.new_for_uri(self.uri) if self.uri else None,
-                tags=[self.tag] if self.tag else None,
+                self.gfile, tags=[self.tag] if self.tag else None
             ),
         )
         self.add_controller(middle_click)
@@ -105,8 +111,8 @@ class HypPathSegment(Gtk.Revealer):
             self.get_root().new_page(tags=[self.tag])
             return
 
-        if self.uri:
+        if self.gfile:
             if self.active:  # pylint: disable=using-constant-test
                 return
 
-            self.get_root().new_page(Gio.File.new_for_uri(self.uri))
+            self.get_root().new_page(self.gfile)
