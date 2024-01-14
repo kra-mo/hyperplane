@@ -58,6 +58,7 @@ class HypWindow(Adw.ApplicationWindow):
     overlay_split_view: Adw.OverlaySplitView = Gtk.Template.Child()
     tab_view: Adw.TabView = Gtk.Template.Child()
     toolbar_view: Adw.ToolbarView = Gtk.Template.Child()
+    banner: Adw.Banner = Gtk.Template.Child()
 
     # Sidebar
     sidebar: Gtk.ListBox = Gtk.Template.Child()
@@ -106,6 +107,7 @@ class HypWindow(Adw.ApplicationWindow):
     ) -> None:
         super().__init__(**kwargs)
         self.select_uri = None
+        self.__banner_button_callback = None
 
         if shared.PROFILE == "development":
             self.add_css_class("devel")
@@ -743,6 +745,10 @@ class HypWindow(Adw.ApplicationWindow):
             }
         )
 
+    @Gtk.Template.Callback()
+    def _banner_button_clicked(self, *_args: Any) -> None:
+        self.__banner_button_callback()
+
     def __nav_stack_changed(self) -> None:
         page = self.get_visible_page()
 
@@ -758,6 +764,52 @@ class HypWindow(Adw.ApplicationWindow):
             )
         )
         self.lookup_action("forward").set_enabled(bool(self.get_nav_bin().next_pages))
+
+        if not page.gfile:
+            return
+
+        class _SpecialUris:
+            templates_uri = Gio.File.new_for_path(
+                GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_TEMPLATES)
+            ).get_uri()
+
+            public_uri = Gio.File.new_for_path(
+                GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE)
+            ).get_uri()
+
+            trash_uri = "trash:///"
+
+        match page.gfile.get_uri():
+            case _SpecialUris.templates_uri:
+                self.banner.set_title(
+                    "Put files in this folder to use them as templates for new files"
+                )
+                self.banner.set_button_label("_Learn More")
+                self.__banner_button_callback = lambda *_: Gtk.UriLauncher.new(
+                    "help:gnome-help/files-templates"
+                ).launch(self)
+
+                self.banner.set_revealed(True)
+
+            case _SpecialUris.public_uri:
+                self.banner.set_title(
+                    "Turn on File Sharing to share the contents of this folder over the network"
+                )
+                self.banner.set_button_label("_Learn More")
+                self.__banner_button_callback = lambda *_: Gtk.UriLauncher.new(
+                    "help:gnome-help/sharing-personal"
+                ).launch(self)
+
+                self.banner.set_revealed(True)
+
+            case _SpecialUris.trash_uri:
+                self.banner.set_title("")
+                self.banner.set_button_label("_Empty Trash…")
+                self.__banner_button_callback = self.__empty_trash
+
+                self.banner.set_revealed(True)
+            case _:
+                self.banner.set_revealed(False)
 
     def __trash_changed(self, *_args: Any) -> None:
         self.trash_row.icon_name = (
