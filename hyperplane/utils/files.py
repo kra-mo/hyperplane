@@ -287,7 +287,7 @@ def rm(gfile: Gio.File) -> None:
             ):
                 return
 
-            __remove_trashinfo(gfile, Gio.File.new_for_path(orig_path))
+            __remove_trashinfo(gfile, orig_path)
 
         # Gio doesn't allow for recursive deletion
         Gio.Task.new().run_in_thread(lambda *_: shutil.rmtree(path, True))
@@ -482,7 +482,7 @@ def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
     raise FileNotFoundError
 
 
-def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
+def __remove_trashinfo(trash_file: Gio.File, orig_path: str) -> None:
     try:
         trash_path = get_gfile_path(trash_file)
     except FileNotFoundError:
@@ -490,16 +490,6 @@ def __remove_trashinfo(trash_file: Gio.File, orig_file: Gio.File) -> None:
             'Cannot remove trashinfo for file "%s": File has no path.',
             trash_file.get_uri(),
         )
-        return
-
-    try:
-        orig_path = get_gfile_path(orig_file)
-        logging.error(
-            'Cannot remove trashinfo for file "%s": Original file "%s" has no path.',
-            trash_file.get_uri(),
-            orig_file.get_uri(),
-        )
-    except FileNotFoundError:
         return
 
     trashinfo = (
