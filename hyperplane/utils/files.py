@@ -271,6 +271,10 @@ def rm(gfile: Gio.File) -> None:
     except FileNotFoundError:
         path = None
 
+    if path == shared.home_path:
+        logging.debug("Someone tried to remove ~.")
+        return
+
     if path and path.is_dir():
         # Remove the .trashinfo file if the file is in the trash
         # This needs to be done synchronously because Gio won't find the file
