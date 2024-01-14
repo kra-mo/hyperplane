@@ -39,11 +39,13 @@ from hyperplane.utils.files import (
     copy,
     empty_trash,
     get_gfile_display_name,
+    get_gfile_path,
     get_paste_gfile,
     trash,
     validate_name,
 )
 from hyperplane.utils.tags import add_tags, move_tag, remove_tags
+from hyperplane.utils.undo import undo
 from hyperplane.volumes_box import HypVolumesBox
 
 
@@ -283,13 +285,13 @@ class HypWindow(Adw.ApplicationWindow):
         self.tab_view.add_controller(self.drop_target)
 
     def send_toast(
-        self, message: str, undo: bool = False, use_markup: bool = False
+        self, message: str, do_undo: bool = False, use_markup: bool = False
     ) -> None:
         """Displays a toast with the given message and optionally an undo button in the window."""
         toast = Adw.Toast.new(message)
         toast.set_priority(Adw.ToastPriority.HIGH)
         toast.set_use_markup(use_markup)
-        if undo:
+        if do_undo:
             toast.set_button_label(_("Undo"))
         self.toast_overlay.add_toast(toast)
 
@@ -958,6 +960,42 @@ class HypWindow(Adw.ApplicationWindow):
         ):
             row.set_active()
 
+    def trash_pretty(self, *gfiles: Gio.File) -> None:
+        """Trashes `gfiles` with the trash animation and a toast."""
+
+        gfiles = list(gfiles)
+
+        files = []
+        n = 0
+        for gfile in gfiles.copy():
+            try:
+                files.append((get_gfile_path(gfile), int(time())))
+            except FileNotFoundError:
+                logging.debug(
+                    'Should not trash "%s": File has no path.', gfile.get_uri()
+                )
+                gfiles.remove(gfile)
+                continue
+
+        if not gfiles:
+            return
+
+        trash(*gfiles)
+
+        n = len(gfiles)
+        if n > 1:
+            message = _("{} files moved to trash").format(n)
+        else:
+            message = _("{} moved to trash").format(
+                f"“{get_gfile_display_name(gfiles[0])}”"
+            )
+
+        toast = self.send_toast(message, do_undo=True)
+        shared.undo_queue[toast] = ("trash", files)
+        toast.connect("button-clicked", undo)
+
+        self.trash_animation.play()
+
     def __drop(
         self,
         drop_target: Gtk.DropTarget,
@@ -975,9 +1013,10 @@ class HypWindow(Adw.ApplicationWindow):
                         if gfile.get_uri_scheme() == "trash":
                             return False
 
-                    trash(*value)
-                    return True
+                    self.trash_pretty(*value)
 
+                # Always return false
+                # because the files will be removed by trashing them anyway
                 return False
 
             if not page.gfile.query_info(
@@ -1003,13 +1042,12 @@ class HypWindow(Adw.ApplicationWindow):
                 if uri == child.get_uri():
                     return False
 
-            self.__drop_file_list(
+            return self.__drop_file_list(
                 value,
                 drop_target.get_current_drop().get_drag().get_selected_action()
                 if drop_target.get_current_drop().get_drag()
                 else Gdk.DragAction.COPY,
             )
-            return True
 
         if isinstance(value, Gdk.Texture):
             GLib.Thread.new(None, self.__drop_texture, value)
@@ -1021,7 +1059,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         return False
 
-    def __drop_file_list(self, file_list: Gdk.FileList, action: Gdk.DragAction) -> None:
+    def __drop_file_list(self, file_list: Gdk.FileList, action: Gdk.DragAction) -> bool:
         dst = self.get_visible_page().get_dst()
         move = action == Gdk.DragAction.MOVE
 
@@ -1032,21 +1070,27 @@ class HypWindow(Adw.ApplicationWindow):
                 if not (
                     child := dst.get_child_for_display_name(get_gfile_display_name(src))
                 ):
-                    continue
+                    logging.warning(
+                        "Cannot drop files: Can't get child for display name."
+                    )
+                    return False
             except GLib.Error:
-                continue
-            else:
-                try:
-                    copy(src, child)
-                except FileExistsError:
-                    try:
-                        copy(src, get_paste_gfile(child))
-                    except (FileExistsError, FileNotFoundError):
-                        continue
+                logging.warning("Cannot drop files: Can't get child for display name.")
+                return False
 
-                files.append((src, child) if move else child)
+            try:
+                copy(src, child)
+            except FileExistsError:
+                try:
+                    copy(src, get_paste_gfile(child))
+                except (FileExistsError, FileNotFoundError) as error:
+                    logging.warning("Cannot drop files: %s", error)
+                    return False
+
+            files.append((src, child) if move else child)
 
         shared.undo_queue[time()] = ("move" if move else "copy", files)
+        return True
 
     def __drop_texture(self, texture: Gdk.Texture) -> None:
         dst = self.get_visible_page().get_dst()

@@ -44,10 +44,10 @@ from hyperplane.utils.files import (
     move,
     restore,
     rm,
-    trash,
     validate_name,
 )
 from hyperplane.utils.iterplane import iterplane
+from hyperplane.utils.undo import undo
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/items-page.ui")
@@ -152,7 +152,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.action_group = Gio.SimpleActionGroup.new()
         self.insert_action_group("page", self.action_group)
 
-        self.create_action("undo", self.__undo, ("<primary>z",))
+        self.create_action("undo", undo, ("<primary>z",))
         self.create_action("open", self.__open, ("Return", "<primary>o"))
         self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
         self.create_action(
@@ -625,44 +625,6 @@ class HypItemsPage(Adw.NavigationPage):
         # between the items page and the item
         GLib.timeout_add(10, self.__popup_menu)
 
-    def __undo(self, obj: Any, *_args: Any) -> None:
-        if not shared.undo_queue:
-            return
-
-        if isinstance(obj, Adw.Toast):
-            index = obj
-        else:
-            index = tuple(shared.undo_queue.keys())[-1]
-        item = shared.undo_queue[index]
-
-        match item[0]:
-            case "copy":
-                for copy_item in item[1]:
-                    try:
-                        rm(copy_item)
-                    except FileNotFoundError:
-                        logging.debug("Cannot undo copy: File doesn't exist anymore.")
-            case "move":
-                for gfiles in item[1]:
-                    try:
-                        move(gfiles[1], gfiles[0])
-                    except FileExistsError:
-                        logging.debug("Cannot undo move: File exists.")
-                    except YouAreStupid:
-                        logging.debug("Cannot undo move: Someone is being stupid.")
-            case "rename":
-                try:
-                    item[1].set_display_name(item[2])
-                except GLib.Error as error:
-                    logging.debug("Cannot undo rename: %s", error)
-            case "trash":
-                for trash_item in item[1]:
-                    restore(*trash_item)
-
-        if isinstance(index, Adw.Toast):
-            index.dismiss()
-        shared.undo_queue.popitem()
-
     def __open(self, *_args: Any) -> None:
         if len(positions := self.get_selected_positions()) > 1:
             # TODO: Maybe switch to newly opened tab like Nautilus?
@@ -928,36 +890,7 @@ class HypItemsPage(Adw.NavigationPage):
             self.__trash_delete(*args)
             return
 
-        files = []
-        n = 0
-        for gfile in gfiles.copy():
-            try:
-                files.append((get_gfile_path(gfile), int(time())))
-            except FileNotFoundError:
-                logging.debug(
-                    'Should not trash "%s": File has no path.', gfile.get_uri()
-                )
-                gfiles.remove(gfile)
-                continue
-
-        if not gfiles:
-            return
-
-        trash(*gfiles)
-
-        n = len(gfiles)
-        if n > 1:
-            message = _("{} files moved to trash").format(n)
-        else:
-            message = _("{} moved to trash").format(
-                f"“{get_gfile_display_name(gfiles[0])}”"
-            )
-
-        toast = self.get_root().send_toast(message, undo=True)
-        shared.undo_queue[toast] = ("trash", files)
-        toast.connect("button-clicked", self.__undo)
-
-        self.get_root().trash_animation.play()
+        self.get_root().trash_pretty(*gfiles)
 
     def __trash_delete(self, *args: Any) -> None:
         gfiles = self.get_selected_gfiles()
