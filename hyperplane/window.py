@@ -771,6 +771,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.lookup_action("forward").set_enabled(bool(self.get_nav_bin().next_pages))
 
         if not page.gfile:
+            self.banner.set_revealed(False)
             return
 
         class _SpecialUris:
