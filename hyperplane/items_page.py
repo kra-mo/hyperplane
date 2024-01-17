@@ -681,7 +681,7 @@ class HypItemsPage(Adw.NavigationPage):
             margin_top=12,
         )
         preferences_group.add(revealer := Gtk.Revealer(child=revealer_label))
-        preferences_group.add(entry := Adw.EntryRow(title=_("Folder name")))
+        preferences_group.add(entry := Adw.EntryRow(title=_("Folder Name")))
 
         def dialog_cb() -> None:
             create_folder()
