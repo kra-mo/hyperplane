@@ -774,14 +774,25 @@ class HypWindow(Adw.ApplicationWindow):
             self.banner.set_revealed(False)
             return
 
-        class _SpecialUris:
-            templates_uri = Gio.File.new_for_path(
-                GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_TEMPLATES)
-            ).get_uri()
+        # This is so case never matches
+        class _Fake:
+            def __eq__(self, o: object):
+                return False
 
-            public_uri = Gio.File.new_for_path(
-                GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE)
-            ).get_uri()
+        class _SpecialUris:
+            if templates_dir := GLib.get_user_special_dir(
+                GLib.UserDirectory.DIRECTORY_TEMPLATES
+            ):
+                templates_uri = Gio.File.new_for_path(templates_dir).get_uri()
+            else:
+                templates_uri = _Fake()
+
+            if public_dir := GLib.get_user_special_dir(
+                GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE
+            ):
+                public_uri = Gio.File.new_for_path(public_dir).get_uri()
+            else:
+                public_uri = _Fake()
 
             trash_uri = "trash:///"
 
