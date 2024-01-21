@@ -87,7 +87,7 @@ template $HypWindow : Adw.ApplicationWindow {
         sidebar-width-fraction: .2;
         sidebar: Adw.NavigationPage {
           title: _("Hyperplane");
-          child: 
+          child:
           Adw.ToolbarView {
             [top]
             Adw.HeaderBar {
@@ -104,7 +104,7 @@ template $HypWindow : Adw.ApplicationWindow {
                 primary: true;
                 icon-name: "open-menu-symbolic";
                 tooltip-text: _("Menu");
-                popover: 
+                popover:
                 PopoverMenu {
                   menu-model: primary_menu;
                 };
@@ -203,7 +203,7 @@ template $HypWindow : Adw.ApplicationWindow {
         }
 
         ;
-        content: 
+        content:
         Adw.ToolbarView toolbar_view {
 
           [top]
