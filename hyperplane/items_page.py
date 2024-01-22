@@ -29,6 +29,7 @@ from typing import Any, Callable, Generator, Iterable, Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango, Xdp, XdpGtk4
 
 from hyperplane import shared
+from hyperplane.file_properties import SpecialUris
 from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
@@ -60,12 +61,14 @@ class HypItemsPage(Adw.NavigationPage):
     scrolled_window: Gtk.ScrolledWindow = Gtk.Template.Child()
     grid_view: Gtk.GridView = Gtk.Template.Child()
     column_view: Gtk.ColumnView = Gtk.Template.Child()
+    loading: Gtk.Viewport = Gtk.Template.Child()
+
     empty_folder: Adw.StatusPage = Gtk.Template.Child()
     no_matching_items: Adw.StatusPage = Gtk.Template.Child()
     empty_trash: Adw.StatusPage = Gtk.Template.Child()
+    no_downloads: Adw.StatusPage = Gtk.Template.Child()
     no_recents: Adw.StatusPage = Gtk.Template.Child()
     no_results: Adw.StatusPage = Gtk.Template.Child()
-    loading: Gtk.Viewport = Gtk.Template.Child()
 
     def __init__(
         self,
@@ -181,6 +184,20 @@ class HypItemsPage(Adw.NavigationPage):
         )
         self.scroll.connect("scroll", self.__scroll)
         self.scrolled_window.add_controller(self.scroll)
+
+        # What page to show if there are no items
+        if self.gfile:
+            if self.gfile.get_uri() == SpecialUris.trash_uri:
+                self.no_items_page = self.empty_trash
+
+            elif self.gfile.get_uri() == SpecialUris.recent_uri:
+                self.no_items_page = self.no_recents
+
+            elif self.gfile.get_uri() == SpecialUris.downloads_uri:
+                self.no_items_page = self.no_downloads
+
+            else:
+                self.no_items_page = self.empty_folder
 
     def reload(self) -> None:
         """Refresh the view."""
@@ -419,15 +436,7 @@ class HypItemsPage(Adw.NavigationPage):
                     self.scrolled_window.set_child(self.loading)
                     return
 
-                if self.gfile.get_uri() == "trash:///":
-                    self.scrolled_window.set_child(self.empty_trash)
-                    return
-
-                elif self.gfile.get_uri() == "recent:///":
-                    self.scrolled_window.set_child(self.no_recents)
-                    return
-
-                self.scrolled_window.set_child(self.empty_folder)
+                self.scrolled_window.set_child(self.no_items_page)
 
             if self.tags:
                 # No idea why this works 🤷

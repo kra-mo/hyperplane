@@ -27,6 +27,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from hyperplane import shared
 from hyperplane.editable_row import HypEditableRow
+from hyperplane.file_properties import SpecialUris
 from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.path_bar import HypPathBar
@@ -776,30 +777,8 @@ class HypWindow(Adw.ApplicationWindow):
             self.banner.set_revealed(False)
             return
 
-        # This is so case never matches
-        class _Fake:
-            def __eq__(self, o: object):
-                return False
-
-        class _SpecialUris:
-            if templates_dir := GLib.get_user_special_dir(
-                GLib.UserDirectory.DIRECTORY_TEMPLATES
-            ):
-                templates_uri = Gio.File.new_for_path(templates_dir).get_uri()
-            else:
-                templates_uri = _Fake()
-
-            if public_dir := GLib.get_user_special_dir(
-                GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE
-            ):
-                public_uri = Gio.File.new_for_path(public_dir).get_uri()
-            else:
-                public_uri = _Fake()
-
-            trash_uri = "trash:///"
-
         match page.gfile.get_uri():
-            case _SpecialUris.templates_uri:
+            case SpecialUris.templates_uri:
                 self.banner.set_title(
                     "Put files in this folder to use them as templates for new files"
                 )
@@ -810,7 +789,7 @@ class HypWindow(Adw.ApplicationWindow):
 
                 self.banner.set_revealed(True)
 
-            case _SpecialUris.public_uri:
+            case SpecialUris.public_uri:
                 self.banner.set_title(
                     "Turn on File Sharing to share the contents of this folder over the network"
                 )
@@ -821,7 +800,7 @@ class HypWindow(Adw.ApplicationWindow):
 
                 self.banner.set_revealed(True)
 
-            case _SpecialUris.trash_uri:
+            case SpecialUris.trash_uri:
                 self.banner.set_title("")
                 self.banner.set_button_label("_Empty Trash…")
                 self.__banner_button_callback = self.__empty_trash

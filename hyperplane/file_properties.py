@@ -19,9 +19,43 @@
 
 """Miscellaneous variables for determining file properties."""
 
+from gi.repository import Gio, GLib
+
 DOT_IS_NOT_EXTENSION = {
     "application/x-sharedlib",
     "application/x-executable",
     "application/x-pie-executable",
     "inode/symlink",
 }
+
+
+# This is so nonexistent URIs never match
+class _Fake:
+    def __eq__(self, o: object):
+        return False
+
+
+class SpecialUris:
+    if templates_dir := GLib.get_user_special_dir(
+        GLib.UserDirectory.DIRECTORY_TEMPLATES
+    ):
+        templates_uri = Gio.File.new_for_path(templates_dir).get_uri()
+    else:
+        templates_uri = _Fake()
+
+    if public_dir := GLib.get_user_special_dir(
+        GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE
+    ):
+        public_uri = Gio.File.new_for_path(public_dir).get_uri()
+    else:
+        public_uri = _Fake()
+
+    if downloads_dir := GLib.get_user_special_dir(
+        GLib.UserDirectory.DIRECTORY_DOWNLOAD
+    ):
+        downloads_uri = Gio.File.new_for_path(downloads_dir).get_uri()
+    else:
+        downloads_uri = _Fake()
+
+    trash_uri = "trash:///"
+    recent_uri = "recent:///"
