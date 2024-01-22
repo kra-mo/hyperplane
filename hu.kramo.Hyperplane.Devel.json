@@ -11,6 +11,7 @@
         "--socket=wayland",
         "--filesystem=host",
         "--talk-name=org.gtk.vfs.*",
+        "--talk-name=org.freedesktop.Flatpak",
         "--filesystem=xdg-run/gvfsd",
         "--own-name=org.freedesktop.FileManager1"
     ],
@@ -63,7 +64,7 @@
                     }
                 }
             ]
-          },      
+          },
         {
             "name": "totem-pl-parser",
             "buildsystem": "meson",

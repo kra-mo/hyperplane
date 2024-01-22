@@ -477,6 +477,11 @@ menu right_click {
       action: "page.new-file";
       hidden-when: "action-disabled";
     }
+    item {
+      label: _("Run");
+      action: "page.execute-file";
+      hidden-when: "action-disabled";
+    }
     submenu {
       label: _("Open");
       section {

@@ -107,6 +107,7 @@ class HypItemsPage(Adw.NavigationPage):
                 Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,  # For Recent
                 Gio.FILE_ATTRIBUTE_TRASH_DELETION_DATE,  # For Trash
                 Gio.FILE_ATTRIBUTE_FILESYSTEM_USE_PREVIEW,
+                Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE,
                 # For list view
                 Gio.FILE_ATTRIBUTE_STANDARD_SIZE,
                 Gio.FILE_ATTRIBUTE_TIME_MODIFIED,
@@ -153,6 +154,7 @@ class HypItemsPage(Adw.NavigationPage):
         self.insert_action_group("page", self.action_group)
 
         self.create_action("undo", undo, ("<primary>z",))
+        self.create_action("execute-file", self.__execute_file)
         self.create_action("open", self.__open, ("Return", "<primary>o"))
         self.create_action("open-new-tab", self.__open_new_tab, ("<primary>Return",))
         self.create_action(
@@ -624,6 +626,20 @@ class HypItemsPage(Adw.NavigationPage):
         # HACK: Timeout hack because of the right-click callback race condition
         # between the items page and the item
         GLib.timeout_add(10, self.__popup_menu)
+
+    def __execute_file(self, *_args: Any) -> None:
+        if not (gfiles := self.get_selected_gfiles()):
+            return
+
+        if not (path := gfiles[0].get_path()):
+            return
+
+        if shared.is_flatpak:
+            prefix = ("flatpak-spawn", "--host")
+        else:
+            prefix = tuple()
+
+        Gio.Subprocess.new(prefix + (path,), Gio.SubprocessFlags.NONE)
 
     def __open(self, *_args: Any) -> None:
         if len(positions := self.get_selected_positions()) > 1:

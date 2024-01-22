@@ -218,6 +218,9 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
                     self.additional_tags = ", ".join(additional_tags)
 
         self.is_dir = self.can_open_page = self.content_type == "inode/directory"
+        self.is_executable = (not self.is_dir) and bool(
+            self.file_info.get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE)
+        )
         self.full_name = self.file_info.get_display_name()
         if self.is_dir:
             self.stem = self.full_name
@@ -667,13 +670,19 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
             "open-with",
             "properties",
         }
+        if self.is_executable:
+            menu_items.add("execute-file")
+
         if self.is_dir:
             menu_items.add("open-new-tab")
             menu_items.add("open-new-window")
+
         if self.gfile.get_uri_scheme() == "trash":
             menu_items.remove("trash")
             menu_items.remove("rename")
+
             if self.gfile.get_uri().count("/") < 4:
+                # If we are in the root of the trash "directory"
                 menu_items.add("trash-restore")
                 menu_items.add("trash-delete")
 
