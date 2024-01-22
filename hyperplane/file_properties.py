@@ -36,6 +36,8 @@ class _Fake:
 
 
 class SpecialUris:
+    """URIs that point to special directories."""
+
     if templates_dir := GLib.get_user_special_dir(
         GLib.UserDirectory.DIRECTORY_TEMPLATES
     ):
