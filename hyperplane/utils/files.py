@@ -177,6 +177,25 @@ def move(src: Gio.File, dst: Gio.File) -> None:
     )
 
 
+def execute(gfile: Gio.File) -> None:
+    """
+    Tries to execute a file on the host.
+
+    It does not check for whether the file is actually executable.
+    """
+    try:
+        path = get_gfile_path(gfile)
+    except FileNotFoundError:
+        logging.error('Cannot execute file "%s": File has no path.', gfile.get_uri())
+
+    if shared.is_flatpak:
+        prefix = ("flatpak-spawn", "--host")
+    else:
+        prefix = tuple()
+
+    Gio.Subprocess.new(prefix + (str(path),), Gio.SubprocessFlags.NONE)
+
+
 def restore(
     path: Optional[PathLike | str] = None,
     t: Optional[int] = None,

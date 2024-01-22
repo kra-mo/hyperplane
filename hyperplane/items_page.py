@@ -38,6 +38,7 @@ from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
     YouAreStupid,
     copy,
+    execute,
     get_gfile_display_name,
     get_gfile_path,
     get_paste_gfile,
@@ -631,15 +632,11 @@ class HypItemsPage(Adw.NavigationPage):
         if not (gfiles := self.get_selected_gfiles()):
             return
 
-        if not (path := gfiles[0].get_path()):
-            return
-
-        if shared.is_flatpak:
-            prefix = ("flatpak-spawn", "--host")
-        else:
-            prefix = tuple()
-
-        Gio.Subprocess.new(prefix + (path,), Gio.SubprocessFlags.NONE)
+        # Only execute a single file to avoid some
+        # unfortunate things that could happen due to a misclick.
+        # TODO: Maybe in the future, a popup could ask the user
+        # if they want to execute multiple files at once?
+        execute(gfiles[0])
 
     def __open(self, *_args: Any) -> None:
         if len(positions := self.get_selected_positions()) > 1:
