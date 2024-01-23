@@ -46,11 +46,17 @@ sort_reversed = state_schema.get_boolean("sort-reversed")
 home_path = Path(getenv("HYPHOME", str(Path.home()))).expanduser()
 home = Gio.File.new_for_path(str(home_path))
 
-tags = []
+# Create home if it doesn't exist
+home_path.mkdir(parents=True, exist_ok=True)
+
 if (path := home_path / ".hyperplane").is_file():
     tags = list(
         tag for tag in path.read_text(encoding="utf-8").strip().split("\n") if tag
     )
+else:
+    # Default tags
+    tags = [_("Documents"), _("Music"), _("Pictures"), _("Videos")]
+    path.write_text("\n".join(tags), encoding="utf-8")
 
 del path
 

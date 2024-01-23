@@ -53,10 +53,6 @@ class HypApplication(Adw.Application):
         logging_config()
         FileManagerDBusServer()
 
-        # Create home
-        shared.home_path.mkdir(parents=True, exist_ok=True)
-        (shared.home_path / ".hyperplane").touch(exist_ok=True)
-
         shared.app = self
 
         new_window = GLib.OptionEntry()
