@@ -4,6 +4,11 @@ disable=import-error,
         no-name-in-module
 
 
+[TYPECHECK]
+
+ignored-classes=Child
+
+
 [VARIABLES]
 
 additional-builtins=_
