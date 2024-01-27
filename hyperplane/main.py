@@ -45,6 +45,8 @@ from hyperplane.window import HypWindow
 class HypApplication(Adw.Application):
     """The main application singleton class."""
 
+    guide: Optional[HypGuide] = None
+
     def __init__(self) -> None:
         super().__init__(
             application_id=shared.APP_ID,
@@ -163,10 +165,12 @@ class HypApplication(Adw.Application):
             "is-maximized", win, "maximized", Gio.SettingsBindFlags.SET
         )
 
+        if not self.guide:
+            self.guide = HypGuide()
+
         if shared.state_schema.get_boolean("first-run"):
             shared.state_schema.set_boolean("first-run", False)
-            guide = HypGuide()
-            guide.present(win)
+            self.guide.present(win)
 
         win.present()
 
@@ -205,9 +209,8 @@ class HypApplication(Adw.Application):
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
     def __guide(self, *_args: Any) -> None:
-        guide = HypGuide()
-
-        guide.present(self.get_active_window())
+        self.guide.carousel.scroll_to(self.guide.page_1, False)
+        self.guide.present(self.get_active_window())
 
     def __about(self, *_args: Any) -> None:
         about = Adw.AboutDialog.new_from_appdata(
