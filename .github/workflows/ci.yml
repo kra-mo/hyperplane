@@ -21,3 +21,6 @@ jobs:
       with:
         bundle: hu.kramo.Hyperplane.Devel.flatpak
         manifest-path: hu.kramo.Hyperplane.Devel.json
+        repository-url: https://nightly.gnome.org/gnome-nightly.flatpakrepo
+        repository-name: gnome-nightly
+

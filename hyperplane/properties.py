@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The item properties window."""
+"""The item properties dialog."""
 import logging
 from stat import S_IEXEC
 from typing import Any
@@ -30,11 +30,11 @@ from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 from hyperplane.utils.tags import path_represents_tags
 
 
-class HypPropertiesWindow(Adw.Window):
-    """The item properties window."""
+class HypPropertiesDialog(Adw.Dialog):
+    """The item properties dialog."""
 
     def __init__(self, gfile: Gio.File, **kwargs) -> None:
-        super().__init__(default_width=480, modal=True, title=_("Properties"), **kwargs)
+        super().__init__(content_width=480, title=_("Properties"), **kwargs)
 
         self.add_controller(shortcut_controller := Gtk.ShortcutController())
         shortcut_controller.add_shortcut(
@@ -97,11 +97,11 @@ class HypPropertiesWindow(Adw.Window):
         navigation_view = Adw.NavigationView()
         navigation_view.add(Adw.NavigationPage.new(toolbar_view, _("Properties")))
 
-        self.set_content(navigation_view)
+        self.set_child(navigation_view)
 
-        # Stop threads after the window is closed
+        # Stop threads after the dialog is closed
         self.stop = False
-        self.connect("close-request", self.__stop)
+        self.connect("closed", self.__stop)
 
         if gicon or thumbnail_path:
             page.add(icon_group := Adw.PreferencesGroup())

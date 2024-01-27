@@ -38,7 +38,7 @@ from hyperplane import shared
 from hyperplane.file_manager_dbus import FileManagerDBusServer
 from hyperplane.guide import HypGuide
 from hyperplane.logging.logging_config import logging_config
-from hyperplane.preferences import HypPreferencesWindow
+from hyperplane.preferences import HypPreferencesDialog
 from hyperplane.window import HypWindow
 
 
@@ -166,10 +166,9 @@ class HypApplication(Adw.Application):
         if shared.state_schema.get_boolean("first-run"):
             shared.state_schema.set_boolean("first-run", False)
             guide = HypGuide()
-            guide.present()
-            guide.connect("close-request", lambda *_: win.present())
-        else:
-            win.present()
+            guide.present(win)
+
+        win.present()
 
         return win
 
@@ -208,23 +207,12 @@ class HypApplication(Adw.Application):
     def __guide(self, *_args: Any) -> None:
         guide = HypGuide()
 
-        guide.set_modal(True)
-        guide.set_transient_for(self.get_active_window())
-        guide.add_controller(shortcut_controller := Gtk.ShortcutController())
-        shortcut_controller.add_shortcut(
-            Gtk.Shortcut.new(
-                Gtk.ShortcutTrigger.parse_string("Escape"),
-                Gtk.NamedAction.new("window.close"),
-            ),
-        )
-
-        guide.present()
+        guide.present(self.get_active_window())
 
     def __about(self, *_args: Any) -> None:
-        about = Adw.AboutWindow.new_from_appdata(
+        about = Adw.AboutDialog.new_from_appdata(
             shared.PREFIX + "/" + shared.APP_ID + ".metainfo.xml", shared.VERSION
         )
-        about.set_transient_for(self.get_active_window())
         about.set_developers(
             (
                 "kramo https://kramo.hu",
@@ -235,12 +223,11 @@ class HypApplication(Adw.Application):
         about.set_copyright("© 2023-2024 kramo")
         # Translators: Replace this with your name for it to show up in the about window
         about.set_translator_credits = (_("translator_credits"),)
-        about.present()
+        about.present(self.get_active_window())
 
     def __preferences(self, *_args: Any) -> None:
-        prefs = HypPreferencesWindow()
-        prefs.set_transient_for(self.get_active_window())
-        prefs.present()
+        prefs = HypPreferencesDialog()
+        prefs.present(self.get_active_window())
 
     def __show_hidden(self, action: Gio.SimpleAction, _state: GLib.Variant) -> None:
         value = not action.props.state.get_boolean()

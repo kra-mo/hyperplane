@@ -1,11 +1,9 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $HypNewFileDialog : Adw.Window {
-    modal: true;
+template $HypNewFileDialog : Adw.Dialog {
     title: _("New File");
-    default-width: 450;
-    default-height: 450;
+    content-width: 450;
 
     Adw.NavigationView navigation_view {
         Adw.NavigationPage {
@@ -31,12 +29,6 @@ template $HypNewFileDialog : Adw.Window {
                     }
                 }
             }
-        }
-    }
-    ShortcutController {
-        Shortcut {
-            trigger: "Escape";
-            action: "action(window.close)";
         }
     }
 }

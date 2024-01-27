@@ -32,7 +32,7 @@ from hyperplane.items_page import HypItemsPage
 from hyperplane.navigation_bin import HypNavigationBin
 from hyperplane.path_bar import HypPathBar
 from hyperplane.path_entry import HypPathEntry
-from hyperplane.properties import HypPropertiesWindow
+from hyperplane.properties import HypPropertiesDialog
 from hyperplane.tag_row import HypTagRow
 from hyperplane.utils.create_message_dialog import create_message_dialog
 from hyperplane.utils.files import (
@@ -454,9 +454,8 @@ class HypWindow(Adw.ApplicationWindow):
                 return
 
         # TODO: Allow viewing properties of multiple files
-        properties = HypPropertiesWindow(gfiles[0])
-        properties.set_transient_for(self)
-        properties.present()
+        properties = HypPropertiesDialog(gfiles[0])
+        properties.present(self)
 
     def __update_tags(self, *_args: Any) -> None:
         for tag_row in self.sidebar_tag_rows:
@@ -695,9 +694,8 @@ class HypWindow(Adw.ApplicationWindow):
         self.new_window(shared.right_clicked_file)
 
     def __properties_sidebar(self, *_args: Any) -> None:
-        properties = HypPropertiesWindow(shared.right_clicked_file)
-        properties.set_transient_for(self)
-        properties.present()
+        properties = HypPropertiesDialog(shared.right_clicked_file)
+        properties.present(self)
 
     def __open_tag(self, *_args: Any) -> None:
         self.new_page(tag=self.right_clicked_tag)

@@ -19,7 +19,7 @@ The problem is that current methods for tagging files are OS-, file system- or a
 
 The app was primarily built as a proof of concept for a non-hierarchical file manager whose storage can still be conveniently browsed via conventional file managers.
 
-It is also a playground for design ideas like file extension badges or a symbolic grid view. 
+It is also a playground for design ideas like file extension badges or a symbolic grid view.
 
 ## The concept
 
@@ -47,6 +47,8 @@ The project is currently in beta. Most features work, but user experience still 
 If you want to test without risking data loss, please set the `$HYPHOME` environment variable to point to somewhere inside `~/.var/app/hu.kramo.Hyperplane.Devel/` and remove the app's `--filesystem=host` access.
 
 You can download the latest beta from the [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/hu.kramo.Hyperplane.Devel-x86_64.zip).
+
+You will need the [GNOME Nightly](https://nightly.gnome.org/) runtime installed to be able to test the app.
 
 Please report any and all issues you find!
 

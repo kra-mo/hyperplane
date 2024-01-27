@@ -24,10 +24,10 @@ from hyperplane import shared
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/preferences.ui")
-class HypPreferencesWindow(Adw.PreferencesWindow):
+class HypPreferencesDialog(Adw.PreferencesDialog):
     """The main preferences window."""
 
-    __gtype_name__ = "HypPreferencesWindow"
+    __gtype_name__ = "HypPreferencesDialog"
 
     folders_switch_row = Gtk.Template.Child()
     single_click_open_switch_row = Gtk.Template.Child()

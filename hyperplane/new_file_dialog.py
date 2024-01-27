@@ -31,7 +31,7 @@ from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/new-file-dialog.ui")
-class HypNewFileDialog(Adw.Window):
+class HypNewFileDialog(Adw.Dialog):
     """A dialog for creating a new file based on a template."""
 
     __gtype_name__ = "HypNewFileDialog"
@@ -160,7 +160,7 @@ class HypNewFileDialog(Adw.Window):
 
     def __open_templates(self, *_args: Any) -> None:
         self.close()
-        self.get_transient_for().new_page(self.templates_dir)
+        self.get_root().new_page(self.templates_dir)
 
     def __copy_active_gfile(self, *_args: Any) -> None:
         if not self.can_create:

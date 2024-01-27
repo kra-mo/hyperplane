@@ -24,7 +24,7 @@ from hyperplane import shared
 
 
 @Gtk.Template(resource_path=shared.PREFIX + "/gtk/guide.ui")
-class HypGuide(Adw.Window):
+class HypGuide(Adw.Dialog):
     """A window showcasing the features of the app."""
 
     __gtype_name__ = "HypGuide"

@@ -690,8 +690,7 @@ class HypItemsPage(Adw.NavigationPage):
         dst = self.get_dst()
 
         dialog = HypNewFileDialog(dst)
-        dialog.set_transient_for(self.get_root())
-        dialog.present()
+        dialog.present(self.get_root())
 
     def __new_folder(self, *_args: Any) -> None:
         dst = self.get_dst()

@@ -25,7 +25,7 @@ from __future__ import annotations
 from gi.repository import Gio, GLib
 
 from hyperplane import shared
-from hyperplane.properties import HypPropertiesWindow
+from hyperplane.properties import HypPropertiesDialog
 
 INTERFACE_DESC = """
 <node xmlns:doc="http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
@@ -122,9 +122,8 @@ class FileManagerDBusServer:
 
                     win = shared.app.do_activate(parent)
 
-                    properties = HypPropertiesWindow(gfile)
-                    properties.set_transient_for(win)
-                    properties.present()
+                    properties = HypPropertiesDialog(gfile)
+                    properties.present(win)
 
             case "Introspect":
                 variant = GLib.Variant("(s)", (INTERFACE_DESC,))

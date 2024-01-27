@@ -1,10 +1,10 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $HypGuide : Adw.Window {
+template $HypGuide : Adw.Dialog {
     title: _("Welcome to Hyperplane");
-    default-height: 520;
-    default-width: 700;
+    content-height: 520;
+    content-width: 700;
     WindowHandle {
         Adw.ToolbarView {
             [top]
