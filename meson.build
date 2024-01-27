@@ -1,5 +1,5 @@
 project('hyperplane',
-          version: '0.3.0-beta',
+          version: '0.4.0-beta',
     meson_version: '>= 0.62.0',
   default_options: [ 'warning_level=2', 'werror=false', ],
 )
