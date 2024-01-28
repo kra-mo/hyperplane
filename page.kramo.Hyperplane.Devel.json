@@ -1,5 +1,5 @@
 {
-    "id" : "hu.kramo.Hyperplane.Devel",
+    "id" : "page.kramo.Hyperplane.Devel",
     "runtime" : "org.gnome.Platform",
     "runtime-version" : "master",
     "sdk" : "org.gnome.Sdk",

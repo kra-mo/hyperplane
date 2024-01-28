@@ -15,11 +15,11 @@ pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 
 profile = get_option('profile')
 if profile == 'development'
-  app_id = 'hu.kramo.Hyperplane.Devel'
-  prefix = '/hu/kramo/Hyperplane/Devel'
+  app_id = 'page.kramo.Hyperplane.Devel'
+  prefix = '/page/kramo/Hyperplane/Devel'
 elif profile ==  'release'
-  app_id = 'hu.kramo.Hyperplane'
-  prefix = '/hu/kramo/Hyperplane'
+  app_id = 'page.kramo.Hyperplane'
+  prefix = '/page/kramo/Hyperplane'
 endif
 
 conf = configuration_data()

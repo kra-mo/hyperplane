@@ -22,7 +22,7 @@ Hyperplane is a non-hierarchical file manager. It allows you to organize your fi
   <maintainer>
     <foaf:Person>
       <foaf:name>kramo</foaf:name>
-      <foaf:mbox rdf:resource="mailto:contact@kramo.hu" />
+      <foaf:mbox rdf:resource="mailto:contact@kramo.page" />
       <foaf:account>
         <foaf:OnlineAccount>
           <foaf:accountServiceHomepage rdf:resource="https://github.com"/>

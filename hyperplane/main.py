@@ -218,11 +218,11 @@ class HypApplication(Adw.Application):
         )
         about.set_developers(
             (
-                "kramo https://kramo.hu",
+                "kramo https://kramo.page",
                 "Benedek Dévényi https://github.com/rdbende",
             )
         )
-        about.set_designers(("kramo https://kramo.hu",))
+        about.set_designers(("kramo https://kramo.page",))
         about.set_copyright("© 2023-2024 kramo")
         # Translators: Replace this with your name for it to show up in the about window
         about.set_translator_credits = (_("translator_credits"),)

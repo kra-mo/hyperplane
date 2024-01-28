@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="data/icons/hicolor/scalable/apps/hu.kramo.Hyperplane.svg" width="128" height="128">
+  <img src="data/icons/hicolor/scalable/apps/page.kramo.Hyperplane.svg" width="128" height="128">
 
   # Hyperplane
 
@@ -44,9 +44,9 @@ It is subject to change.
 
 The project is currently in beta. Most features work, but user experience still needs refinement.
 
-If you want to test without risking data loss, please set the `$HYPHOME` environment variable to point to somewhere inside `~/.var/app/hu.kramo.Hyperplane.Devel/` and remove the app's `--filesystem=host` access.
+If you want to test without risking data loss, please set the `$HYPHOME` environment variable to point to somewhere inside `~/.var/app/page.kramo.Hyperplane.Devel/` and remove the app's `--filesystem=host` access.
 
-You can download the latest beta from the [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/hu.kramo.Hyperplane.Devel-x86_64.zip).
+You can download the latest beta from the [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/page.kramo.Hyperplane.Devel-x86_64.zip).
 
 You will need the [GNOME Nightly](https://nightly.gnome.org/) runtime installed to be able to test the app.
 

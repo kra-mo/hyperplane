@@ -1,6 +1,6 @@
 desktop_file = i18n.merge_file(
         input: configure_file(
-          input: 'hu.kramo.Hyperplane.desktop.in',
+          input: 'page.kramo.Hyperplane.desktop.in',
           output: app_id + '.desktop.in',
           configuration: conf
         ),
@@ -29,7 +29,7 @@ configure_file(
 
 appstream_file = i18n.merge_file(
         input: configure_file(
-          input: 'hu.kramo.Hyperplane.metainfo.xml.in',
+          input: 'page.kramo.Hyperplane.metainfo.xml.in',
           output: app_id + '.metainfo.xml.in',
           configuration: conf
         ),
@@ -48,7 +48,7 @@ test('Validate appstream file',
 
 install_data(
   configure_file(
-    input: 'hu.kramo.Hyperplane.gschema.xml.in',
+    input: 'page.kramo.Hyperplane.gschema.xml.in',
     output: app_id + '.gschema.xml',
     configuration: conf
   ),

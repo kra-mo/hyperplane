@@ -19,8 +19,8 @@ jobs:
     - name: Flatpak Builder
       uses: flatpak/flatpak-github-actions/flatpak-builder@v6.3
       with:
-        bundle: hu.kramo.Hyperplane.Devel.flatpak
-        manifest-path: hu.kramo.Hyperplane.Devel.json
+        bundle: page.kramo.Hyperplane.Devel.flatpak
+        manifest-path: page.kramo.Hyperplane.Devel.json
         repository-url: https://nightly.gnome.org/gnome-nightly.flatpakrepo
         repository-name: gnome-nightly
 

@@ -1,6 +1,6 @@
-data/hu.kramo.Hyperplane.desktop.in
-data/hu.kramo.Hyperplane.metainfo.xml.in
-data/hu.kramo.Hyperplane.gschema.xml.in
+data/page.kramo.Hyperplane.desktop.in
+data/page.kramo.Hyperplane.metainfo.xml.in
+data/page.kramo.Hyperplane.gschema.xml.in
 hyperplane/main.py
 hyperplane/window.py
 hyperplane/gtk/window.ui
