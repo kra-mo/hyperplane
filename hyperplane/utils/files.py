@@ -54,34 +54,34 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
     if dst.query_exists():
         raise FileExistsError
 
-    def copy_cb(gfile: Gio.File, result: Gio.AsyncResult) -> None:
-        try:
-            gfile.copy_finish(result)
-        except GLib.Error as error:
-            logging.error(
-                'File "%s" was unsuccessfully copied: %s', gfile.get_uri(), error
-            )
-            return
-        except AttributeError:
-            # HACK
-            # If there is no gfile
-            pass
-
-        if tag_location_created:
-            __emit_tags_changed(dst)
-
-        if callback:
-            callback()
-
     tag_location_created = (
         (path := dst.get_path())
-        and path_represents_tags((path_parent := Path(path).parent))
-        and (not path_parent.is_dir())
+        and path_represents_tags((parent_path := Path(path).parent))
+        and (not parent_path.is_dir())
     )
 
     if src.query_file_type(Gio.FileQueryInfoFlags.NONE) == Gio.FileType.REGULAR:
+
+        def g_copy_cb(gfile: Gio.File, result: Gio.AsyncResult) -> None:
+            try:
+                gfile.copy_finish(result)
+            except GLib.Error as error:
+                logging.error(
+                    'File "%s" was unsuccessfully copied: %s', gfile.get_uri(), error
+                )
+                return
+
+            if tag_location_created:
+                __emit_tags_changed(dst)
+
+            if callback:
+                callback()
+
         src.copy_async(
-            dst, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, callback=copy_cb
+            dst,
+            Gio.FileCopyFlags.NOFOLLOW_SYMLINKS,
+            GLib.PRIORITY_DEFAULT,
+            callback=g_copy_cb,
         )
         return
 
@@ -99,15 +99,18 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
         )
         return
 
-    if not (parent := Path(dst_path).parent).is_dir():
-        parent.mkdir(parents=True)
+    def path_copy_cb(_task: Gio.Task, _res: Gio.Task) -> None:
+        # TODO: Figure out error handling here?
 
-    if src_path.is_dir():
-        # Gio doesn't support recursive copies
-        Gio.Task.new(callback=copy_cb).run_in_thread(
-            lambda *_: shutil.copytree(src_path, dst_path)
-        )
-        return
+        if tag_location_created:
+            __emit_tags_changed(dst)
+
+        if callback:
+            callback()
+
+    Gio.Task.new(callback=path_copy_cb).run_in_thread(
+        lambda *_: __copy_path(src_path, dst_path)
+    )
 
 
 def move(src: Gio.File, dst: Gio.File) -> None:
@@ -155,7 +158,7 @@ def move(src: Gio.File, dst: Gio.File) -> None:
             )
             return
 
-    def move_finish(_gfile: Gio.File, result: Gio.Task = None):
+    def move_cb(_gfile: Gio.File, result: Gio.Task = None):
         if result.had_error():
             # Try copy and delete myself as Gio doesn't support recursive copes
             try:
@@ -171,9 +174,9 @@ def move(src: Gio.File, dst: Gio.File) -> None:
 
     src.move_async(
         dst,
-        Gio.FileCopyFlags.NONE,
+        Gio.FileCopyFlags.NOFOLLOW_SYMLINKS,
         GLib.PRIORITY_DEFAULT,
-        callback=move_finish,
+        callback=move_cb,
     )
 
 
@@ -313,7 +316,7 @@ def rm(gfile: Gio.File) -> None:
             __remove_trashinfo(gfile, orig_path)
 
         # Gio doesn't allow for recursive deletion
-        Gio.Task.new().run_in_thread(lambda *_: shutil.rmtree(path, True))
+        Gio.Task.new().run_in_thread(lambda *_: shutil.rmtree(path, ignore_errors=True))
     else:
         gfile.delete_async(GLib.PRIORITY_DEFAULT)
 
@@ -468,6 +471,23 @@ def trash(*gfiles: Gio.File) -> None:
 
     for gfile in gfiles:
         gfile.trash_async(GLib.PRIORITY_DEFAULT)
+
+
+def __copy_path(src: PathLike | str, dst: PathLike | str) -> None:
+    src = Path(src)
+    dst = Path(dst)
+
+    if not (parent := dst.parent).is_dir():
+        parent.mkdir(parents=True)
+
+    try:
+        shutil.copytree(src, dst, symlinks=True)
+    except FileExistsError:
+        logging.error('"Copying "%s" to "%s" failed: Destination exists.', src, dst)
+        return
+    except shutil.Error as error:
+        logging.error('"Copying "%s" to "%s" failed: %s', src, dst, error)
+        return
 
 
 def __trash_lookup(path: PathLike | str, t: int) -> (Gio.File, Gio.File):
