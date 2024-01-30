@@ -128,7 +128,7 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
 
         # Drag and drop
         drag_source = Gtk.DragSource.new()
-        drag_source.set_actions(Gdk.DragAction.MOVE)
+        drag_source.set_actions(Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         drag_source.connect("prepare", self.__drag_prepare)
         drag_source.connect("drag-begin", self.__drag_begin)
         drag_source.connect("drag-end", self.__drag_end)
@@ -353,14 +353,17 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, delete_data: bool
     ) -> None:
         self.page.view.set_enable_rubberband(True)
-        if delete_data:
+        if delete_data and shared.last_drop_internal:
             for gfile in self.dragged_gfiles:
                 rm(gfile)
+
+        shared.last_drop_internal = False
 
     def __drag_cancel(
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, _reason: Gdk.DragCancelReason
     ) -> None:
         self.page.view.set_enable_rubberband(True)
+        shared.last_drop_internal = False
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:

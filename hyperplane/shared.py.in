@@ -38,6 +38,10 @@ search = ""  # pylint: disable=invalid-name
 right_clicked_file = None  # pylint: disable=invalid-name
 undo_queue = {}
 
+# This is so Hyperplane only deletes files moved during DnD if they were moved whithin the app.
+# See https://bugzilla.mozilla.org/show_bug.cgi?id=1877555
+last_drop_internal = False  # pylint: disable=invalid-name
+
 grid_view = state_schema.get_boolean("grid-view")
 show_hidden = state_schema.get_boolean("show-hidden")
 sort_by = state_schema.get_string("sort-by")

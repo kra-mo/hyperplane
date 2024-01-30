@@ -282,6 +282,7 @@ class HypWindow(Adw.ApplicationWindow):
             GObject.TYPE_NONE, Gdk.DragAction.COPY | Gdk.DragAction.MOVE
         )
         self.drop_target.set_gtypes((Gdk.Texture, Gdk.FileList, str))
+        self.drop_target.connect("motion", lambda *_: Gdk.DragAction.MOVE)
         self.drop_target.connect("drop", self.__drop)
         self.tab_view.add_controller(self.drop_target)
 
@@ -1035,8 +1036,8 @@ class HypWindow(Adw.ApplicationWindow):
 
             return self.__drop_file_list(
                 value,
-                drop_target.get_current_drop().get_drag().get_selected_action()
-                if drop_target.get_current_drop().get_drag()
+                drag.get_selected_action()
+                if (drag := drop_target.get_current_drop().get_drag())
                 else Gdk.DragAction.COPY,
             )
 
@@ -1081,6 +1082,10 @@ class HypWindow(Adw.ApplicationWindow):
             files.append((src, child) if move else child)
 
         shared.undo_queue[time()] = ("move" if move else "copy", files)
+
+        if move:
+            shared.last_drop_internal = True
+
         return True
 
     def __drop_texture(self, texture: Gdk.Texture) -> None:

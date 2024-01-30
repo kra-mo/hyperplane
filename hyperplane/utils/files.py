@@ -355,13 +355,13 @@ def get_paste_gfile(gfile: Gio.File, number_only: bool = False) -> Gio.File:
                 return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy)"
-    if not (copy_path := path.parent / f'{stem} ({_("copy")}){suffix}').exists():
+    if not (copy_path := path.parent / f'{stem} ({_("Copy")}){suffix}').exists():
         return Gio.File.new_for_path(str(copy_path))
 
     # "File (copy n)"
     for n in count(2):
         if not (
-            (copy_path := path.parent / f'{stem} ({_("copy")} {n}){suffix}')
+            (copy_path := path.parent / f'{stem} ({_("Copy")} {n}){suffix}')
         ).exists():
             return Gio.File.new_for_path(str(copy_path))
 
