@@ -22,24 +22,34 @@ from typing import Optional
 
 from gi.repository import Gdk, Gio, Gtk
 
-icon_names = Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).get_icon_names()
-fallback_icon = Gio.Icon.new_for_string("text-x-generic-symbolic")
+icon_theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+fallback_icon = Gio.ThemedIcon.new_from_names(("text-x-generic-symbolic",))
 
 
-def get_symbolic(themed_icon: Optional[Gio.ThemedIcon]) -> Gio.Icon:
+def get_symbolic(themed_icon: Optional[Gio.ThemedIcon]) -> Gio.ThemedIcon:
     """Gets the symbolic icon for a file with a fallback to `text-x-generic-symbolic`."""
     if not themed_icon:
         return fallback_icon
 
-    for icon_name in themed_icon.get_names():
-        if icon_name.endswith("-symbolic") and icon_name in icon_names:
-            return themed_icon
+    icon_paintable = icon_theme.lookup_by_gicon(
+        themed_icon, 1, 1, Gtk.TextDirection.NONE, Gtk.IconLookupFlags.FORCE_SYMBOLIC
+    )
 
-    return fallback_icon
+    # Still add the rest of the icon names to the fallback to use for colors
+    return Gio.ThemedIcon.new_from_names(
+        (
+            icon_paintable.get_icon_name()
+            if icon_paintable.is_symbolic()
+            else "text-x-generic-symbolic",
+            *themed_icon.get_names(),
+        )
+    )
 
 
 # pylint: disable=too-many-return-statements
-def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) -> str:
+def get_color_for_symbolic(
+    content_type: str, gicon: Optional[Gio.ThemedIcon] = None
+) -> str:
     """Returns the color associated with a MIME type."""
 
     if not content_type:
@@ -47,6 +57,12 @@ def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) 
 
     if content_type == "inode/directory":
         return "blue"
+
+    names = gicon.get_names()
+
+    # Remove the fallback name when choosing color
+    if len(names) > 1 and names[0] == "text-x-generic-symbolic":
+        names.pop(0)
 
     # TODO: Certificates don't have a standard mime type
     # TODO: I don't think addon, firmware or appliance are a thing for files
@@ -60,7 +76,6 @@ def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) 
         "application-x-firmware": "gray",
         "application-x-sharedlib": "green",
         "inode-symlink": "orange",
-        "text-x-generic-template": "gray",
         "text-x-preview": "red",
         "text-x-script": "orange",
         "x-office-document-template": "blue",
@@ -69,7 +84,7 @@ def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) 
         "x-office-spreadsheet-template": "green",
     }
 
-    if gicon and (color := detailed.get(gicon.get_names()[0].replace("-symbolic", ""))):
+    if gicon and (color := detailed.get(names[0].replace("-symbolic", ""))):
         return color
 
     generic = {
@@ -89,7 +104,7 @@ def get_color_for_symbolic(content_type: str, gicon: Optional[Gio.Icon] = None) 
         "x-office-drawing": "orange",
     }
 
-    if gicon and (color := generic.get(gicon.get_names()[-1].replace("-symbolic", ""))):
+    if gicon and (color := generic.get(names[-1].replace("-symbolic", ""))):
         return color
 
     mimes = {
