@@ -335,7 +335,7 @@ def get_paste_gfile(gfile: Gio.File, number_only: bool = False) -> Gio.File:
         logging.error(
             'Cannot get copy GFile for "%s": File has no path.', gfile.get_uri()
         )
-        return
+        return gfile
 
     if (
         gfile.query_info(
@@ -364,6 +364,8 @@ def get_paste_gfile(gfile: Gio.File, number_only: bool = False) -> Gio.File:
             (copy_path := path.parent / f'{stem} ({_("Copy")} {n}){suffix}')
         ).exists():
             return Gio.File.new_for_path(str(copy_path))
+
+    return gfile
 
 
 def get_gfile_display_name(gfile: Gio.File) -> str:

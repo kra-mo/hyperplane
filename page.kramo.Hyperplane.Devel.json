@@ -13,6 +13,7 @@
         "--talk-name=org.gtk.vfs.*",
         "--talk-name=org.freedesktop.Flatpak",
         "--filesystem=xdg-run/gvfsd",
+        "--filesystem=xdg-cache/thumbnails",
         "--own-name=org.freedesktop.FileManager1"
     ],
     "cleanup" : [

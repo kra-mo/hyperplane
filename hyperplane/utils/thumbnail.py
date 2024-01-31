@@ -21,7 +21,9 @@
 import logging
 from typing import Any, Callable
 
-from gi.repository import Gdk, Gio, GLib, GnomeDesktop
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, GnomeDesktop
+
+from hyperplane.utils.files import get_gfile_path
 
 
 def generate_thumbnail(
@@ -32,7 +34,9 @@ def generate_thumbnail(
 
     If the thumbnail generation fails, `callback` is called with None and *args.
     """
-    factory = GnomeDesktop.DesktopThumbnailFactory()
+    factory = GnomeDesktop.DesktopThumbnailFactory.new(
+        GnomeDesktop.DesktopThumbnailSize.LARGE
+    )
     uri = gfile.get_uri()
 
     try:
@@ -54,32 +58,39 @@ def generate_thumbnail(
     try:
         thumbnail = factory.generate_thumbnail(uri, content_type)
     except GLib.Error as error:
-        if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
+        if error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
+            # If it cannot get a path for the URI, try the target URI
+            try:
+                target_uri = gfile.query_info(
+                    Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
+                    Gio.FileQueryInfoFlags.NONE,
+                ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+
+                if not target_uri:
+                    logging.debug("Cannot thumbnail: %s", error)
+                    callback(None, *args)
+                    return
+
+                thumbnail = factory.generate_thumbnail(target_uri, content_type)
+            except GLib.Error as new_error:
+                logging.debug("Cannot thumbnail: %s", new_error)
+                callback(None, *args)
+                if not new_error.matches(
+                    Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND
+                ):
+                    factory.create_failed_thumbnail(uri, mtime)
+                    factory.create_failed_thumbnail(target_uri, mtime)
+                return
+
+        try:
+            # Fallback to GdkPixbuf
+            thumbnail = GdkPixbuf.Pixbuf.new_from_file_at_size(
+                str(get_gfile_path(gfile)), 256, 256
+            )
+        except (GLib.Error, FileNotFoundError):
             logging.debug("Cannot thumbnail: %s", error)
             callback(None, *args)
             factory.create_failed_thumbnail(uri, mtime)
-            return
-
-        # If it cannot get a path for the URI, try the target URI
-        # TODO: I cannot currently test thumbnailing. Do I need this?
-        try:
-            target_uri = gfile.query_info(
-                Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI,
-                Gio.FileQueryInfoFlags.NONE,
-            ).get_attribute_string(Gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
-
-            if not target_uri:
-                logging.debug("Cannot thumbnail: %s", error)
-                callback(None, *args)
-                return
-
-            thumbnail = factory.generate_thumbnail(target_uri, content_type)
-        except GLib.Error as new_error:
-            logging.debug("Cannot thumbnail: %s", new_error)
-            callback(None, *args)
-            if not new_error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND):
-                factory.create_failed_thumbnail(uri, mtime)
-                factory.create_failed_thumbnail(target_uri, mtime)
             return
 
     if not thumbnail:
