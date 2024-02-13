@@ -83,7 +83,7 @@ def generate_thumbnail(
                 return
 
         try:
-            # Fallback to GdkPixbuf
+            # Fall back to GdkPixbuf
             thumbnail = GdkPixbuf.Pixbuf.new_from_file_at_size(
                 str(get_gfile_path(gfile)), 256, 256
             )

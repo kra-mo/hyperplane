@@ -39,7 +39,9 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v0.1.15
         with:
-          files: page.kramo.Hyperplane.Devel-x86_64/page.kramo.Hyperplane.Devel.flatpak
+          files: |
+            page.kramo.Hyperplane.Devel-x86_64/page.kramo.Hyperplane.Devel.flatpak
+            page.kramo.Hyperplane.Devel-aarch64/page.kramo.Hyperplane.Devel.flatpak
           fail_on_unmatched_files: true
           tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
           body_path: release_notes

@@ -12,15 +12,29 @@ jobs:
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-45
       options: --privileged
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+      # Don't fail the whole workflow if one architecture fails
+      fail-fast: false
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
+    - uses: actions/checkout@v4
+    # Docker is required by the docker/setup-qemu-action which enables emulation
+    - name: Install deps
+      if: ${{ matrix.arch != 'x86_64' }}
+      run: |
+        dnf -y install docker
+    - name: Set up QEMU
+      if: ${{ matrix.arch != 'x86_64' }}
+      id: qemu
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: arm64
     - name: Flatpak Builder
-      uses: flatpak/flatpak-github-actions/flatpak-builder@v6.3
+      uses: flatpak/flatpak-github-actions/flatpak-builder@v6
       with:
         bundle: page.kramo.Hyperplane.Devel.flatpak
         manifest-path: page.kramo.Hyperplane.Devel.json
         repository-url: https://nightly.gnome.org/gnome-nightly.flatpakrepo
         repository-name: gnome-nightly
-
+        arch: ${{ matrix.arch }}
