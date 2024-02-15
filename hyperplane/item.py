@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """An item representing a file to be set up through a `GtkSignalListItemFactory`."""
+import logging
 from pathlib import Path
 from typing import Any, Optional
 
@@ -353,17 +354,15 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, delete_data: bool
     ) -> None:
         self.page.view.set_enable_rubberband(True)
-        if delete_data and shared.last_drop_internal:
-            for gfile in self.dragged_gfiles:
-                rm(gfile)
 
-        shared.last_drop_internal = False
+        if delete_data:
+            # This is to prevent data loss
+            logging.debug("Dropped data should be deleted but won't be.")
 
     def __drag_cancel(
         self, _src: Gtk.DragSource, _drag: Gdk.Drag, _reason: Gdk.DragCancelReason
     ) -> None:
         self.page.view.set_enable_rubberband(True)
-        shared.last_drop_internal = False
 
     def __dir_children_cb(self, gfile: Gio.File, result: Gio.AsyncResult) -> None:
         try:

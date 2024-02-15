@@ -42,6 +42,7 @@ from hyperplane.utils.files import (
     get_gfile_display_name,
     get_gfile_path,
     get_paste_gfile,
+    move,
     trash,
     validate_name,
 )
@@ -1053,7 +1054,7 @@ class HypWindow(Adw.ApplicationWindow):
 
     def __drop_file_list(self, file_list: Gdk.FileList, action: Gdk.DragAction) -> bool:
         dst = self.get_visible_page().get_dst()
-        move = action == Gdk.DragAction.MOVE
+        should_move = action == Gdk.DragAction.MOVE
 
         files = []
 
@@ -1070,22 +1071,30 @@ class HypWindow(Adw.ApplicationWindow):
                 logging.warning("Cannot drop files: Can't get child for display name.")
                 return False
 
-            try:
-                copy(src, child)
-            except FileExistsError:
+            if should_move:
                 try:
-                    copy(src, get_paste_gfile(child))
-                except (FileExistsError, FileNotFoundError) as error:
-                    logging.warning("Cannot drop files: %s", error)
-                    return False
+                    move(src, child)
+                except FileExistsError:
+                    # TODO: Export this toast to a public method
+                    self.send_toast(
+                        _("A folder with that name already exists")
+                        if src.query_file_type(Gio.FileQueryInfoFlags.NONE)
+                        == Gio.FileType.DIRECTORY
+                        else _("A file with that name already exists")
+                    )
+            else:
+                try:
+                    copy(src, child)
+                except FileExistsError:
+                    try:
+                        copy(src, get_paste_gfile(child))
+                    except (FileExistsError, FileNotFoundError) as error:
+                        logging.warning("Cannot drop files: %s", error)
+                        return False
 
-            files.append((src, child) if move else child)
+            files.append((src, child) if should_move else child)
 
-        shared.undo_queue[time()] = ("move" if move else "copy", files)
-
-        if move:
-            shared.last_drop_internal = True
-
+        shared.undo_queue[time()] = ("move" if should_move else "copy", files)
         return True
 
     def __drop_texture(self, texture: Gdk.Texture) -> None:
