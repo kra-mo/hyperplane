@@ -501,7 +501,7 @@ class HypWindow(Adw.ApplicationWindow):
             (_("Cancel"), None, None, None, False),
             (_("Add"), None, Adw.ResponseAppearance.SUGGESTED, add_tag, True),
             body=_(
-                "Existing folders with the same name will be added to the category."
+                "Existing folders with the same name will be added to the category"
             ),
             extra_child=preferences_group,
         )
@@ -911,7 +911,7 @@ class HypWindow(Adw.ApplicationWindow):
     def __empty_trash(self, *_args: Any) -> None:
         create_message_dialog(
             self,
-            _("Empty all Items From Trash?"),
+            _("Empty Trash?"),
             (_("Cancel"), None, None, None, False),
             (
                 _("Empty Trash"),
@@ -920,7 +920,7 @@ class HypWindow(Adw.ApplicationWindow):
                 empty_trash,
                 True,
             ),
-            body=_("All items in the Trash will be permanently deleted."),
+            body=_("All items in the Trash will be permanently deleted"),
         ).choose()
 
     def __clear_recents(self, *_args: Any) -> None:
