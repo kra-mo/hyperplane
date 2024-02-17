@@ -34,7 +34,7 @@ from hyperplane.item import HypItem
 from hyperplane.item_filter import HypItemFilter
 from hyperplane.item_sorter import HypItemSorter
 from hyperplane.new_file_dialog import HypNewFileDialog
-from hyperplane.utils.create_message_dialog import create_message_dialog
+from hyperplane.utils.create_alert_dialog import create_alert_dialog
 from hyperplane.utils.dates import relative_date
 from hyperplane.utils.files import (
     YouAreStupid,
@@ -707,8 +707,7 @@ class HypItemsPage(Adw.NavigationPage):
         def dialog_cb() -> None:
             create_folder()
 
-        dialog = create_message_dialog(
-            self.get_root(),
+        dialog = create_alert_dialog(
             _("New Folder"),
             (
                 _("Cancel"),
@@ -769,7 +768,7 @@ class HypItemsPage(Adw.NavigationPage):
         entry.connect("entry-activated", create_folder)
         entry.connect("changed", set_inactive)
 
-        dialog.choose()
+        dialog.choose(self.get_root())
 
     def __copy(self, *_args: Any) -> None:
         shared.set_cut_uris(set())
@@ -937,13 +936,12 @@ class HypItemsPage(Adw.NavigationPage):
                     "Are you sure you want to permanently delete the {} selected items?"
                 ).format(len(gfiles))
 
-        create_message_dialog(
-            self.get_root(),
+        create_alert_dialog(
             msg,
             (_("Cancel"), None, None, None, False),
             (_("Delete"), None, Adw.ResponseAppearance.DESTRUCTIVE, delete, True),
             body=_("If you delete an item, it will be permanently lost."),
-        ).present()
+        ).choose(self.get_root())
 
     def __trash_restore(self, *_args: Any) -> None:
         gfiles = self.get_selected_gfiles()

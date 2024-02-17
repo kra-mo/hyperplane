@@ -1,4 +1,4 @@
-# create_message_dialog.py
+# create_alert_dialog.py
 #
 # Copyright 2023-2024 kramo
 #
@@ -17,14 +17,13 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Returns an `AdwMessageDialog` with the given properties."""
+"""Returns an `AdwAlertDialog` with the given properties."""
 from typing import Callable, Optional
 
 from gi.repository import Adw, Gtk
 
 
-def create_message_dialog(
-    parent: Gtk.Window,
+def create_alert_dialog(
     heading: str,
     *responses: tuple[
         str,  # Name
@@ -35,9 +34,9 @@ def create_message_dialog(
     ],
     body: Optional[str] = None,
     extra_child: Optional[Gtk.Widget] = None,
-) -> Adw.MessageDialog:
-    """Returns an `AdwMessageDialog` with the given properties."""
-    dialog = Adw.MessageDialog.new(parent, heading, body)
+) -> Adw.AlertDialog:
+    """Returns an `AdwAlertDialog` with the given properties."""
+    dialog = Adw.AlertDialog.new(heading, body)
 
     if extra_child:
         dialog.set_extra_child(extra_child)
@@ -58,7 +57,7 @@ def create_message_dialog(
         if response[4]:
             dialog.set_default_response(response_id)
 
-    def handle_response(_dialog: Adw.MessageDialog, response: str) -> None:
+    def handle_response(_dialog: Adw.AlertDialog, response: str) -> None:
         if response in callables:
             callables[response]()
 

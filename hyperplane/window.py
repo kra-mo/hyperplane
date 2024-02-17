@@ -34,7 +34,7 @@ from hyperplane.path_bar import HypPathBar
 from hyperplane.path_entry import HypPathEntry
 from hyperplane.properties import HypPropertiesDialog
 from hyperplane.tag_row import HypTagRow
-from hyperplane.utils.create_message_dialog import create_message_dialog
+from hyperplane.utils.create_alert_dialog import create_alert_dialog
 from hyperplane.utils.files import (
     clear_recent_files,
     copy,
@@ -495,8 +495,7 @@ class HypWindow(Adw.ApplicationWindow):
 
             add_tags(text)
 
-        dialog = create_message_dialog(
-            self,
+        dialog = create_alert_dialog(
             _("New Category"),
             (_("Cancel"), None, None, None, False),
             (_("Add"), None, Adw.ResponseAppearance.SUGGESTED, add_tag, True),
@@ -507,7 +506,8 @@ class HypWindow(Adw.ApplicationWindow):
         )
 
         entry.connect("entry-activated", add_tag)
-        dialog.choose()
+        dialog.choose(self)
+        self.set_focus(entry)
 
     def __open_trash(self, *_args: Any) -> None:
         if self.overlay_split_view.get_collapsed():
@@ -909,8 +909,7 @@ class HypWindow(Adw.ApplicationWindow):
         self.new_tab(gfile)
 
     def __empty_trash(self, *_args: Any) -> None:
-        create_message_dialog(
-            self,
+        create_alert_dialog(
             _("Empty all Items From Trash?"),
             (_("Cancel"), None, None, None, False),
             (
@@ -921,7 +920,7 @@ class HypWindow(Adw.ApplicationWindow):
                 True,
             ),
             body=_("All items in the Trash will be permanently deleted."),
-        ).choose()
+        ).choose(self)
 
     def __clear_recents(self, *_args: Any) -> None:
         clear_recent_files()
