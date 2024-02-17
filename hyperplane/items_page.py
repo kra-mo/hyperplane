@@ -927,20 +927,18 @@ class HypItemsPage(Adw.NavigationPage):
             case 0:
                 return
             case 1:
-                msg = _("Are you sure you want to permanently delete {}?").format(
+                msg = _("Permanently Delete {}?").format(
                     f"“{get_gfile_display_name(gfiles[0])}”"
                 )
             case _:
                 # The variable is the number of items to be deleted
-                msg = _(
-                    "Are you sure you want to permanently delete the {} selected items?"
-                ).format(len(gfiles))
+                msg = _("Permanently Delete {} Selected Items?").format(len(gfiles))
 
         create_alert_dialog(
             msg,
             (_("Cancel"), None, None, None, False),
             (_("Delete"), None, Adw.ResponseAppearance.DESTRUCTIVE, delete, True),
-            body=_("If you delete an item, it will be permanently lost."),
+            body=_("Permanently deleted items can not be restored"),
         ).choose(self.get_root())
 
     def __trash_restore(self, *_args: Any) -> None:
