@@ -32,6 +32,15 @@
 	</screenshots>
 	<content_rating type="oars-1.1" />
 	<releases>
+		<release version="0.5.0-beta" date="2024-02-18">
+			<description translatable="no">
+				<ul>
+					<li>Improved thumbnailing inside Flatpak</li>
+					<li>Fixed drag and drop (again, hopefully finally)</li>
+					<li>Ported to new widgets</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.4.1-beta" date="2024-01-30">
 			<description translatable="no">
 				<ul>
