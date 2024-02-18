@@ -36,12 +36,17 @@ jobs:
         id: get_tag_name
         run: echo tag_name=${GITHUB_REF#refs/tags/} >> $GITHUB_OUTPUT
 
+      - name: Rename bundles
+        id: rename_bundles
+        run: |
+          mv page.kramo.Hyperplane.Devel-x86_64/page.kramo.Hyperplane.Devel.flatpak page.kramo.Hyperplane.Devel-x86_64.flatpak
+          mv page.kramo.Hyperplane.Devel-aarch64/page.kramo.Hyperplane.Devel.flatpak page.kramo.Hyperplane.Devel-aarch64.flatpak
+
       - name: Publish release
         uses: softprops/action-gh-release@v0.1.15
         with:
           files: |
-            page.kramo.Hyperplane.Devel-x86_64.zip
-            page.kramo.Hyperplane.Devel-aarch64.zip
-          fail_on_unmatched_files: true
+            page.kramo.Hyperplane.Devel-x86_64.flatpak
+            page.kramo.Hyperplane.Devel-aarch64.flatpak
           tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
           body_path: release_notes
