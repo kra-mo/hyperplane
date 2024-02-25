@@ -95,6 +95,6 @@ Strings are not final yet, I will set up translations closer to an initial relea
 
 # Code of Conduct
 
-The project follows the [GNOME Code of Conduct](https://wiki.gnome.org/Foundation/CodeOfConduct).
+The project follows the [GNOME Code of Conduct](https://conduct.gnome.org/).
 
 See [CODE_OF_CONDUCT.md](https://github.com/kra-mo/hyperplane/blob/main/CODE_OF_CONDUCT.md).
