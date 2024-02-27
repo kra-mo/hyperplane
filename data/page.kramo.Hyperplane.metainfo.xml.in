@@ -19,6 +19,10 @@
 	</developer>
 	<launchable type="desktop-id">@APP_ID@.desktop</launchable>
 	<translation type="gettext">hyperplane</translation>
+	<branding>
+		<color type="primary" scheme_preference="light">#99c1f1</color>
+		<color type="primary" scheme_preference="dark">#4f1f74</color>
+	</branding>
 	<supports>
 		<control>pointing</control>
 		<control>keyboard</control>
