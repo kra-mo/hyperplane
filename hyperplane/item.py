@@ -235,6 +235,7 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
                         Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                         Gio.FILE_ATTRIBUTE_THUMBNAIL_PATH,
                         Gio.FILE_ATTRIBUTE_STANDARD_NAME,
+                        Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                     )
                 ),
                 Gio.FileQueryInfoFlags.NONE,
@@ -403,6 +404,11 @@ class HypItem(Adw.Bin, HypHoverPageOpener):
                 return
 
             if not (content_type := file_info.get_content_type()):
+                self.__dir_thumbnail_cb(None, picture)
+                done(index)
+                return
+
+            if (not shared.show_hidden) and file_info.get_is_hidden():
                 self.__dir_thumbnail_cb(None, picture)
                 done(index)
                 return
