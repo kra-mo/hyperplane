@@ -48,6 +48,9 @@ class HypPathSegment(Gtk.Revealer, HypHoverPageOpener):
         super().__init__(**kwargs)
         HypHoverPageOpener.__init__(self)
 
+        # Because HypPathBar sets it to "text"
+        self.set_cursor(Gdk.Cursor.new_from_name("default"))
+
         self.icon_name = icon_name
         self.label = label
         self.uri = uri

@@ -45,6 +45,10 @@ class HypPathBar(Gtk.ScrolledWindow):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+
+        # Indicate that the bar is clickable
+        self.set_cursor(Gdk.Cursor.new_from_name("text"))
+
         self.segments = []
         self.separators = {}
         self.tags = False
