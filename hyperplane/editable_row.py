@@ -44,7 +44,7 @@ class HypEditableRow(Gtk.ListBoxRow, HypHoverPageOpener):
         super().__init__(**kwargs)
         HypHoverPageOpener.__init__(self)
 
-        self.image = Gtk.Image.new()
+        self.image = Gtk.Image(opacity=0.8)
         self.label = Gtk.Label(ellipsize=Pango.EllipsizeMode.END)
 
         self.box = Gtk.Box(spacing=12, margin_start=6)

@@ -467,7 +467,7 @@ class HypWindow(Adw.ApplicationWindow):
 
         for tag_row in reversed(shared.tags):
             self.sidebar_tag_rows.add(
-                row := HypTagRow(tag_row, "user-bookmarks-symbolic")
+                row := HypTagRow(tag_row, f"tag-outline-symbolic")
             )
             self.sidebar.insert(row, 2)
 

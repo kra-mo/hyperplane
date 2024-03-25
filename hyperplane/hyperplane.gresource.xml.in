@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
+  <gresource prefix="@PREFIX@/icons/scalable/actions/">
+    <file preprocess="xml-stripblanks" alias="tag-outline-symbolic.svg">../data/icons/scalable/actions/tag-outline-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="tag-outline-add-symbolic.svg">../data/icons/scalable/actions/tag-outline-add-symbolic.svg</file>
+  </gresource>
   <gresource prefix="@PREFIX@">
     <file preprocess="xml-stripblanks">gtk/guide.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
