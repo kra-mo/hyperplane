@@ -60,14 +60,20 @@ class HypItemSorter(Gtk.Sorter):
 
         # Always sort trashed items by deletion date
         if (
-            file_info1.get_attribute_object("standard::file").get_uri_scheme()
+            (
+                gfile1 := file_info1.get_attribute_object("standard::file")
+            ).get_uri_scheme()
             == "trash"
+            # Only if the trashed file is at the toplevel of the trash
+            and gfile1.get_uri().count("/") < 4
         ):
+            if (not (deletion_date1 := file_info1.get_deletion_date())) or (
+                not (deletion_date2 := file_info2.get_deletion_date())
+            ):
+                return Gtk.Ordering.EQUAL
+
             return self.__ordering_from_cmpfunc(
-                GLib.DateTime.compare(
-                    file_info2.get_deletion_date(),
-                    file_info1.get_deletion_date(),
-                )
+                GLib.DateTime.compare(deletion_date2, deletion_date1)
             )
 
         # Always sort recent items by date
