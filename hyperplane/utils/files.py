@@ -81,7 +81,9 @@ def copy(src: Gio.File, dst: Gio.File, callback: Optional[Callable] = None) -> N
             dst,
             Gio.FileCopyFlags.NOFOLLOW_SYMLINKS,
             GLib.PRIORITY_DEFAULT,
-            callback=g_copy_cb,
+            None,
+            None,
+            g_copy_cb,
         )
         return
 
@@ -176,7 +178,9 @@ def move(src: Gio.File, dst: Gio.File) -> None:
         dst,
         Gio.FileCopyFlags.NOFOLLOW_SYMLINKS,
         GLib.PRIORITY_DEFAULT,
-        callback=move_cb,
+        None,
+        None,
+        move_cb,
     )
 
 

@@ -26,7 +26,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 
 from hyperplane import shared
 from hyperplane.file_properties import DOT_IS_NOT_EXTENSION
-from hyperplane.utils.files import validate_name
+from hyperplane.utils.files import copy, validate_name
 from hyperplane.utils.symbolics import get_color_for_symbolic, get_symbolic
 
 
@@ -184,9 +184,7 @@ class HypNewFileDialog(Adw.Dialog):
             logging.error("Cannot create template file: %s", error)
             return
 
-        self.active_gfile.copy_async(
-            child, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT
-        )
+        copy(self.active_gfile, child)
 
     def __file_selected(
         self,
