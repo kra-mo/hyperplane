@@ -1,6 +1,5 @@
 using Gtk 4.0;
 using Adw 1;
-
 // This needs to be up top because of the custom attributes
 menu view {
   section {
@@ -71,11 +70,11 @@ menu view {
   }
 }
 
-template $HypWindow : Adw.ApplicationWindow {
+template $HypWindow: Adw.ApplicationWindow {
   width-request: 360;
   height-request: 176;
-  content:
-  Adw.TabOverview tab_overview {
+
+  content: Adw.TabOverview tab_overview {
     view: tab_view;
     enable-new-tab: true;
 
@@ -85,14 +84,15 @@ template $HypWindow : Adw.ApplicationWindow {
         max-sidebar-width: 240;
         sidebar-width-unit: px;
         sidebar-width-fraction: .2;
+
         sidebar: Adw.NavigationPage {
           title: _("Hyperplane");
-          child:
-          Adw.ToolbarView {
+
+          child: Adw.ToolbarView {
             [top]
             Adw.HeaderBar {
               [start]
-                ToggleButton hide_sidebar_button {
+              ToggleButton hide_sidebar_button {
                 visible: false;
                 icon-name: "sidebar-show-symbolic";
                 tooltip-text: _("Hide Sidebar");
@@ -104,8 +104,8 @@ template $HypWindow : Adw.ApplicationWindow {
                 primary: true;
                 icon-name: "open-menu-symbolic";
                 tooltip-text: _("Menu");
-                popover:
-                PopoverMenu {
+
+                popover: PopoverMenu {
                   menu-model: primary_menu;
                 };
               }
@@ -117,11 +117,13 @@ template $HypWindow : Adw.ApplicationWindow {
 
                 ListBox sidebar {
                   selection-mode: none;
+
                   $HypEditableRow recent_row {
                     icon-name: "document-open-recent-symbolic";
                     title: _("Recent");
                     identifier: "file_recent:///";
                   }
+
                   $HypEditableRow home_row {
                     icon-name: "user-home-symbolic";
                     title: _("Home");
@@ -133,19 +135,24 @@ template $HypWindow : Adw.ApplicationWindow {
                     "navigation-sidebar",
                   ]
                 }
+
                 Separator {
                   margin-start: 6;
                   margin-end: 6;
                 }
+
                 ListBox new_tag_box {
                   selection-mode: none;
+
                   Box {
                     spacing: 12;
                     margin-start: 6;
+
                     Image {
                       opacity: 0.8;
                       icon-name: "tag-outline-add-symbolic";
                     }
+
                     Label {
                       ellipsize: end;
                       label: _("New Category");
@@ -156,12 +163,15 @@ template $HypWindow : Adw.ApplicationWindow {
                     "navigation-sidebar",
                   ]
                 }
+
                 Separator {
                   margin-start: 6;
                   margin-end: 6;
                 }
+
                 ListBox trash_box {
                   selection-mode: none;
+
                   $HypEditableRow trash_row {
                     title: _("Trash");
                     editable: false;
@@ -172,11 +182,13 @@ template $HypWindow : Adw.ApplicationWindow {
                     "navigation-sidebar",
                   ]
                 }
+
                 Separator {
                   margin-start: 6;
                   margin-end: 6;
                   visible: bind volumes_box.has-any;
                 }
+
                 $HypVolumesBox volumes_box {}
               }
             }
@@ -198,15 +210,10 @@ template $HypWindow : Adw.ApplicationWindow {
                 ]
               }
             }
-          }
+          };
+        };
 
-          ;
-        }
-
-        ;
-        content:
-        Adw.ToolbarView toolbar_view {
-
+        content: Adw.ToolbarView toolbar_view {
           [top]
           Adw.HeaderBar header_bar {
             [start]
@@ -245,8 +252,7 @@ template $HypWindow : Adw.ApplicationWindow {
               }
 
               Adw.Clamp search_entry_clamp {
-                SearchEntry search_entry {
-                }
+                SearchEntry search_entry {}
               }
             }
 
@@ -299,14 +305,10 @@ template $HypWindow : Adw.ApplicationWindow {
               popover: action_bar_view_popover;
             }
           }
-        }
-
-        ;
+        };
       }
     }
-  }
-
-  ;
+  };
 
   styles [
     "view",
@@ -444,20 +446,22 @@ PopoverMenu tag_right_click_menu {
   has-arrow: false;
 }
 
-
 menu primary_menu {
   section {
     item (_("New _Tab"), "win.new-tab")
     item (_("New _Window"), "win.new-window")
     item (_("View _Open Tabs"), "win.tab-overview")
   }
+
   section {
     item (_("_Reload"), "win.reload")
   }
+
   section {
     item (_("Show _Hidden Files"), "app.show-hidden")
     item (_("Edit Locations"), "win.edit-sidebar")
   }
+
   section {
     item (_("_Preferences"), "app.preferences")
     item (_("_Keyboard Shortcuts"), "win.show-help-overlay")
@@ -473,35 +477,42 @@ menu right_click {
       action: "page.new-folder";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("New File…");
       action: "page.new-file";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Run");
       action: "page.execute-file";
       hidden-when: "action-disabled";
     }
+
     submenu {
       label: _("Open");
+
       section {
         item {
           label: _("Open");
           action: "page.open";
           hidden-when: "action-disabled";
         }
+
         item {
           label: _("Open in New Tab");
           action: "page.open-new-tab";
           hidden-when: "action-disabled";
         }
+
         item {
           label: _("Open in New Window");
           action: "page.open-new-window";
           hidden-when: "action-disabled";
         }
       }
+
       section {
         item {
           label: _("Open With…");
@@ -511,60 +522,71 @@ menu right_click {
       }
     }
   }
+
   section {
     item {
       label: _("Copy");
       action: "page.copy";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Cut");
       action: "page.cut";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Paste");
       action: "page.paste";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Select All");
       action: "page.select-all";
       hidden-when: "action-disabled";
     }
   }
+
   section {
     item {
       label: _("Rename…");
       action: "win.rename";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Move to Trash");
       action: "page.trash";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Delete From Trash…");
       action: "page.trash-delete";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Restore From Trash");
       action: "page.trash-restore";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Empty Trash…");
       action: "win.empty-trash";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Clear History");
       action: "win.clear-recents";
       hidden-when: "action-disabled";
     }
   }
+
   section {
     item {
       label: _("Properties");
@@ -580,18 +602,21 @@ menu tag_right_click {
     item (_("Open in New Tab"), "win.open-new-tab-tag")
     item (_("Open in New Window"), "win.open-new-window-tag")
   }
+
   section {
     item {
       label: _("Move Up");
       action: "win.move-tag-up";
       hidden-when: "action-disabled";
     }
+
     item {
       label: _("Move Down");
       action: "win.move-tag-down";
       hidden-when: "action-disabled";
     }
   }
+
   section {
     item (_("Remove Category"), "win.remove-tag")
   }
@@ -603,6 +628,7 @@ menu file_right_click {
     item (_("Open in New Tab"), "win.open-new-tab-sidebar")
     item (_("Open in New Window"), "win.open-new-window-sidebar")
   }
+
   section {
     item {
       label: _("Empty Trash…");
@@ -610,6 +636,7 @@ menu file_right_click {
       hidden-when: "action-disabled";
     }
   }
+
   section {
     item {
       label: _("Clear History");
@@ -617,6 +644,7 @@ menu file_right_click {
       hidden-when: "action-disabled";
     }
   }
+
   section {
     item {
       label: _("Properties");

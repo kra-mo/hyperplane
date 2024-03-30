@@ -1,12 +1,12 @@
 using Gtk 4.0;
 
-template $HypPathEntry : Entry {
-    hexpand: true;
+template $HypPathEntry: Entry {
+  hexpand: true;
 
-    ShortcutController {
-        Shortcut {
-            trigger: "Escape";
-            action: "action(win.hide-path-entry)";
-        }
+  ShortcutController {
+    Shortcut {
+      trigger: "Escape";
+      action: "action(win.hide-path-entry)";
     }
+  }
 }

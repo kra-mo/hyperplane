@@ -1,93 +1,97 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $HypNewFileDialog : Adw.Dialog {
-    title: _("New File");
-    content-width: 450;
+template $HypNewFileDialog: Adw.Dialog {
+  title: _("New File");
+  content-width: 450;
 
-    Adw.NavigationView navigation_view {
-        Adw.NavigationPage {
-            title: _("New File");
+  Adw.NavigationView navigation_view {
+    Adw.NavigationPage {
+      title: _("New File");
 
-            Adw.ToolbarView toolbar_view {
-                [top]
-                Adw.HeaderBar {}
-
-                Adw.StatusPage {
-                    title: _("No Templates");
-                    description: _("Place files in your Templates folder for them to show up here");
-                    icon-name: "folder-templates-symbolic";
-
-                    Button templates_folder_button {
-                        halign: center;
-                        label: _("Open Templates");
-
-                        styles [
-                            "pill",
-                            "suggested-action",
-                        ]
-                    }
-                }
-            }
-        }
-    }
-}
-
-Adw.PreferencesPage files_page {
-    description: _("Place files in your Templates folder for them to show up here");
-    Adw.PreferencesGroup files_group {}
-}
-
-Adw.NavigationPage name_page {
-    title: _("Choose File Name");
-    Adw.ToolbarView {
+      Adw.ToolbarView toolbar_view {
         [top]
         Adw.HeaderBar {}
 
-        Adw.PreferencesPage {
-            valign: center;
+        Adw.StatusPage {
+          title: _("No Templates");
+          description: _("Place files in your Templates folder for them to show up here");
+          icon-name: "folder-templates-symbolic";
 
-            Adw.PreferencesGroup {
-                Adw.Bin icon_bin {
-                    halign: center;
-                }
-            }
+          Button templates_folder_button {
+            halign: center;
+            label: _("Open Templates");
 
-            Adw.PreferencesGroup {
-                TextView name_text_view {
-                    justification: center;
-                    hexpand: true;
-                    /* HACK: these are to address a bug with the title-2 style calss + the text view */
-                    top-margin: 6;
-                    bottom-margin: 6;
-                    styles [
-                        "title-2",
-                        "bg-text-view",
-                    ]
-                }
-
-                Revealer warning_revealer {
-                    transition-type: swing_down;
-                    margin-top: 6;
-
-                    Label warning_revealer_label {
-                        justify: center;
-                        wrap: true;
-                    }
-                }
-
-                Button create_button {
-                    margin-top: 30;
-                    margin-bottom: 48;
-                    halign: center;
-                    label: _("Create File");
-
-                    styles [
-                        "pill",
-                        "suggested-action",
-                    ]
-                }
-            }
+            styles [
+              "pill",
+              "suggested-action",
+            ]
+          }
         }
+      }
     }
+  }
+}
+
+Adw.PreferencesPage files_page {
+  description: _("Place files in your Templates folder for them to show up here");
+
+  Adw.PreferencesGroup files_group {}
+}
+
+Adw.NavigationPage name_page {
+  title: _("Choose File Name");
+
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    Adw.PreferencesPage {
+      valign: center;
+
+      Adw.PreferencesGroup {
+        Adw.Bin icon_bin {
+          halign: center;
+        }
+      }
+
+      Adw.PreferencesGroup {
+        TextView name_text_view {
+          justification: center;
+          hexpand: true;
+
+          /* HACK: these are to address a bug with the title-2 style calss + the text view */
+          top-margin: 6;
+          bottom-margin: 6;
+
+          styles [
+            "title-2",
+            "bg-text-view",
+          ]
+        }
+
+        Revealer warning_revealer {
+          transition-type: swing_down;
+          margin-top: 6;
+
+          Label warning_revealer_label {
+            justify: center;
+            wrap: true;
+          }
+        }
+
+        Button create_button {
+          margin-top: 30;
+          margin-bottom: 48;
+          halign: center;
+          label: _("Create File");
+
+          styles [
+            "pill",
+            "suggested-action",
+          ]
+        }
+      }
+    }
+  }
 }

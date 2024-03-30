@@ -1,14 +1,14 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $HypVolumesBox : Adw.Bin {
-    Gtk.ListBox list_box {
-        selection-mode: none;
+template $HypVolumesBox: Adw.Bin {
+  Gtk.ListBox list_box {
+    selection-mode: none;
 
-        styles [
-        "navigation-sidebar",
-        ]
-    }
+    styles [
+      "navigation-sidebar",
+    ]
+  }
 }
 
 PopoverMenu right_click_menu {
@@ -23,6 +23,7 @@ menu right_click {
     item (_("Open in New Tab"), "win.open-new-tab-sidebar")
     item (_("Open in New Window"), "win.open-new-window-sidebar")
   }
+
   section {
     item (_("Properties"), "win.properties-sidebar")
   }
