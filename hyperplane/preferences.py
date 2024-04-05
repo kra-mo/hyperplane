@@ -32,8 +32,14 @@ class HypPreferencesDialog(Adw.PreferencesDialog):
     folders_switch_row = Gtk.Template.Child()
     single_click_open_switch_row = Gtk.Template.Child()
 
+    is_open = False
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+
+        # Make it so only one dialog can be open at a time
+        self.__class__.is_open = True
+        self.connect("closed", lambda *_: self.set_is_open(False))
 
         shared.schema.bind(
             "folders-before-files",
@@ -52,3 +58,6 @@ class HypPreferencesDialog(Adw.PreferencesDialog):
         self.folders_switch_row.connect(
             "notify::active", lambda *_: shared.postmaster.emit("sort-changed")
         )
+
+    def set_is_open(self, is_open: bool) -> None:
+        self.__class__.is_open = is_open

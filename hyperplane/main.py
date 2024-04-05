@@ -229,6 +229,9 @@ class HypApplication(Adw.Application):
         about.present(self.get_active_window())
 
     def __preferences(self, *_args: Any) -> None:
+        if HypPreferencesDialog.is_open:
+            return
+
         prefs = HypPreferencesDialog()
         prefs.present(self.get_active_window())
 
