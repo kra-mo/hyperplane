@@ -62,10 +62,10 @@ del path
 
 postmaster = HypPostmasterGeneral()
 
-closed_folder_texture = texture = Gdk.Texture.new_from_resource(
+closed_folder_texture = Gdk.Texture.new_from_resource(
     PREFIX + "/assets/folder-closed.svg"
 )
-open_folder_texture = texture = Gdk.Texture.new_from_resource(
+open_folder_texture = Gdk.Texture.new_from_resource(
     PREFIX + "/assets/folder-open.svg"
 )
 
