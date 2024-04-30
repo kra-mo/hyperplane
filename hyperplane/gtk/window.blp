@@ -101,13 +101,10 @@ template $HypWindow: Adw.ApplicationWindow {
 
               [end]
               MenuButton {
+                menu-model: primary_menu;
                 primary: true;
                 icon-name: "open-menu-symbolic";
                 tooltip-text: _("Menu");
-
-                popover: PopoverMenu {
-                  menu-model: primary_menu;
-                };
               }
             }
 
