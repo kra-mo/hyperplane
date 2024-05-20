@@ -103,6 +103,11 @@ and that looks ugly.
     background-color: @sidebar_shade_color;
 }
 
+.play-button {
+    color: white;
+    background-image: radial-gradient(circle closest-side, alpha(black, .1), transparent);
+}
+
 .circular-box {
     border-radius: 50%;
 }
