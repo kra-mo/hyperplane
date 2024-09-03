@@ -1,3 +1,8 @@
+> [!NOTE]
+> # State of the Project
+> This app is currently not actively maintained as I am focused on other projects. I do plan on either picking it up or exploring similar concepts in the future, so I will not archive the repository but I will probably not fix any active issues or accept pull requests for the time being.
+
+
 <div align="center">
   <img src="data/icons/hicolor/scalable/apps/page.kramo.Hyperplane.svg" width="128" height="128">
 
