@@ -99,7 +99,7 @@
                 {
                     "type" : "git",
                     "url" : "https://gitlab.gnome.org/jwestman/blueprint-compiler",
-                    "tag" : "v0.12.0"
+                    "tag" : "v0.16.0"
                 }
             ],
             "cleanup" : [
