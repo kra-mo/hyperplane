@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> Please use [Codeberg](https://codeberg.org/kramo/hyperplane) for issues and pull requests.
+> The GitHub repository is a [mirror](https://en.wikipedia.org/wiki/Mirror_site).
+
 > [!NOTE]
 > # State of the Project
 > This app is currently not actively maintained as I am focused on other projects. I do plan on either picking it up or exploring similar concepts in the future, so I will not archive the repository but I will probably not fix any active issues or accept pull requests for the time being.
@@ -51,7 +55,7 @@ The project is currently in beta. Most features work, but user experience still 
 
 If you want to test without risking data loss, please set the `$HYPHOME` environment variable to point to somewhere inside `~/.var/app/page.kramo.Hyperplane.Devel/` and remove the app's `--filesystem=host` access.
 
-You can download the latest beta from the [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/page.kramo.Hyperplane.Devel-x86_64.zip).
+You can download the latest beta from the GitHub [Releases page](https://github.com/kra-mo/hyperplane/releases) or the latest in-development version from [here](https://nightly.link/kra-mo/hyperplane/workflows/ci/main/page.kramo.Hyperplane.Devel-x86_64.zip).
 
 You will need the [GNOME Nightly](https://nightly.gnome.org/) runtime installed to be able to test the app.
 
