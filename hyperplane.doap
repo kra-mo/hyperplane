@@ -11,9 +11,9 @@
 Hyperplane is a non-hierarchical file manager. It allows you to organize your files by placing them in multiple categories at once while still being able to access these categories from traditional file managers.
   </description>
 
-  <homepage rdf:resource="https://github.com/kra-mo/hyperplane" />
-  <download-page rdf:resource="https://github.com/kra-mo/hyperplane" />
-  <bug-database rdf:resource="https://github.com/kra-mo/hyperplane/issues" />
+  <homepage rdf:resource="https://git.kramo.page/hyperplane" />
+  <download-page rdf:resource="https://git.kramo.page/hyperplane" />
+  <bug-database rdf:resource="https://git.kramo.page/hyperplane/issues" />
 
   <programming-language>Python</programming-language>
   <platform>GTK 4</platform>

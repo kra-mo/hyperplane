@@ -48,7 +48,6 @@ https://en.wikipedia.org/wiki/Hyperplane
 
 It is subject to change.
 
-
 # Testing
 
 The project is currently in beta. Most features work, but user experience still needs refinement.
@@ -72,7 +71,7 @@ If you want to help with code or design, please reach out or file an issue befor
 ### Building
 
 ```sh
-git clone https://github.com/kra-mo/hyperplane.git
+git clone https://git.kramo.page/hyperplane.git
 cd hyperplane
 meson setup build
 ninja -C build install
@@ -106,4 +105,4 @@ Strings are not final yet, I will set up translations closer to an initial relea
 
 The project follows the [GNOME Code of Conduct](https://conduct.gnome.org/).
 
-See [CODE_OF_CONDUCT.md](https://github.com/kra-mo/hyperplane/blob/main/CODE_OF_CONDUCT.md).
+See [CODE_OF_CONDUCT.md](https://codeberg.org/kramo/hyperplane/src/branch/main/CODE_OF_CONDUCT.md).
